@@ -1,6 +1,6 @@
-# Investment Platform - User Service
+# Tyche-Wealth - User Service
 
-Este es el servicio de usuarios de **Investment Platform**, basado en **Spring Boot** y **Java 21**.
+Este es el servicio de usuarios de **Tyche-Wealth**, basado en **Spring Boot** y **Java 21**.
 
 ## Requisitos
 

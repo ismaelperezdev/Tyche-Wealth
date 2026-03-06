@@ -1,13 +1,12 @@
-package com.ismaelperezdev.investmentplatform;
+package com.ismaelperezdev;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class InvestmentPlatformApplicationTests {
+class UserServiceApplicationTests {
 
     @Test
     void contextLoads() {
     }
 }
-

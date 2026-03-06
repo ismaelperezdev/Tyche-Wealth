@@ -1,0 +1,39 @@
+# Build artifacts
+target/
+build/
+out/
+dist/
+
+# Java / JVM
+*.class
+*.jar
+*.war
+*.ear
+hs_err_pid*
+replay_pid*
+
+# Maven / Gradle caches (local)
+.mvn/timing.properties
+.gradle/
+
+# Logs
+*.log
+logs/
+
+# Environment and local secrets
+.env
+.env.*
+*.local
+
+# IDEs and editors
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini

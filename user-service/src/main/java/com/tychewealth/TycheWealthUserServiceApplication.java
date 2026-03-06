@@ -1,13 +1,12 @@
-package com.ismaelperezdev.investmentplatform;
+package com.ismaelperezdev;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class InvestmentPlatformApplication {
+public class UserServiceApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(InvestmentPlatformApplication.class, args);
+        SpringApplication.run(UserServiceApplication.class, args);
     }
 }
-
