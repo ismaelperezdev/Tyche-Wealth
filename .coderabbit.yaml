@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "es-ES"
+early_access: false
+
+reviews:
+  profile: "chill"
+  high_level_summary: true
+  review_status: true
+  poem: false
+  collapse_walkthrough: false
+  path_filters:
+    - "user-service/**"
+    - "!user-service/target/**"
+    - "!**/.idea/**"
+    - "!**/*.iml"
+  auto_review:
+    enabled: true
+    drafts: false
+    # Regex: revisar PRs para cualquier rama base (no solo main/default)
+    base_branches:
+      - ".*"
+
+chat:
+  auto_reply: true
