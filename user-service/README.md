@@ -5,13 +5,20 @@ Este es el servicio de usuarios de **Tyche-Wealth**, basado en **Spring Boot** y
 ## Requisitos
 
 - Java 21 instalado (`java -version`)
-- Maven instalado (`mvn -version`)
+- Maven Wrapper incluido en el repo (`mvnw` / `mvnw.cmd`)
 
 ## Como ejecutar
 
 ```bash
 cd user-service
-mvn spring-boot:run
+./mvnw spring-boot:run
+```
+
+En Windows (PowerShell o CMD):
+
+```powershell
+cd user-service
+.\mvnw.cmd spring-boot:run
 ```
 
 La aplicacion arrancara por defecto en `http://localhost:8080`.
