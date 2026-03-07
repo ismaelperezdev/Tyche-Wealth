@@ -36,14 +36,13 @@ class UserMapperTest {
 
     @Test
     void toDtoMapsEntityFields() {
-        UserEntity entity = new UserEntity();
-        entity.setId(responseFixture.getId());
-        entity.setEmail(responseFixture.getEmail());
-        entity.setUsername(responseFixture.getUsername());
-        entity.setPassword("hashed");
-        entity.setCreatedAt(responseFixture.getCreatedAt());
+        baseEntity.setId(responseFixture.getId());
+        baseEntity.setEmail(responseFixture.getEmail());
+        baseEntity.setUsername(responseFixture.getUsername());
+        baseEntity.setPassword("hashed");
+        baseEntity.setCreatedAt(responseFixture.getCreatedAt());
 
-        UserResponseDto dto = mapper.toDto(entity);
+        UserResponseDto dto = mapper.toDto(baseEntity);
 
         assertNotNull(dto);
         assertEquals(responseFixture.getId(), dto.getId());
