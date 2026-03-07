@@ -77,8 +77,9 @@ public class PortfolioEntity {
 
     @PrePersist
     void onCreate() {
-        createdAt = LocalDateTime.now();
-
+        LocalDateTime now = LocalDateTime.now();
+        createdAt = now;
+        updatedAt = now;
     }
 
     @PreUpdate

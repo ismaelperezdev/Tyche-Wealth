@@ -56,14 +56,20 @@
                 referencedTableName="users"
                 referencedColumnNames="id"/>
 
+        <addUniqueConstraint
+                tableName="portfolios"
+                columnNames="user_id,name"
+                constraintName="uq_portfolio_user_id_name"/>
+
         <createIndex indexName="idx_portfolios_user_id" tableName="portfolios">
             <column name="user_id"/>
         </createIndex>
 
         <rollback>
-            <dropSequence sequenceName="portfolios_seq"/>
             <dropIndex indexName="idx_portfolios_user_id" tableName="portfolios"/>
+            <dropUniqueConstraint tableName="portfolios" constraintName="uq_portfolio_user_id_name"/>
             <dropTable tableName="portfolios"/>
+            <dropSequence sequenceName="portfolios_seq"/>
         </rollback>
 
     </changeSet>
