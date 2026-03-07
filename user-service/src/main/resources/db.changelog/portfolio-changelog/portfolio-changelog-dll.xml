@@ -9,7 +9,11 @@
 
         <preConditions onFail="MARK_RAN" onError="HALT">
             <not>
-                <tableExists tableName="portfolios"/>
+                <or>
+                    <tableExists tableName="portfolios"/>
+                    <sequenceExists sequenceName="portfolios_seq"/>
+                    <indexExists indexName="idx_portfolios_user_id"/>
+                </or>
             </not>
         </preConditions>
 

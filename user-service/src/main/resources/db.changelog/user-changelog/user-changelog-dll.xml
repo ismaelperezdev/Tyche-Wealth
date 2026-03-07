@@ -9,7 +9,10 @@
 
         <preConditions onFail="MARK_RAN" onError="HALT">
             <not>
-                <tableExists tableName="users"/>
+                <or>
+                    <tableExists tableName="users"/>
+                    <sequenceExists sequenceName="users_seq"/>
+                </or>
             </not>
         </preConditions>
 
