@@ -5,18 +5,29 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="create-users-table" author="tyche-wealth">
+    <changeSet id="create-users-sequence" author="tyche-wealth">
 
         <preConditions onFail="MARK_RAN" onError="HALT">
             <not>
-                <or>
-                    <tableExists tableName="users"/>
-                    <sequenceExists sequenceName="users_seq"/>
-                </or>
+                <sequenceExists sequenceName="users_seq"/>
             </not>
         </preConditions>
 
         <createSequence sequenceName="users_seq" startValue="1" incrementBy="1"/>
+
+        <rollback>
+            <dropSequence sequenceName="users_seq"/>
+        </rollback>
+
+    </changeSet>
+
+    <changeSet id="create-users-table" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <tableExists tableName="users"/>
+            </not>
+        </preConditions>
 
         <createTable tableName="users">
             <column name="id" type="BIGINT" defaultValueSequenceNext="users_seq">
@@ -38,7 +49,6 @@
 
         <rollback>
             <dropTable tableName="users"/>
-            <dropSequence sequenceName="users_seq"/>
         </rollback>
 
     </changeSet>
