@@ -5,4 +5,92 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
+    <changeSet id="create-assets-sequence" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <sequenceExists sequenceName="assets_seq"/>
+            </not>
+        </preConditions>
+
+        <createSequence sequenceName="assets_seq" startValue="1" incrementBy="1"/>
+
+        <rollback>
+            <dropSequence sequenceName="assets_seq"/>
+        </rollback>
+
+    </changeSet>
+
+    <changeSet id="create-assets-table" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <tableExists tableName="assets"/>
+            </not>
+        </preConditions>
+
+        <createTable tableName="assets">
+            <column name="id" type="BIGINT" defaultValueSequenceNext="assets_seq">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="portfolio_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="symbol" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="asset_type" type="VARCHAR(30)">
+                <constraints
+                        nullable="false"
+                        checkConstraint="asset_type IN ('STOCK', 'ETF', 'CRYPTO', 'BOND', 'COMMODITY', 'FOREX')"/>
+            </column>
+            <column name="quantity" type="DECIMAL(19,8)">
+                <constraints nullable="false" checkConstraint="quantity >= 0"/>
+            </column>
+            <column name="average_price" type="DECIMAL(19,4)">
+                <constraints nullable="false" checkConstraint="average_price >= 0"/>
+            </column>
+            <column name="currency" type="VARCHAR(3)">
+                <constraints
+                        nullable="false"
+                        checkConstraint="currency IN ('EUR', 'USD', 'GBP', 'CHF', 'JPY', 'CNY', 'ARS', 'BRL', 'CLP', 'COP',
+                        'DOP', 'MXN', 'PEN', 'PYG', 'SVC', 'UYU', 'VES')"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="assets"
+                baseColumnNames="portfolio_id"
+                constraintName="fk_assets_portfolios"
+                referencedTableName="portfolios"
+                referencedColumnNames="id"/>
+
+        <rollback>
+            <dropTable tableName="assets"/>
+        </rollback>
+
+    </changeSet>
+
+    <changeSet id="create-assets-portfolio-id-index" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <indexExists indexName="idx_assets_portfolio_id" tableName="assets"/>
+            </not>
+        </preConditions>
+
+        <createIndex indexName="idx_assets_portfolio_id" tableName="assets">
+            <column name="portfolio_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex indexName="idx_assets_portfolio_id" tableName="assets"/>
+        </rollback>
+
+    </changeSet>
+
 </databaseChangeLog>

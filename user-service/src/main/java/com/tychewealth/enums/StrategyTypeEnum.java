@@ -18,5 +18,5 @@ public enum StrategyTypeEnum {
 
     private final Long id;
     private final String label;
-    private final String descripcion;
+    private final String description;
 }

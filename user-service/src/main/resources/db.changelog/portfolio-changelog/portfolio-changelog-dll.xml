@@ -5,6 +5,22 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
+    <changeSet id="create-portfolios-sequence" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <sequenceExists sequenceName="portfolios_seq"/>
+            </not>
+        </preConditions>
+
+        <createSequence sequenceName="portfolios_seq" startValue="1" incrementBy="1"/>
+
+        <rollback>
+            <dropSequence sequenceName="portfolios_seq"/>
+        </rollback>
+
+    </changeSet>
+
     <changeSet id="create-portfolios-table" author="tyche-wealth">
 
         <preConditions onFail="MARK_RAN" onError="HALT">
@@ -12,8 +28,6 @@
                 <tableExists tableName="portfolios"/>
             </not>
         </preConditions>
-
-        <createSequence sequenceName="portfolios_seq" startValue="1" incrementBy="1"/>
 
         <createTable tableName="portfolios">
             <column name="id" type="BIGINT" defaultValueSequenceNext="portfolios_seq">
@@ -61,15 +75,26 @@
                 columnNames="user_id,name"
                 constraintName="uq_portfolio_user_id_name"/>
 
+        <rollback>
+            <dropTable tableName="portfolios"/>
+        </rollback>
+
+    </changeSet>
+
+    <changeSet id="create-portfolios-user-id-index" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <indexExists indexName="idx_portfolios_user_id" tableName="portfolios"/>
+            </not>
+        </preConditions>
+
         <createIndex indexName="idx_portfolios_user_id" tableName="portfolios">
             <column name="user_id"/>
         </createIndex>
 
         <rollback>
             <dropIndex indexName="idx_portfolios_user_id" tableName="portfolios"/>
-            <dropUniqueConstraint tableName="portfolios" constraintName="uq_portfolio_user_id_name"/>
-            <dropTable tableName="portfolios"/>
-            <dropSequence sequenceName="portfolios_seq"/>
         </rollback>
 
     </changeSet>

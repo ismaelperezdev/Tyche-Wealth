@@ -25,6 +25,6 @@ public enum CurrencyCodeEnum {
     VES(24L, "VES", "Venezuelan Bolivar");
 
     private final Long id;
-    private final String abreviatura;
-    private final String nombre;
+    private final String abbreviation;
+    private final String name;
 }

@@ -17,6 +17,8 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -38,6 +40,9 @@ public class PortfolioEntity {
     @JoinColumn(name = "user_id", nullable = false)
     @NotNull(message = "User cannot be null")
     private UserEntity user;
+
+    @OneToMany(mappedBy = "portfolio")
+    private List<AssetEntity> assets = new ArrayList<>();
 
     @Column(name = "name", nullable = false, length = 60)
     @NotBlank(message = "Name cannot be blank")
