@@ -5,4 +5,73 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
+    <changeSet id="create-portfolios-table" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <tableExists tableName="portfolios"/>
+            </not>
+        </preConditions>
+
+        <createSequence sequenceName="portfolios_seq" startValue="1" incrementBy="1"/>
+
+        <createTable tableName="portfolios">
+            <column name="id" type="BIGINT" defaultValueSequenceNext="portfolios_seq">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(60)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="base_currency" type="VARCHAR(3)">
+                <constraints
+                        nullable="false"
+                        checkConstraint="base_currency IN ('EUR', 'USD', 'GBP', 'CHF', 'JPY', 'CNY', 'ARS', 'BRL', 'CLP', 'COP',
+                        'DOP', 'MXN', 'PEN', 'PYG', 'SVC', 'UYU', 'VES')"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="risk_profile" type="VARCHAR(50)">
+                <constraints checkConstraint="risk_profile IN ('LOW', 'MEDIUM', 'HIGH')"/>
+            </column>
+            <column name="investment_horizon" type="VARCHAR(50)">
+                <constraints checkConstraint="investment_horizon IN ('SHORT', 'MEDIUM', 'LONG')"/>
+            </column>
+            <column name="strategy_type" type="VARCHAR(50)">
+                <constraints checkConstraint="strategy_type IN ('DIVIDEND', 'GROWTH', 'VALUE', 'INDEX', 'ETF', 'CRYPTO', 'INCOME',
+                'BALANCED', 'SPECULATIVE')"/>
+            </column>
+            <column name="max_risk" type="DECIMAL(3,2)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="portfolios"
+                baseColumnNames="user_id"
+                constraintName="fk_portfolios_users"
+                referencedTableName="users"
+                referencedColumnNames="id"/>
+
+        <addUniqueConstraint
+                tableName="portfolios"
+                columnNames="user_id,name"
+                constraintName="uq_portfolio_user_id_name"/>
+
+        <createIndex indexName="idx_portfolios_user_id" tableName="portfolios">
+            <column name="user_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex indexName="idx_portfolios_user_id" tableName="portfolios"/>
+            <dropUniqueConstraint tableName="portfolios" constraintName="uq_portfolio_user_id_name"/>
+            <dropTable tableName="portfolios"/>
+            <dropSequence sequenceName="portfolios_seq"/>
+        </rollback>
+
+    </changeSet>
+
 </databaseChangeLog>

@@ -1,0 +1,9 @@
+{
+  "name": "Income",
+  "description": "Income portfolio",
+  "baseCurrency": "EUR",
+  "riskProfile": "LOW",
+  "investmentHorizon": "LONG",
+  "strategyType": "INCOME",
+  "maxRisk": 0.25
+}

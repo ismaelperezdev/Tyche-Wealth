@@ -1,0 +1,12 @@
+{
+  "id": 7,
+  "name": "Growth",
+  "description": "Growth portfolio",
+  "baseCurrency": "USD",
+  "riskProfile": "HIGH",
+  "investmentHorizon": "LONG",
+  "strategyType": "GROWTH",
+  "maxRisk": 0.80,
+  "createdAt": "2026-03-01T00:00:00",
+  "updatedAt": "2026-03-07T00:00:00"
+}
