@@ -8,20 +8,23 @@ import com.tychewealth.enums.StrategyTypeEnum;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+import java.util.Optional;
+
 @Repository
 public interface PortfolioRepository extends JpaRepository<PortfolioEntity, Long> {
 
-    PortfolioEntity findByUserId(Long userId);
+    List<PortfolioEntity> findByUserId(Long userId);
 
-    PortfolioEntity findByUserIdAndName(Long userId, String name);
+    Optional<PortfolioEntity> findByUserIdAndName(Long userId, String name);
 
-    PortfolioEntity findByBaseCurrency(CurrencyCodeEnum baseCurrency);
+    List<PortfolioEntity> findByBaseCurrency(CurrencyCodeEnum baseCurrency);
 
-    PortfolioEntity findByRiskProfile(RiskProfileEnum riskProfile);
+    List<PortfolioEntity> findByRiskProfile(RiskProfileEnum riskProfile);
 
-    PortfolioEntity findByStrategyType(StrategyTypeEnum strategyType);
+    List<PortfolioEntity> findByStrategyType(StrategyTypeEnum strategyType);
 
-    PortfolioEntity findByInvestmentHorizon(InvestmentHorizonEnum investmentHorizon);
+    List<PortfolioEntity> findByInvestmentHorizon(InvestmentHorizonEnum investmentHorizon);
 
     Boolean existsByUserIdAndName(Long userId, String name);
 

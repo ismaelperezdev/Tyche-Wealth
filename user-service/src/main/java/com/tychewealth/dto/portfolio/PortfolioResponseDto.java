@@ -1,9 +1,14 @@
 package com.tychewealth.dto.portfolio;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.tychewealth.enums.CurrencyCodeEnum;
+import com.tychewealth.enums.InvestmentHorizonEnum;
+import com.tychewealth.enums.RiskProfileEnum;
+import com.tychewealth.enums.StrategyTypeEnum;
 import lombok.*;
 
-import java.time.LocalDate;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -16,11 +21,11 @@ public class PortfolioResponseDto {
     private Long id;
     private String name;
     private String description;
-    private String currency;
-    private String riskProfile;
-    private String investmentHorizon;
-    private String strategyType;
-    private Double maxRisk;
-    private LocalDate startDate;
-    private LocalDate updatedAt;
+    private CurrencyCodeEnum baseCurrency;
+    private RiskProfileEnum riskProfile;
+    private InvestmentHorizonEnum investmentHorizon;
+    private StrategyTypeEnum strategyType;
+    private BigDecimal maxRisk;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

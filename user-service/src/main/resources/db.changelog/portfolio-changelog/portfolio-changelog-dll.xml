@@ -22,13 +22,13 @@
             <column name="user_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column name="name" type="VARCHAR(255)">
+            <column name="name" type="VARCHAR(60)">
                 <constraints nullable="false"/>
             </column>
             <column name="base_currency" type="VARCHAR(3)">
                 <constraints
                         nullable="false"
-                        checkConstraint="base_currency IN ('EUR', 'USD', 'GBP', 'CHF', 'JPY', 'CNY', 'ARS', 'BOB', 'BRL', 'CLP', 'COP',
+                        checkConstraint="base_currency IN ('EUR', 'USD', 'GBP', 'CHF', 'JPY', 'CNY', 'ARS', 'BRL', 'CLP', 'COP',
                         'DOP', 'MXN', 'PEN', 'PYG', 'SVC', 'UYU', 'VES')"/>
             </column>
             <column name="description" type="TEXT"/>

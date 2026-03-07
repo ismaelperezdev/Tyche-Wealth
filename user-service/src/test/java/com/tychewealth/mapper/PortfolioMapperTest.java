@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -31,13 +32,16 @@ class PortfolioMapperTest {
     @BeforeEach
     void setUp() {
         baseEntity = new PortfolioEntity();
-        baseEntity.setName("Before");
-        baseEntity.setDescription("Before description");
+        baseEntity.setId(10L);
+        baseEntity.setName("Baseline");
+        baseEntity.setDescription("Baseline portfolio description");
         baseEntity.setBaseCurrency(CurrencyCodeEnum.USD);
         baseEntity.setRiskProfile(RiskProfileEnum.MEDIUM);
         baseEntity.setInvestmentHorizon(InvestmentHorizonEnum.MEDIUM);
         baseEntity.setStrategyType(StrategyTypeEnum.BALANCED);
         baseEntity.setMaxRisk(new BigDecimal("0.50"));
+        baseEntity.setCreatedAt(LocalDateTime.of(2026, 1, 1, 9, 0));
+        baseEntity.setUpdatedAt(LocalDateTime.of(2026, 1, 2, 10, 0));
 
         responseFixture = FixtureLoader.read("/fixtures/portfolio/portfolio-response.json", PortfolioResponseDto.class);
         createFixture = FixtureLoader.read("/fixtures/portfolio/portfolio-create-request.json", PortfolioCreateRequestDto.class);
@@ -46,19 +50,29 @@ class PortfolioMapperTest {
 
     @Test
     void toDtoMapsEntityFields() {
-        PortfolioEntity entity = new PortfolioEntity();
-        entity.setId(10L);
-        entity.setName("Core");
-        entity.setDescription("Core portfolio");
+        baseEntity.setName("Core");
+        baseEntity.setDescription("Core portfolio");
+        baseEntity.setBaseCurrency(CurrencyCodeEnum.EUR);
+        baseEntity.setRiskProfile(RiskProfileEnum.LOW);
+        baseEntity.setInvestmentHorizon(InvestmentHorizonEnum.SHORT);
+        baseEntity.setStrategyType(StrategyTypeEnum.VALUE);
+        baseEntity.setMaxRisk(new BigDecimal("0.35"));
+        baseEntity.setCreatedAt(LocalDateTime.of(2026, 3, 1, 10, 0));
+        baseEntity.setUpdatedAt(LocalDateTime.of(2026, 3, 7, 11, 30));
 
-        PortfolioResponseDto dto = mapper.toDto(entity);
+        PortfolioResponseDto dto = mapper.toDto(baseEntity);
 
         assertNotNull(dto);
         assertEquals(10L, dto.getId());
         assertEquals("Core", dto.getName());
         assertEquals("Core portfolio", dto.getDescription());
-        assertNull(dto.getCurrency());
-        assertNull(dto.getMaxRisk());
+        assertEquals(CurrencyCodeEnum.EUR, dto.getBaseCurrency());
+        assertEquals(RiskProfileEnum.LOW, dto.getRiskProfile());
+        assertEquals(InvestmentHorizonEnum.SHORT, dto.getInvestmentHorizon());
+        assertEquals(StrategyTypeEnum.VALUE, dto.getStrategyType());
+        assertEquals(0, new BigDecimal("0.35").compareTo(dto.getMaxRisk()));
+        assertEquals(LocalDateTime.of(2026, 3, 1, 10, 0), dto.getCreatedAt());
+        assertEquals(LocalDateTime.of(2026, 3, 7, 11, 30), dto.getUpdatedAt());
     }
 
     @Test
@@ -69,8 +83,13 @@ class PortfolioMapperTest {
         assertEquals(7L, entity.getId());
         assertEquals("Growth", entity.getName());
         assertEquals("Growth portfolio", entity.getDescription());
-        assertNull(entity.getBaseCurrency());
+        assertEquals(CurrencyCodeEnum.USD, entity.getBaseCurrency());
+        assertEquals(RiskProfileEnum.HIGH, entity.getRiskProfile());
+        assertEquals(InvestmentHorizonEnum.LONG, entity.getInvestmentHorizon());
+        assertEquals(StrategyTypeEnum.GROWTH, entity.getStrategyType());
         assertEquals(0, new BigDecimal("0.8").compareTo(entity.getMaxRisk()));
+        assertEquals(LocalDateTime.of(2026, 3, 1, 0, 0), entity.getCreatedAt());
+        assertEquals(LocalDateTime.of(2026, 3, 7, 0, 0), entity.getUpdatedAt());
     }
 
     @Test
@@ -93,7 +112,7 @@ class PortfolioMapperTest {
         mapper.update(updateFixture, baseEntity);
 
         assertEquals("After", baseEntity.getName());
-        assertEquals("Before description", baseEntity.getDescription());
+        assertEquals("Baseline portfolio description", baseEntity.getDescription());
         assertEquals(CurrencyCodeEnum.EUR, baseEntity.getBaseCurrency());
         assertEquals(RiskProfileEnum.MEDIUM, baseEntity.getRiskProfile());
         assertEquals(InvestmentHorizonEnum.MEDIUM, baseEntity.getInvestmentHorizon());

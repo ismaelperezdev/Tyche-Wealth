@@ -39,9 +39,9 @@ public class PortfolioEntity {
     @NotNull(message = "User cannot be null")
     private UserEntity user;
 
-    @Column(name = "name", nullable = false, length = 255)
+    @Column(name = "name", nullable = false, length = 60)
     @NotBlank(message = "Name cannot be blank")
-    @Size(max = 255, message = "Name must be at most 255 characters")
+    @Size(min = 3, max = 60, message = "Name must be between 3 and 60 characters")
     private String name;
 
     @Column(name = "description", columnDefinition = "TEXT")

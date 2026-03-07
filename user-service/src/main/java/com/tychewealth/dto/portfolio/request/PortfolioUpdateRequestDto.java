@@ -4,10 +4,7 @@ import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.enums.InvestmentHorizonEnum;
 import com.tychewealth.enums.RiskProfileEnum;
 import com.tychewealth.enums.StrategyTypeEnum;
-import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,7 +20,9 @@ import java.math.BigDecimal;
 @ToString
 public class PortfolioUpdateRequestDto {
 
-    @Size(max = 255, message = "Name must be at most 255 characters")
+    @NotBlank(message = "Name cannot be blank")
+    @Size(min = 3, max = 60, message = "Name must be between 3 and 60 characters")
+    @Pattern(regexp = ".*\\S.*", message = "Name must not be blank")
     private String name;
 
     private String description;

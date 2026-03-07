@@ -25,11 +25,8 @@ import java.math.BigDecimal;
 @ToString
 public class PortfolioCreateRequestDto {
 
-    @NotNull(message = "User id cannot be null")
-    private Long userId;
-
     @NotBlank(message = "Name cannot be blank")
-    @Size(max = 255, message = "Name must be at most 255 characters")
+    @Size(min = 3, max = 60, message = "Name must be between 3 and 60 characters")
     private String name;
 
     private String description;
