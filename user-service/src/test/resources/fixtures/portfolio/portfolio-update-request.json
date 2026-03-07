@@ -1,0 +1,6 @@
+{
+  "name": "After",
+  "baseCurrency": "EUR",
+  "strategyType": "DIVIDEND",
+  "maxRisk": 0.30
+}
