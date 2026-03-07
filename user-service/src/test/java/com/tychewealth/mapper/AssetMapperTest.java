@@ -58,7 +58,6 @@ class AssetMapperTest {
 
         assertNotNull(dto);
         assertEquals(10L, dto.getId());
-        assertNull(dto.getName());
         assertEquals("AAPL", dto.getSymbol());
         assertEquals(AssetTypeEnum.STOCK, dto.getAssetType());
         assertEquals(0, new BigDecimal("10.00000000").compareTo(dto.getQuantity()));

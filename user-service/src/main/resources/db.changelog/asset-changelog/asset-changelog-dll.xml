@@ -26,13 +26,15 @@
                 <constraints nullable="false"/>
             </column>
             <column name="asset_type" type="VARCHAR(30)">
-                <constraints nullable="false"/>
+                <constraints
+                        nullable="false"
+                        checkConstraint="asset_type IN ('STOCK', 'ETF', 'CRYPTO', 'BOND', 'COMMODITY', 'FOREX')"/>
             </column>
             <column name="quantity" type="DECIMAL(19,8)">
-                <constraints nullable="false"/>
+                <constraints nullable="false" checkConstraint="quantity >= 0"/>
             </column>
             <column name="average_price" type="DECIMAL(19,4)">
-                <constraints nullable="false"/>
+                <constraints nullable="false" checkConstraint="average_price >= 0"/>
             </column>
             <column name="currency" type="VARCHAR(3)">
                 <constraints

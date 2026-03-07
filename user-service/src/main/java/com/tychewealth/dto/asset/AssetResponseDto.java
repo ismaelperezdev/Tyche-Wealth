@@ -17,7 +17,6 @@ import java.time.LocalDateTime;
 public class AssetResponseDto {
 
     private Long id;
-    private String name;
     private CurrencyCodeEnum currency;
     private String symbol;
     private AssetTypeEnum assetType;
