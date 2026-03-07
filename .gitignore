@@ -24,6 +24,7 @@ logs/
 .env
 .env.*
 *.local
+user-service/application-local.properties
 
 # IDEs and editors
 .idea/
