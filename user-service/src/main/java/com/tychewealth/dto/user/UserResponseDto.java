@@ -1,8 +1,8 @@
 package com.tychewealth.dto.user;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.*;
 import java.time.LocalDateTime;
+import lombok.*;
 
 @Getter
 @Setter
@@ -12,8 +12,8 @@ import java.time.LocalDateTime;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserResponseDto {
 
-    private Long id;
-    private String email;
-    private String username;
-    private LocalDateTime createdAt;
+  private Long id;
+  private String email;
+  private String username;
+  private LocalDateTime createdAt;
 }

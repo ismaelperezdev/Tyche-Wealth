@@ -1,53 +1,49 @@
 package com.tychewealth.repository;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.tychewealth.entity.UserEntity;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-@DataJpaTest(properties = {
-        "spring.liquibase.enabled=false",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
-})
+@DataJpaTest(
+    properties = {"spring.liquibase.enabled=false", "spring.jpa.hibernate.ddl-auto=create-drop"})
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 class UserRepositoryTest {
 
-    @Autowired
-    private UserRepository userRepository;
+  @Autowired private UserRepository userRepository;
 
-    @Test
-    void findByEmailReturnsSavedUser() {
-        UserEntity user = buildUser("maria@tyche.com", "maria");
-        userRepository.save(user);
+  @Test
+  void findByEmailReturnsSavedUser() {
+    UserEntity user = buildUser("maria@tyche.com", "maria");
+    userRepository.save(user);
 
-        Optional<UserEntity> result = userRepository.findByEmail("maria@tyche.com");
+    Optional<UserEntity> result = userRepository.findByEmail("maria@tyche.com");
 
-        assertTrue(result.isPresent());
-        assertEquals("maria", result.get().getUsername());
-    }
+    assertTrue(result.isPresent());
+    assertEquals("maria", result.get().getUsername());
+  }
 
-    @Test
-    void findByUsernameReturnsSavedUser() {
-        UserEntity user = buildUser("carlos@tyche.com", "carlos");
-        userRepository.save(user);
+  @Test
+  void findByUsernameReturnsSavedUser() {
+    UserEntity user = buildUser("carlos@tyche.com", "carlos");
+    userRepository.save(user);
 
-        Optional<UserEntity> result = userRepository.findByUsername("carlos");
+    Optional<UserEntity> result = userRepository.findByUsername("carlos");
 
-        assertTrue(result.isPresent());
-        assertEquals("carlos@tyche.com", result.get().getEmail());
-    }
+    assertTrue(result.isPresent());
+    assertEquals("carlos@tyche.com", result.get().getEmail());
+  }
 
-    private UserEntity buildUser(String email, String username) {
-        UserEntity user = new UserEntity();
-        user.setEmail(email);
-        user.setUsername(username);
-        user.setPassword("secret");
-        return user;
-    }
+  private UserEntity buildUser(String email, String username) {
+    UserEntity user = new UserEntity();
+    user.setEmail(email);
+    user.setUsername(username);
+    user.setPassword("secret123");
+    return user;
+  }
 }
