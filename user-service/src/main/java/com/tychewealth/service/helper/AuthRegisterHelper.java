@@ -6,7 +6,6 @@ import com.tychewealth.dto.user.request.UserCreateRequestDto;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.mapper.user.UserMapper;
 import com.tychewealth.repository.UserRepository;
-import com.tychewealth.utils.AuthInputNormalizer;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,7 +21,6 @@ public class AuthRegisterHelper {
   private final PasswordEncoder passwordEncoder;
 
   public UserResponseDto createUser(UserCreateRequestDto register) {
-    AuthInputNormalizer.normalizeRegisterIdentifiers(register);
     UserEntity toCreate = userMapper.create(register);
     toCreate.setPassword(passwordEncoder.encode(register.getPassword()));
     UserEntity created = userRepository.save(toCreate);
