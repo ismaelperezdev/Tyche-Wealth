@@ -4,11 +4,11 @@ import org.mapstruct.MappingTarget;
 
 public interface GenericMapper<D, E, C, U> {
 
-    D toDto(E entity);
+  D toDto(E entity);
 
-    E toEntity(D dto);
+  E toEntity(D dto);
 
-    E create(C createBody);
+  E create(C createBody);
 
-    void update(U updateBody, @MappingTarget E entity);
+  void update(U updateBody, @MappingTarget E entity);
 }
