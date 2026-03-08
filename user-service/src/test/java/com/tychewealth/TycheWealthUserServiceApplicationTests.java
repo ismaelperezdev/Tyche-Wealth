@@ -1,9 +1,12 @@
 package com.tychewealth;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import com.tychewealth.config.IntegrationTestConfig;
+import com.tychewealth.config.TestDatabaseConfig;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Import;
 
-@SpringBootTest
-class TycheWealthUserServiceApplicationTests {
-
-}
+@TestConfiguration
+@EnableAutoConfiguration
+@Import({IntegrationTestConfig.class, TestDatabaseConfig.class})
+public class TycheWealthUserServiceApplicationTests {}

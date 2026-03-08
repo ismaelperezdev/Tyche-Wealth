@@ -9,5 +9,9 @@ import com.tychewealth.mapper.GenericMapperConfig;
 import org.mapstruct.Mapper;
 
 @Mapper(config = GenericMapperConfig.class)
-public interface PortfolioMapper extends GenericMapper<PortfolioResponseDto, PortfolioEntity, PortfolioCreateRequestDto, PortfolioUpdateRequestDto> {
-}
+public interface PortfolioMapper
+    extends GenericMapper<
+        PortfolioResponseDto,
+        PortfolioEntity,
+        PortfolioCreateRequestDto,
+        PortfolioUpdateRequestDto> {}

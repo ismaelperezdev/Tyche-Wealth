@@ -4,39 +4,44 @@ import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.enums.InvestmentHorizonEnum;
 import com.tychewealth.enums.RiskProfileEnum;
 import com.tychewealth.enums.StrategyTypeEnum;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
-
-import java.math.BigDecimal;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
 public class PortfolioUpdateRequestDto {
 
-    @NotBlank(message = "Name cannot be blank")
-    @Size(min = 3, max = 60, message = "Name must be between 3 and 60 characters")
-    @Pattern(regexp = ".*\\S.*", message = "Name must not be blank")
-    private String name;
+  @NotBlank(message = "Name cannot be blank")
+  @Size(min = 3, max = 60, message = "Name must be between 3 and 60 characters")
+  @Pattern(regexp = ".*\\S.*", message = "Name must not be blank")
+  private String name;
 
-    private String description;
+  private String description;
 
-    private CurrencyCodeEnum baseCurrency;
+  private CurrencyCodeEnum baseCurrency;
 
-    private RiskProfileEnum riskProfile;
+  private RiskProfileEnum riskProfile;
 
-    private InvestmentHorizonEnum investmentHorizon;
+  private InvestmentHorizonEnum investmentHorizon;
 
-    private StrategyTypeEnum strategyType;
+  private StrategyTypeEnum strategyType;
 
-    @Digits(integer = 1, fraction = 2, message = "Max risk must have up to 1 integer digit and 2 decimals")
-    @DecimalMin(value = "0.00", message = "Max risk must be greater than or equal to 0.00")
-    @DecimalMax(value = "1.00", message = "Max risk must be less than or equal to 1.00")
-    private BigDecimal maxRisk;
+  @Digits(
+      integer = 1,
+      fraction = 2,
+      message = "Max risk must have up to 1 integer digit and 2 decimals")
+  @DecimalMin(value = "0.00", message = "Max risk must be greater than or equal to 0.00")
+  @DecimalMax(value = "1.00", message = "Max risk must be less than or equal to 1.00")
+  private BigDecimal maxRisk;
 }

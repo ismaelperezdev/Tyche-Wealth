@@ -9,5 +9,6 @@ import com.tychewealth.mapper.GenericMapperConfig;
 import org.mapstruct.Mapper;
 
 @Mapper(config = GenericMapperConfig.class)
-public interface AssetMapper extends GenericMapper<AssetResponseDto, AssetEntity, AssetCreateRequestDto, AssetUpdateRequestDto> {
-}
+public interface AssetMapper
+    extends GenericMapper<
+        AssetResponseDto, AssetEntity, AssetCreateRequestDto, AssetUpdateRequestDto> {}
