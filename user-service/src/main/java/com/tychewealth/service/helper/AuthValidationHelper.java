@@ -5,6 +5,7 @@ import com.tychewealth.dto.user.request.UserCreateRequestDto;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.UserRepository;
+import com.tychewealth.utils.AuthInputNormalizer;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,7 @@ public class AuthValidationHelper {
   private final UserRepository userRepository;
 
   public void validateRegisterRequest(UserCreateRequestDto register) {
+    AuthInputNormalizer.normalizeRegisterIdentifiers(register);
 
     if (userRepository.findByEmail(register.getEmail()).isPresent()) {
       log.warn(

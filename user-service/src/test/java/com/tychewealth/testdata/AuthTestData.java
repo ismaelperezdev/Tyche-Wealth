@@ -32,10 +32,10 @@ public final class AuthTestData {
             "Password cannot be blank"),
         Arguments.of(
             new UserCreateRequestDto("valid@mail.com", "validuser", "1234567"),
-            "Password must be between 8 and 72 characters"),
+            "Password must be at least 8 characters"),
         Arguments.of(
             new UserCreateRequestDto("valid@mail.com", "validuser", "a".repeat(73)),
-            "Password must be between 8 and 72 characters"));
+            "Password must be at most 72 bytes when UTF-8 encoded"));
   }
 
   private static String buildLongEmail(int totalLength) {

@@ -1,8 +1,10 @@
 package com.tychewealth.dto.user.request;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.nio.charset.StandardCharsets;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,6 +26,11 @@ public class UserCreateRequestDto {
   private String username;
 
   @NotBlank(message = "Password cannot be blank")
-  @Size(min = 8, max = 72, message = "Password must be between 8 and 72 characters")
+  @Size(min = 8, message = "Password must be at least 8 characters")
   private String password;
+
+  @AssertTrue(message = "Password must be at most 72 bytes when UTF-8 encoded")
+  private boolean isPasswordWithinBcryptLimit() {
+    return password == null || password.getBytes(StandardCharsets.UTF_8).length <= 72;
+  }
 }

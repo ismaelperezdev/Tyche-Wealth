@@ -4,14 +4,11 @@ import com.tychewealth.constants.LogConstants;
 import com.tychewealth.dto.user.UserResponseDto;
 import com.tychewealth.dto.user.request.UserCreateRequestDto;
 import com.tychewealth.entity.UserEntity;
-import com.tychewealth.error.exception.AuthException;
-import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.mapper.user.UserMapper;
 import com.tychewealth.repository.UserRepository;
+import com.tychewealth.utils.AuthInputNormalizer;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -25,20 +22,10 @@ public class AuthRegisterHelper {
   private final PasswordEncoder passwordEncoder;
 
   public UserResponseDto createUser(UserCreateRequestDto register) {
+    AuthInputNormalizer.normalizeRegisterIdentifiers(register);
     UserEntity toCreate = userMapper.create(register);
     toCreate.setPassword(passwordEncoder.encode(register.getPassword()));
-    UserEntity created;
-    try {
-      created = userRepository.save(toCreate);
-    } catch (DataIntegrityViolationException ex) {
-      log.warn(
-          LogConstants.REQUEST_CONFLICT,
-          LogConstants.AUTH,
-          LogConstants.REGISTER_ACTION,
-          "registration conflict detected at persistence layer");
-      throw new AuthException(
-          ErrorDefinition.AUTH_REGISTRATION_CONFLICT, null, HttpStatus.CONFLICT);
-    }
+    UserEntity created = userRepository.save(toCreate);
     UserResponseDto response = userMapper.toDto(created);
 
     log.info(
