@@ -11,13 +11,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
 public class AssetUpdateRequestDto {
 
   @Size(max = 20, message = "Symbol must be at most 20 characters")

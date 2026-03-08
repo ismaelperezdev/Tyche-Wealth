@@ -2,7 +2,6 @@ package com.tychewealth.error.handler;
 
 import com.tychewealth.error.exception.AuthException;
 import jakarta.validation.ConstraintViolationException;
-import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -21,8 +20,7 @@ public class ErrorHandler {
     ErrorDefinition definition =
         ex.getErrorDefinition() != null ? ex.getErrorDefinition() : ErrorDefinition.CONFLICT;
     HttpStatus status = ex.getHttpStatus() == null ? HttpStatus.CONFLICT : ex.getHttpStatus();
-    String description = resolveTemplate(definition.getDescription(), ex.getMetadata());
-    return build(definition, status, description);
+    return build(definition, status, definition.getDescription());
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -52,17 +50,17 @@ public class ErrorHandler {
   @ExceptionHandler(DataIntegrityViolationException.class)
   public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
       DataIntegrityViolationException ex) {
-    String description =
-        ex.getMostSpecificCause() != null && ex.getMostSpecificCause().getMessage() != null
-            ? ex.getMostSpecificCause().getMessage()
-            : ErrorDefinition.CONFLICT.getDescription();
-    return build(ErrorDefinition.CONFLICT, HttpStatus.CONFLICT, description);
+
+    return build(
+        ErrorDefinition.CONFLICT, HttpStatus.CONFLICT, ErrorDefinition.CONFLICT.getDescription());
   }
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
     return build(
-        ErrorDefinition.GENERIC_INTERNAL_ERROR, HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+        ErrorDefinition.GENERIC_INTERNAL_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        ErrorDefinition.GENERIC_INTERNAL_ERROR.getDescription());
   }
 
   private ResponseEntity<ErrorResponse> build(
@@ -95,19 +93,5 @@ public class ErrorHandler {
     String message =
         error.getDefaultMessage() == null ? "invalid value" : error.getDefaultMessage();
     return error.getField() + ": " + message;
-  }
-
-  private String resolveTemplate(String template, Map<String, String> metadata) {
-    if (template == null || template.isBlank() || metadata == null || metadata.isEmpty()) {
-      return template;
-    }
-
-    String result = template;
-    for (Map.Entry<String, String> entry : metadata.entrySet()) {
-      String key = entry.getKey();
-      String value = entry.getValue() == null ? "" : entry.getValue();
-      result = result.replace("${" + key + ":-}", value);
-    }
-    return result;
   }
 }

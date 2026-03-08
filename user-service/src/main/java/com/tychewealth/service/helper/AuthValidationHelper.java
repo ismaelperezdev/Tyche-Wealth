@@ -5,7 +5,6 @@ import com.tychewealth.dto.user.request.UserCreateRequestDto;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.UserRepository;
-import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -28,9 +27,7 @@ public class AuthValidationHelper {
           "email already exists");
 
       throw new AuthException(
-          ErrorDefinition.AUTH_EMAIL_ALREADY_EXISTS_ERROR,
-          Map.of("email", register.getEmail()),
-          HttpStatus.CONFLICT);
+          ErrorDefinition.AUTH_REGISTRATION_CONFLICT, null, HttpStatus.CONFLICT);
     }
 
     if (userRepository.findByUsername(register.getUsername()).isPresent()) {
@@ -41,9 +38,7 @@ public class AuthValidationHelper {
           "username already exists");
 
       throw new AuthException(
-          ErrorDefinition.AUTH_USERNAME_ALREADY_EXISTS_ERROR,
-          Map.of("username", register.getUsername()),
-          HttpStatus.CONFLICT);
+          ErrorDefinition.AUTH_REGISTRATION_CONFLICT, null, HttpStatus.CONFLICT);
     }
   }
 }

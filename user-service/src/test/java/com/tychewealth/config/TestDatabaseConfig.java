@@ -27,6 +27,9 @@ public class TestDatabaseConfig {
 
   @Bean
   public HibernatePropertiesCustomizer hibernateCreateDropCustomizer() {
-    return properties -> properties.put("hibernate.hbm2ddl.auto", "create-drop");
+    return properties -> {
+      properties.put("hibernate.hbm2ddl.auto", "create-drop");
+      properties.put("spring.liquibase.enabled", "false");
+    };
   }
 }

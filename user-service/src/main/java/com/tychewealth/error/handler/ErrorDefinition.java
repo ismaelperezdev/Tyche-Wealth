@@ -15,14 +15,10 @@ public enum ErrorDefinition {
   FORBIDDEN("TYCHE-007", "FORBIDDEN", "You do not have permission to perform this action"),
 
   // AUTH
-  AUTH_EMAIL_ALREADY_EXISTS_ERROR(
+  AUTH_REGISTRATION_CONFLICT(
       "TYCHE-100",
-      "AUTH_EMAIL_ALREADY_EXISTS_ERROR",
-      "The email ${email:-} is already linked to other user"),
-  AUTH_USERNAME_ALREADY_EXISTS_ERROR(
-      "TYCHE-101",
-      "AUTH_USERNAME_ALREADY_EXISTS_ERROR",
-      "The username ${username:-} is already linked to other user");
+      "AUTH_REGISTRATION_CONFLICT",
+      "A user with the provided credentials already exists");
 
   private final String code;
   private final String type;

@@ -4,7 +4,21 @@ import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.enums.InvestmentHorizonEnum;
 import com.tychewealth.enums.RiskProfileEnum;
 import com.tychewealth.enums.StrategyTypeEnum;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
@@ -52,6 +66,7 @@ public class PortfolioEntity {
 
   @Enumerated(EnumType.STRING)
   @Column(name = "base_currency", nullable = false, length = 3)
+  @NotNull(message = "Base currency cannot be null")
   private CurrencyCodeEnum baseCurrency;
 
   @Enumerated(EnumType.STRING)

@@ -78,7 +78,8 @@ class AuthApiControllerIntegrationTest {
         .andExpect(jsonPath("$.id").isNumber())
         .andExpect(jsonPath("$.email").value(validRequest.getEmail()))
         .andExpect(jsonPath("$.username").value(validRequest.getUsername()))
-        .andExpect(jsonPath("$.createdAt").exists());
+        .andExpect(jsonPath("$.createdAt").exists())
+        .andExpect(jsonPath("$.password").doesNotExist());
 
     UserEntity created = userRepository.findByEmail(validRequest.getEmail()).orElseThrow();
     assertNotNull(created.getId());
@@ -97,9 +98,9 @@ class AuthApiControllerIntegrationTest {
                 .content(objectMapper.writeValueAsString(conflictByEmailRequest)))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value("TYCHE-100"))
-        .andExpect(jsonPath("$.type").value("AUTH_EMAIL_ALREADY_EXISTS_ERROR"))
+        .andExpect(jsonPath("$.type").value("AUTH_REGISTRATION_CONFLICT"))
         .andExpect(
-            jsonPath("$.description").value(containsString(conflictByEmailRequest.getEmail())));
+            jsonPath("$.description").value("A user with the provided credentials already exists"));
   }
 
   @Test
@@ -112,11 +113,10 @@ class AuthApiControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(conflictByUsernameRequest)))
         .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.code").value("TYCHE-101"))
-        .andExpect(jsonPath("$.type").value("AUTH_USERNAME_ALREADY_EXISTS_ERROR"))
+        .andExpect(jsonPath("$.code").value("TYCHE-100"))
+        .andExpect(jsonPath("$.type").value("AUTH_REGISTRATION_CONFLICT"))
         .andExpect(
-            jsonPath("$.description")
-                .value(containsString(conflictByUsernameRequest.getUsername())));
+            jsonPath("$.description").value("A user with the provided credentials already exists"));
   }
 
   @ParameterizedTest

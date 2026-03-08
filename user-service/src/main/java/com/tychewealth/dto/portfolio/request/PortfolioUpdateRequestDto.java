@@ -4,19 +4,22 @@ import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.enums.InvestmentHorizonEnum;
 import com.tychewealth.enums.RiskProfileEnum;
 import com.tychewealth.enums.StrategyTypeEnum;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
 public class PortfolioUpdateRequestDto {
 
   @NotBlank(message = "Name cannot be blank")
