@@ -10,14 +10,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.nio.charset.StandardCharsets;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @NoArgsConstructor
-@AllArgsConstructor
 public class RegisterRequestDto {
 
   @NotBlank(message = "Email cannot be blank")
@@ -43,6 +41,12 @@ public class RegisterRequestDto {
 
   public void setUsername(String username) {
     this.username = Utils.normalizeIdentity(username);
+  }
+
+  public RegisterRequestDto(String email, String username, String password) {
+    setEmail(email);
+    setUsername(username);
+    this.password = password;
   }
 
   @AssertTrue(message = "Password must be at most 72 bytes when UTF-8 encoded")
