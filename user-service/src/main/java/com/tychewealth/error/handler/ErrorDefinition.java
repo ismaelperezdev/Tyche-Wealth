@@ -18,7 +18,13 @@ public enum ErrorDefinition {
   AUTH_REGISTRATION_CONFLICT(
       "TYCHE-100",
       "AUTH_REGISTRATION_CONFLICT",
-      "A user with the provided credentials already exists");
+      "A user with the provided credentials already exists"),
+  AUTH_LOGIN_CONFLICT(
+      "TYCHE-101", "AUTH_LOGIN_CONFLICT", "The provided login credentials are invalid"),
+  AUTH_LOGIN_PASSWORD_FORMAT_INVALID(
+      "TYCHE-102",
+      "AUTH_LOGIN_PASSWORD_FORMAT_INVALID",
+      "Password must be 8-72 characters and include at least one uppercase letter, one lowercase letter, one number, and one symbol");
 
   private final String code;
   private final String type;

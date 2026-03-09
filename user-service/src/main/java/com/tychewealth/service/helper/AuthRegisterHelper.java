@@ -2,7 +2,7 @@ package com.tychewealth.service.helper;
 
 import com.tychewealth.constants.LogConstants;
 import com.tychewealth.dto.user.UserResponseDto;
-import com.tychewealth.dto.user.request.UserCreateRequestDto;
+import com.tychewealth.dto.user.request.RegisterRequestDto;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.mapper.user.UserMapper;
 import com.tychewealth.repository.UserRepository;
@@ -20,7 +20,7 @@ public class AuthRegisterHelper {
   private final UserMapper userMapper;
   private final PasswordEncoder passwordEncoder;
 
-  public UserResponseDto createUser(UserCreateRequestDto register) {
+  public UserResponseDto createUser(RegisterRequestDto register) {
     UserEntity toCreate = userMapper.create(register);
     toCreate.setPassword(passwordEncoder.encode(register.getPassword()));
     UserEntity created = userRepository.save(toCreate);

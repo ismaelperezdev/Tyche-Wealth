@@ -1,0 +1,45 @@
+package com.tychewealth.dto.user.request;
+
+import static com.tychewealth.constants.AuthConstants.BCRYPT_MAX_PASSWORD_BYTES;
+import static com.tychewealth.constants.AuthConstants.LOGIN_PASSWORD_POLICY;
+
+import com.tychewealth.utils.Utils;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import java.nio.charset.StandardCharsets;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+public class LoginRequestDto {
+
+  @NotBlank(message = "Email cannot be blank")
+  @Email(message = "Email format is invalid")
+  @Size(max = 254, message = "Email must be at most 254 characters")
+  private String email;
+
+  @Setter
+  @NotBlank(message = "Password cannot be blank")
+  @Size(min = 8, message = "Password must be at least 8 characters")
+  @Pattern(
+      regexp = LOGIN_PASSWORD_POLICY,
+      message = "Password must include uppercase, lowercase, number and symbol")
+  private String password;
+
+  public void setEmail(String email) {
+    this.email = Utils.normalizeIdentity(email);
+  }
+
+  @AssertTrue(message = "Password must be at most 72 bytes when UTF-8 encoded")
+  private boolean isPasswordWithinBcryptLimit() {
+    return password == null
+        || password.getBytes(StandardCharsets.UTF_8).length <= BCRYPT_MAX_PASSWORD_BYTES;
+  }
+}

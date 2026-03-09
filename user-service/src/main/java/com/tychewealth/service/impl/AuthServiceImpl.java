@@ -1,11 +1,18 @@
 package com.tychewealth.service.impl;
 
+import static com.tychewealth.constants.AuthConstants.EMAIL_CONSTRAINT;
+import static com.tychewealth.constants.AuthConstants.USERNAME_CONSTRAINT;
+
 import com.tychewealth.constants.LogConstants;
+import com.tychewealth.dto.user.LoginResponseDto;
 import com.tychewealth.dto.user.UserResponseDto;
-import com.tychewealth.dto.user.request.UserCreateRequestDto;
+import com.tychewealth.dto.user.request.LoginRequestDto;
+import com.tychewealth.dto.user.request.RegisterRequestDto;
+import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.service.AuthService;
+import com.tychewealth.service.helper.AuthLoginHelper;
 import com.tychewealth.service.helper.AuthRegisterHelper;
 import com.tychewealth.service.helper.AuthValidationHelper;
 import java.util.Locale;
@@ -23,28 +30,39 @@ public class AuthServiceImpl implements AuthService {
 
   private final AuthValidationHelper authValidationHelper;
   private final AuthRegisterHelper authRegisterHelper;
+  private final AuthLoginHelper authLoginHelper;
 
   @Override
-  public UserResponseDto register(UserCreateRequestDto register) {
+  public UserResponseDto register(RegisterRequestDto register) {
     authValidationHelper.validateRegisterRequest(register);
+
     try {
       return authRegisterHelper.createUser(register);
     } catch (DataIntegrityViolationException ex) {
       if (!isUserUniqueConstraintViolation(ex)) {
         throw ex;
       }
+
       log.warn(
           LogConstants.REQUEST_CONFLICT,
           LogConstants.AUTH,
           LogConstants.REGISTER_ACTION,
           "registration conflict detected at persistence layer");
+
       throw new AuthException(
           ErrorDefinition.AUTH_REGISTRATION_CONFLICT, null, HttpStatus.CONFLICT);
     }
   }
 
+  @Override
+  public LoginResponseDto login(LoginRequestDto login) {
+    UserEntity user = authValidationHelper.validateLoginRequest(login);
+    return authLoginHelper.login(user);
+  }
+
   private boolean isUserUniqueConstraintViolation(Throwable throwable) {
     Throwable current = throwable;
+
     while (current != null) {
       if (current instanceof ConstraintViolationException cve) {
         String constraintName = cve.getConstraintName();
@@ -52,10 +70,12 @@ public class AuthServiceImpl implements AuthService {
           return true;
         }
       }
+
       String message = current.getMessage();
       if (isUserUniqueConstraint(message)) {
         return true;
       }
+
       current = current.getCause();
     }
     return false;
@@ -66,6 +86,6 @@ public class AuthServiceImpl implements AuthService {
       return false;
     }
     String normalized = source.toLowerCase(Locale.ROOT);
-    return normalized.contains("uk_users_email") || normalized.contains("uk_users_username");
+    return normalized.contains(EMAIL_CONSTRAINT) || normalized.contains(USERNAME_CONSTRAINT);
   }
 }
