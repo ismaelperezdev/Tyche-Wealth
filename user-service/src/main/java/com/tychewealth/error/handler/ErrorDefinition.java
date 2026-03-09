@@ -19,8 +19,8 @@ public enum ErrorDefinition {
       "TYCHE-100",
       "AUTH_REGISTRATION_CONFLICT",
       "A user with the provided credentials already exists"),
-  AUTH_LOGIN_CONFLICT(
-      "TYCHE-101", "AUTH_LOGIN_CONFLICT", "The provided login credentials are invalid"),
+  AUTH_LOGIN_INVALID_CREDENTIALS(
+      "TYCHE-101", "AUTH_LOGIN_INVALID_CREDENTIALS", "The provided login credentials are invalid"),
   AUTH_LOGIN_PASSWORD_FORMAT_INVALID(
       "TYCHE-102",
       "AUTH_LOGIN_PASSWORD_FORMAT_INVALID",

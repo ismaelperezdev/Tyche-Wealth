@@ -79,7 +79,7 @@ public class AuthValidationHelper {
                   LogConstants.LOGIN_ACTION,
                   "invalid login credentials");
               return new AuthException(
-                  ErrorDefinition.AUTH_LOGIN_CONFLICT, null, HttpStatus.UNAUTHORIZED);
+                  ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS, null, HttpStatus.UNAUTHORIZED);
             });
   }
 
@@ -109,7 +109,8 @@ public class AuthValidationHelper {
           LogConstants.LOGIN_ACTION,
           "invalid login credentials");
 
-      throw new AuthException(ErrorDefinition.AUTH_LOGIN_CONFLICT, null, HttpStatus.UNAUTHORIZED);
+      throw new AuthException(
+          ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS, null, HttpStatus.UNAUTHORIZED);
     }
   }
 }

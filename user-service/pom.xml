@@ -23,6 +23,7 @@
         <lombok.version>1.18.38</lombok.version>
         <spotless.version>2.44.4</spotless.version>
         <checkstyle.plugin.version>3.6.0</checkstyle.plugin.version>
+        <jjwt.version>0.12.7</jjwt.version>
     </properties>
 
     <dependencies>
@@ -98,18 +99,18 @@
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
-            <version>0.12.6</version>
+            <version>${jjwt.version}</version>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-impl</artifactId>
-            <version>0.12.6</version>
+            <version>${jjwt.version}</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
-            <version>0.12.6</version>
+            <version>${jjwt.version}</version>
             <scope>runtime</scope>
         </dependency>
     </dependencies>

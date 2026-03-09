@@ -1,11 +1,13 @@
 package com.tychewealth.dto.user.request;
 
 import static com.tychewealth.constants.AuthConstants.BCRYPT_MAX_PASSWORD_BYTES;
+import static com.tychewealth.constants.AuthConstants.LOGIN_PASSWORD_POLICY;
 
 import com.tychewealth.utils.Utils;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.nio.charset.StandardCharsets;
 import lombok.AllArgsConstructor;
@@ -30,6 +32,9 @@ public class RegisterRequestDto {
   @Setter
   @NotBlank(message = "Password cannot be blank")
   @Size(min = 8, message = "Password must be at least 8 characters")
+  @Pattern(
+      regexp = LOGIN_PASSWORD_POLICY,
+      message = "Password must include uppercase, lowercase, number and symbol")
   private String password;
 
   public void setEmail(String email) {

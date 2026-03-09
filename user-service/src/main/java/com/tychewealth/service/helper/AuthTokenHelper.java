@@ -22,6 +22,11 @@ public class AuthTokenHelper {
   public AuthTokenHelper(
       @Value("${app.auth.jwt.secret}") String jwtSecret,
       @Value("${app.auth.jwt.access-token-ttl-seconds:3600}") long accessTokenTtlSeconds) {
+
+    if (accessTokenTtlSeconds <= 0)
+      throw new IllegalArgumentException(
+          "app.auth.jwt.access-token-ttl-seconds must be greater than 0");
+
     this.signingKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     this.accessTokenTtlSeconds = accessTokenTtlSeconds;
   }
