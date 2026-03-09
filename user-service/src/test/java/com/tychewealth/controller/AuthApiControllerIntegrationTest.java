@@ -11,7 +11,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.config.IntegrationTestConfig;
-import com.tychewealth.dto.user.request.UserCreateRequestDto;
+import com.tychewealth.dto.user.request.LoginRequestDto;
+import com.tychewealth.dto.user.request.RegisterRequestDto;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +33,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class AuthApiControllerIntegrationTest {
 
   private static final String REGISTER_URL = URL_FOLDER_V1 + "/auth/register";
+  private static final String LOGIN_URL = URL_FOLDER_V1 + "/auth/login";
 
   @Autowired private MockMvc mockMvc;
 
@@ -41,30 +43,41 @@ class AuthApiControllerIntegrationTest {
 
   @Autowired private PasswordEncoder passwordEncoder;
 
-  private UserCreateRequestDto validRequest;
-  private UserCreateRequestDto conflictByEmailRequest;
-  private UserCreateRequestDto conflictByUsernameRequest;
+  private RegisterRequestDto validRequest;
+  private LoginRequestDto validLoginRequest;
+  private RegisterRequestDto conflictByEmailRequest;
+  private RegisterRequestDto conflictByUsernameRequest;
   private UserEntity existingEmailUser;
   private UserEntity existingUsernameUser;
+  private UserEntity existingLoginUser;
 
   @BeforeEach
   void setUp() {
     userRepository.deleteAll();
-    validRequest = new UserCreateRequestDto("john.doe@mail.com", "johndoe", "Secret123");
+    validRequest =
+        new RegisterRequestDto("laura.gomez@tychewealth.com", "lauragomez", "Secret123!");
     conflictByEmailRequest =
-        new UserCreateRequestDto(validRequest.getEmail(), "newuser", "Secret123");
+        new RegisterRequestDto(validRequest.getEmail(), "carlosmartin", "Secret123!");
     conflictByUsernameRequest =
-        new UserCreateRequestDto("new@mail.com", validRequest.getUsername(), "Secret123");
+        new RegisterRequestDto(
+            "pablo.ortega@tychewealth.com", validRequest.getUsername(), "Secret123!");
 
     existingEmailUser = new UserEntity();
     existingEmailUser.setEmail(validRequest.getEmail());
-    existingEmailUser.setUsername("otherUser");
-    existingEmailUser.setPassword(passwordEncoder.encode("Secret123"));
+    existingEmailUser.setUsername("anabelruiz");
+    existingEmailUser.setPassword(passwordEncoder.encode("Secret123!"));
 
     existingUsernameUser = new UserEntity();
-    existingUsernameUser.setEmail("another@mail.com");
+    existingUsernameUser.setEmail("mario.santos@tychewealth.com");
     existingUsernameUser.setUsername(validRequest.getUsername());
-    existingUsernameUser.setPassword(passwordEncoder.encode("Secret123"));
+    existingUsernameUser.setPassword(passwordEncoder.encode("Secret123!"));
+
+    existingLoginUser = new UserEntity();
+    existingLoginUser.setEmail(validRequest.getEmail());
+    existingLoginUser.setUsername(validRequest.getUsername());
+    existingLoginUser.setPassword(passwordEncoder.encode(validRequest.getPassword()));
+
+    validLoginRequest = new LoginRequestDto(validRequest.getEmail(), validRequest.getPassword());
   }
 
   @Test
@@ -122,10 +135,61 @@ class AuthApiControllerIntegrationTest {
   @ParameterizedTest
   @MethodSource("com.tychewealth.testdata.AuthTestData#invalidCreateRequests")
   void registerReturnsBadRequestForInvalidPayload(
-      UserCreateRequestDto invalidRequest, String expectedMessage) throws Exception {
+      RegisterRequestDto invalidRequest, String expectedMessage) throws Exception {
     mockMvc
         .perform(
             post(REGISTER_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidRequest)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("TYCHE-002"))
+        .andExpect(jsonPath("$.type").value("GENERIC_VALIDATION_ERROR"))
+        .andExpect(jsonPath("$.description").value(containsString(expectedMessage)));
+  }
+
+  @Test
+  void loginReturnsTokenAndUserWhenCredentialsAreValid() throws Exception {
+    userRepository.save(existingLoginUser);
+
+    mockMvc
+        .perform(
+            post(LOGIN_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(validLoginRequest)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.tokenType").value("Bearer"))
+        .andExpect(jsonPath("$.accessToken").isString())
+        .andExpect(jsonPath("$.expiresIn").isNumber())
+        .andExpect(jsonPath("$.user.id").isNumber())
+        .andExpect(jsonPath("$.user.email").value(validRequest.getEmail()))
+        .andExpect(jsonPath("$.user.username").value(validRequest.getUsername()))
+        .andExpect(jsonPath("$.user.password").doesNotExist());
+  }
+
+  @Test
+  void loginReturnsUnauthorizedWhenCredentialsAreInvalid() throws Exception {
+    userRepository.save(existingLoginUser);
+
+    LoginRequestDto invalidLoginRequest = new LoginRequestDto(validRequest.getEmail(), "Wrong123!");
+
+    mockMvc
+        .perform(
+            post(LOGIN_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidLoginRequest)))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value("TYCHE-101"))
+        .andExpect(jsonPath("$.type").value("AUTH_LOGIN_CONFLICT"))
+        .andExpect(jsonPath("$.description").value("The provided login credentials are invalid"));
+  }
+
+  @ParameterizedTest
+  @MethodSource("com.tychewealth.testdata.AuthTestData#invalidLoginRequests")
+  void loginReturnsBadRequestForInvalidPayload(
+      LoginRequestDto invalidRequest, String expectedMessage) throws Exception {
+    mockMvc
+        .perform(
+            post(LOGIN_URL)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(invalidRequest)))
         .andExpect(status().isBadRequest())

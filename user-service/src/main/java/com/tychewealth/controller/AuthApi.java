@@ -4,8 +4,10 @@ import static com.tychewealth.constants.ApiConstants.REQUEST_CONSUMES;
 import static com.tychewealth.constants.ApiConstants.REQUEST_PRODUCES;
 import static com.tychewealth.constants.ApiConstants.URL_FOLDER_V1;
 
+import com.tychewealth.dto.user.LoginResponseDto;
 import com.tychewealth.dto.user.UserResponseDto;
-import com.tychewealth.dto.user.request.UserCreateRequestDto;
+import com.tychewealth.dto.user.request.LoginRequestDto;
+import com.tychewealth.dto.user.request.RegisterRequestDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -18,5 +20,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public interface AuthApi {
 
   @PostMapping(value = "/register", consumes = REQUEST_CONSUMES, produces = REQUEST_PRODUCES)
-  ResponseEntity<UserResponseDto> register(@Valid @RequestBody UserCreateRequestDto register);
+  ResponseEntity<UserResponseDto> register(@Valid @RequestBody RegisterRequestDto register);
+
+  @PostMapping(value = "/login", consumes = REQUEST_CONSUMES, produces = REQUEST_PRODUCES)
+  ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto login);
 }

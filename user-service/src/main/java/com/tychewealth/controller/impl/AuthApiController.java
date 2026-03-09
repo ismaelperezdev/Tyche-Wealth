@@ -2,8 +2,10 @@ package com.tychewealth.controller.impl;
 
 import com.tychewealth.constants.LogConstants;
 import com.tychewealth.controller.AuthApi;
+import com.tychewealth.dto.user.LoginResponseDto;
 import com.tychewealth.dto.user.UserResponseDto;
-import com.tychewealth.dto.user.request.UserCreateRequestDto;
+import com.tychewealth.dto.user.request.LoginRequestDto;
+import com.tychewealth.dto.user.request.RegisterRequestDto;
 import com.tychewealth.service.AuthService;
 import com.tychewealth.utils.LogContextFactory;
 import jakarta.validation.Valid;
@@ -22,8 +24,7 @@ public class AuthApiController implements AuthApi {
   private final AuthService authService;
 
   @Override
-  public ResponseEntity<UserResponseDto> register(
-      @Valid @RequestBody UserCreateRequestDto register) {
+  public ResponseEntity<UserResponseDto> register(@Valid @RequestBody RegisterRequestDto register) {
     log.info(
         LogConstants.REQUEST_START + LogConstants.REGISTER_REQUEST_FIELDS,
         LogConstants.AUTH,
@@ -33,5 +34,17 @@ public class AuthApiController implements AuthApi {
 
     UserResponseDto response = authService.register(register);
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
+  }
+
+  @Override
+  public ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto login) {
+    log.info(
+        LogConstants.REQUEST_START + LogConstants.LOGIN_REQUEST_FIELDS,
+        LogConstants.AUTH,
+        LogConstants.LOGIN_ACTION,
+        LogContextFactory.mask(login.getEmail()));
+
+    LoginResponseDto response = authService.login(login);
+    return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 }

@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.tychewealth.dto.user.UserResponseDto;
-import com.tychewealth.dto.user.request.UserCreateRequestDto;
+import com.tychewealth.dto.user.request.RegisterRequestDto;
 import com.tychewealth.dto.user.request.UserUpdateRequestDto;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.mapper.user.UserMapper;
@@ -19,7 +19,7 @@ class UserMapperTest {
   private final UserMapper mapper = Mappers.getMapper(UserMapper.class);
   private UserEntity baseEntity;
   private UserResponseDto responseFixture;
-  private UserCreateRequestDto createFixture;
+  private RegisterRequestDto createFixture;
   private UserUpdateRequestDto updateFixture;
 
   @BeforeEach
@@ -32,7 +32,7 @@ class UserMapperTest {
     responseFixture =
         FixtureLoader.read("/fixtures/user/user-response.json", UserResponseDto.class);
     createFixture =
-        FixtureLoader.read("/fixtures/user/user-create-request.json", UserCreateRequestDto.class);
+        FixtureLoader.read("/fixtures/user/user-create-request.json", RegisterRequestDto.class);
     updateFixture =
         FixtureLoader.read("/fixtures/user/user-update-request.json", UserUpdateRequestDto.class);
   }

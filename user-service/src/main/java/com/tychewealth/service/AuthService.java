@@ -1,9 +1,13 @@
 package com.tychewealth.service;
 
+import com.tychewealth.dto.user.LoginResponseDto;
 import com.tychewealth.dto.user.UserResponseDto;
-import com.tychewealth.dto.user.request.UserCreateRequestDto;
+import com.tychewealth.dto.user.request.LoginRequestDto;
+import com.tychewealth.dto.user.request.RegisterRequestDto;
 
 public interface AuthService {
 
-  UserResponseDto register(UserCreateRequestDto register);
+  UserResponseDto register(RegisterRequestDto register);
+
+  LoginResponseDto login(LoginRequestDto login);
 }
