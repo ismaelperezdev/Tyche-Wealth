@@ -5,8 +5,10 @@ import static com.tychewealth.constants.ApiConstants.REQUEST_PRODUCES;
 import static com.tychewealth.constants.ApiConstants.URL_FOLDER_V1;
 
 import com.tychewealth.dto.user.LoginResponseDto;
+import com.tychewealth.dto.user.RefreshTokenResponseDto;
 import com.tychewealth.dto.user.UserResponseDto;
 import com.tychewealth.dto.user.request.LoginRequestDto;
+import com.tychewealth.dto.user.request.RefreshTokenRequestDto;
 import com.tychewealth.dto.user.request.RegisterRequestDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -24,4 +26,8 @@ public interface AuthApi {
 
   @PostMapping(value = "/login", consumes = REQUEST_CONSUMES, produces = REQUEST_PRODUCES)
   ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto login);
+
+  @PostMapping(value = "/refresh", consumes = REQUEST_CONSUMES, produces = REQUEST_PRODUCES)
+  ResponseEntity<RefreshTokenResponseDto> refresh(
+      @Valid @RequestBody RefreshTokenRequestDto refreshTokenRequestDto);
 }

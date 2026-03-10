@@ -4,18 +4,23 @@ import static com.tychewealth.constants.AuthConstants.LOGIN_PASSWORD_POLICY;
 
 import com.tychewealth.constants.LogConstants;
 import com.tychewealth.dto.user.request.LoginRequestDto;
+import com.tychewealth.dto.user.request.RefreshTokenRequestDto;
 import com.tychewealth.dto.user.request.RegisterRequestDto;
+import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
+import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.utils.Utils;
+import java.time.Instant;
 import java.util.regex.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 @Component
@@ -25,6 +30,7 @@ public class AuthValidationHelper {
   private static final Pattern LOGIN_PASSWORD_PATTERN = Pattern.compile(LOGIN_PASSWORD_POLICY);
 
   private final UserRepository userRepository;
+  private final RefreshTokenRepository refreshTokenRepository;
   private final PasswordEncoder passwordEncoder;
 
   public void validateRegisterRequest(RegisterRequestDto register) {
@@ -112,5 +118,46 @@ public class AuthValidationHelper {
       throw new AuthException(
           ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS, null, HttpStatus.UNAUTHORIZED);
     }
+  }
+
+  public RefreshTokenEntity validateRefreshToken(RefreshTokenRequestDto refreshTokenRequestDto) {
+    if (refreshTokenRequestDto == null
+        || !StringUtils.hasText(refreshTokenRequestDto.getRefreshToken())) {
+      log.warn(
+          LogConstants.REQUEST_CONFLICT,
+          LogConstants.AUTH,
+          LogConstants.REFRESH_TOKEN_ACTION,
+          LogConstants.INVALID_REFRESH_TOKEN_MESSAGE);
+
+      throw new AuthException(
+          ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID, null, HttpStatus.UNAUTHORIZED);
+    }
+
+    RefreshTokenEntity token =
+        refreshTokenRepository
+            .findByToken(refreshTokenRequestDto.getRefreshToken())
+            .orElseThrow(
+                () -> {
+                  log.warn(
+                      LogConstants.REQUEST_CONFLICT,
+                      LogConstants.AUTH,
+                      LogConstants.REFRESH_TOKEN_ACTION,
+                      LogConstants.INVALID_REFRESH_TOKEN_MESSAGE);
+                  return new AuthException(
+                      ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID, null, HttpStatus.UNAUTHORIZED);
+                });
+
+    if (token.isRevoked() || token.getExpiresAt().isBefore(Instant.now())) {
+      log.warn(
+          LogConstants.REQUEST_CONFLICT,
+          LogConstants.AUTH,
+          LogConstants.REFRESH_TOKEN_ACTION,
+          LogConstants.INVALID_REFRESH_TOKEN_MESSAGE);
+
+      throw new AuthException(
+          ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID, null, HttpStatus.UNAUTHORIZED);
+    }
+
+    return token;
   }
 }

@@ -8,5 +8,6 @@
     <include file="user-changelog/user-changelog-master.xml" relativeToChangelogFile="true"/>
     <include file="portfolio-changelog/portfolio-changelog-master.xml" relativeToChangelogFile="true"/>
     <include file="asset-changelog/asset-changelog-master.xml" relativeToChangelogFile="true"/>
+    <include file="refresh-token-changelog/refresh-token-changelog-master.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

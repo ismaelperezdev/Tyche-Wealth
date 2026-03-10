@@ -1,5 +1,7 @@
 package com.tychewealth.repository;
 
+import static com.tychewealth.testdata.EntityBuilder.buildPortfolio;
+import static com.tychewealth.testdata.EntityBuilder.buildUser;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -10,7 +12,6 @@ import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.enums.InvestmentHorizonEnum;
 import com.tychewealth.enums.RiskProfileEnum;
 import com.tychewealth.enums.StrategyTypeEnum;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -159,31 +160,5 @@ class PortfolioRepositoryTest {
     Boolean exists = portfolioRepository.existsByUserIdAndName(user.getId(), "Retiro");
 
     assertEquals(Boolean.TRUE, exists);
-  }
-
-  private UserEntity buildUser(String email, String username) {
-    user.setEmail(email);
-    user.setUsername(username);
-    user.setPassword("secret123");
-    return user;
-  }
-
-  private PortfolioEntity buildPortfolio(
-      UserEntity user,
-      String name,
-      CurrencyCodeEnum currency,
-      RiskProfileEnum riskProfile,
-      StrategyTypeEnum strategyType,
-      InvestmentHorizonEnum investmentHorizon) {
-    PortfolioEntity portfolio = new PortfolioEntity();
-    portfolio.setUser(user);
-    portfolio.setName(name);
-    portfolio.setDescription(name + " description");
-    portfolio.setBaseCurrency(currency);
-    portfolio.setRiskProfile(riskProfile);
-    portfolio.setInvestmentHorizon(investmentHorizon);
-    portfolio.setStrategyType(strategyType);
-    portfolio.setMaxRisk(new BigDecimal("0.40"));
-    return portfolio;
   }
 }

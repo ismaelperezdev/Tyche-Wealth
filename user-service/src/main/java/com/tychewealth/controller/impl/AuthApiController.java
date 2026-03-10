@@ -3,8 +3,10 @@ package com.tychewealth.controller.impl;
 import com.tychewealth.constants.LogConstants;
 import com.tychewealth.controller.AuthApi;
 import com.tychewealth.dto.user.LoginResponseDto;
+import com.tychewealth.dto.user.RefreshTokenResponseDto;
 import com.tychewealth.dto.user.UserResponseDto;
 import com.tychewealth.dto.user.request.LoginRequestDto;
+import com.tychewealth.dto.user.request.RefreshTokenRequestDto;
 import com.tychewealth.dto.user.request.RegisterRequestDto;
 import com.tychewealth.service.AuthService;
 import com.tychewealth.utils.LogContextFactory;
@@ -45,6 +47,15 @@ public class AuthApiController implements AuthApi {
         LogContextFactory.mask(login.getEmail()));
 
     LoginResponseDto response = authService.login(login);
+    return ResponseEntity.status(HttpStatus.OK).body(response);
+  }
+
+  @Override
+  public ResponseEntity<RefreshTokenResponseDto> refresh(
+      @Valid @RequestBody RefreshTokenRequestDto refreshTokenRequestDto) {
+    log.info(LogConstants.REQUEST_START, LogConstants.AUTH, LogConstants.REFRESH_TOKEN_ACTION);
+
+    RefreshTokenResponseDto response = authService.refresh(refreshTokenRequestDto);
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 }
