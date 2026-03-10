@@ -95,6 +95,7 @@ public class ErrorHandler {
       case FORBIDDEN -> ErrorDefinition.FORBIDDEN;
       case NOT_FOUND -> ErrorDefinition.RESOURCE_NOT_FOUND;
       case CONFLICT -> ErrorDefinition.CONFLICT;
+      case TOO_MANY_REQUESTS -> ErrorDefinition.RATE_LIMITED;
       default -> ErrorDefinition.GENERIC_INTERNAL_ERROR;
     };
   }

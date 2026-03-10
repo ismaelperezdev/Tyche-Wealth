@@ -56,4 +56,37 @@ class RefreshTokenRepositoryTest {
     assertNotNull(saved.getId());
     assertNotNull(saved.getCreatedAt());
   }
+
+  @Test
+  void revokeActiveTokensByUserIdRevokesOnlyActiveTokensForSpecifiedUser() {
+    UserEntity targetUser = userRepository.save(buildUser("sofia@tyche.com", "sofia"));
+    UserEntity otherUser = userRepository.save(buildUser("diego@tyche.com", "diego"));
+
+    RefreshTokenEntity activeToken =
+        refreshTokenRepository.save(
+            buildRefreshToken("active-token", targetUser, Instant.now().plusSeconds(3600), false));
+    RefreshTokenEntity alreadyRevokedToken =
+        refreshTokenRepository.save(
+            buildRefreshToken("revoked-token", targetUser, Instant.now().plusSeconds(3600), true));
+    RefreshTokenEntity otherUserActiveToken =
+        refreshTokenRepository.save(
+            buildRefreshToken(
+                "other-user-token", otherUser, Instant.now().plusSeconds(3600), false));
+
+    int revokedCount = refreshTokenRepository.revokeActiveTokensByUserId(targetUser.getId());
+
+    assertEquals(1, revokedCount);
+    assertTrue(
+        refreshTokenRepository.findByToken(activeToken.getToken()).orElseThrow().isRevoked());
+    assertTrue(
+        refreshTokenRepository
+            .findByToken(alreadyRevokedToken.getToken())
+            .orElseThrow()
+            .isRevoked());
+    assertFalse(
+        refreshTokenRepository
+            .findByToken(otherUserActiveToken.getToken())
+            .orElseThrow()
+            .isRevoked());
+  }
 }

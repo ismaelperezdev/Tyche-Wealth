@@ -40,7 +40,7 @@ public class RefreshTokenEntity {
   @Column(name = "expires_at", nullable = false)
   private Instant expiresAt;
 
-  @Column(name = "revoked")
+  @Column(name = "revoked", nullable = false)
   private boolean revoked;
 
   @Column(name = "created_at", nullable = false)

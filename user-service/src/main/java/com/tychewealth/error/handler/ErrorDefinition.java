@@ -13,6 +13,7 @@ public enum ErrorDefinition {
   CONFLICT("TYCHE-005", "CONFLICT", "The operation conflicts with current state"),
   UNAUTHORIZED("TYCHE-006", "UNAUTHORIZED", "Authentication is required"),
   FORBIDDEN("TYCHE-007", "FORBIDDEN", "You do not have permission to perform this action"),
+  RATE_LIMITED("TYCHE-008", "RATE_LIMITED", "Too many requests"),
 
   // AUTH
   AUTH_REGISTRATION_CONFLICT(

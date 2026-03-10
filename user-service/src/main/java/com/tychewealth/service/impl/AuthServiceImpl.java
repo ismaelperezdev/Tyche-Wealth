@@ -20,6 +20,7 @@ import com.tychewealth.service.helper.AuthRefreshTokenHelper;
 import com.tychewealth.service.helper.AuthRegisterHelper;
 import com.tychewealth.service.helper.AuthTokenHelper;
 import com.tychewealth.service.helper.AuthValidationHelper;
+import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.AuthTokenPayload;
 import java.time.Instant;
 import java.util.Locale;
@@ -41,6 +42,7 @@ public class AuthServiceImpl implements AuthService {
   private final AuthLoginHelper authLoginHelper;
   private final AuthRefreshTokenHelper authRefreshTokenHelper;
   private final AuthTokenHelper authTokenHelper;
+  private final AuthMetrics authMetrics;
 
   @Override
   public UserResponseDto register(RegisterRequestDto register) {
@@ -58,6 +60,8 @@ public class AuthServiceImpl implements AuthService {
           LogConstants.AUTH,
           LogConstants.REGISTER_ACTION,
           "registration conflict detected at persistence layer");
+      authMetrics.recordRegisterFailure();
+      authMetrics.recordRegisterConflict();
 
       throw new AuthException(
           ErrorDefinition.AUTH_REGISTRATION_CONFLICT, null, HttpStatus.CONFLICT);
@@ -84,12 +88,12 @@ public class AuthServiceImpl implements AuthService {
     String newRefreshToken = authRefreshTokenHelper.generateRefreshToken();
     Instant newRefreshTokenExpiration = authRefreshTokenHelper.calculateRefreshTokenExpiration();
     authRefreshTokenHelper.saveToken(user, newRefreshToken, newRefreshTokenExpiration);
+    authMetrics.recordRefreshSuccess();
 
-    Instant accessTokenExpiration = Instant.now().plusSeconds(accessTokenPayload.expiresIn());
     return new RefreshTokenResponseDto(
         accessTokenPayload.tokenType(),
         accessTokenPayload.accessToken(),
-        accessTokenExpiration,
+        accessTokenPayload.expiresIn(),
         newRefreshToken);
   }
 

@@ -5,6 +5,7 @@ import com.tychewealth.dto.user.LoginResponseDto;
 import com.tychewealth.dto.user.UserResponseDto;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.mapper.user.UserMapper;
+import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.AuthTokenPayload;
 import java.time.Instant;
 import lombok.AllArgsConstructor;
@@ -19,6 +20,7 @@ public class AuthLoginHelper {
   private final AuthTokenHelper authTokenHelper;
   private final AuthRefreshTokenHelper refreshTokenHelper;
   private final UserMapper userMapper;
+  private final AuthMetrics authMetrics;
 
   public LoginResponseDto login(UserEntity user) {
     UserResponseDto response = userMapper.toDto(user);
@@ -27,6 +29,7 @@ public class AuthLoginHelper {
     String refreshToken = refreshTokenHelper.generateRefreshToken();
     Instant refreshTokenExpiresAt = refreshTokenHelper.calculateRefreshTokenExpiration();
     refreshTokenHelper.saveToken(user, refreshToken, refreshTokenExpiresAt);
+    authMetrics.recordLoginSuccess();
 
     log.info(
         LogConstants.REQUEST_SUCCESS + LogConstants.LOGIN_USER_ID,

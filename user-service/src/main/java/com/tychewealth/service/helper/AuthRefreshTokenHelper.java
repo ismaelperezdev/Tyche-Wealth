@@ -5,6 +5,7 @@ import static com.tychewealth.constants.AuthConstants.REFRESH_TOKEN_BYTE_LENGTH;
 import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.repository.RefreshTokenRepository;
+import com.tychewealth.service.monitoring.AuthMetrics;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
@@ -16,16 +17,23 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthRefreshTokenHelper {
 
   private final RefreshTokenRepository refreshTokenRepository;
+  private final AuthMetrics authMetrics;
   private final SecureRandom secureRandom = new SecureRandom();
   private final long refreshTokenTtlSeconds;
 
   public AuthRefreshTokenHelper(
       RefreshTokenRepository refreshTokenRepository,
+      AuthMetrics authMetrics,
       @Value("${app.auth.jwt.refresh-token-ttl-seconds:1209600}") long refreshTokenTtlSeconds) {
+    if (refreshTokenTtlSeconds <= 0) {
+      throw new IllegalArgumentException("Refresh token TTL must be positive");
+    }
     this.refreshTokenRepository = refreshTokenRepository;
+    this.authMetrics = authMetrics;
     this.refreshTokenTtlSeconds = refreshTokenTtlSeconds;
   }
 
+  @Transactional
   public void saveToken(UserEntity user, String token, Instant expiresAt) {
     RefreshTokenEntity refreshToken = new RefreshTokenEntity();
 
@@ -35,11 +43,14 @@ public class AuthRefreshTokenHelper {
     refreshToken.setRevoked(false);
 
     refreshTokenRepository.save(refreshToken);
+    authMetrics.recordTokensIssued(1);
   }
 
   @Transactional
   public int revokeActiveTokensByUserId(Long userId) {
-    return refreshTokenRepository.revokeActiveTokensByUserId(userId);
+    int revokedCount = refreshTokenRepository.revokeActiveTokensByUserId(userId);
+    authMetrics.recordTokensRevoked(revokedCount);
+    return revokedCount;
   }
 
   @Transactional
@@ -53,6 +64,7 @@ public class AuthRefreshTokenHelper {
               }
               refreshToken.setRevoked(true);
               refreshTokenRepository.save(refreshToken);
+              authMetrics.recordTokensRevoked(1);
               return true;
             })
         .orElse(false);
