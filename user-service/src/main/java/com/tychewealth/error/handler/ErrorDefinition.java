@@ -24,7 +24,9 @@ public enum ErrorDefinition {
   AUTH_LOGIN_PASSWORD_FORMAT_INVALID(
       "TYCHE-102",
       "AUTH_LOGIN_PASSWORD_FORMAT_INVALID",
-      "Password must be 8-72 characters and include at least one uppercase letter, one lowercase letter, one number, and one symbol");
+      "Password must be 8-72 characters and include at least one uppercase letter, one lowercase letter, one number, and one symbol"),
+  AUTH_REFRESH_TOKEN_INVALID(
+      "TYCHE-103", "AUTH_REFRESH_TOKEN_INVALID", "The provided refresh token is invalid");
 
   private final String code;
   private final String type;

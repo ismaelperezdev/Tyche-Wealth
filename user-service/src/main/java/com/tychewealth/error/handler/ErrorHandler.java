@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -37,6 +38,15 @@ public class ErrorHandler {
   @ExceptionHandler(ConstraintViolationException.class)
   public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex) {
     return build(ErrorDefinition.GENERIC_VALIDATION_ERROR, HttpStatus.BAD_REQUEST, ex.getMessage());
+  }
+
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(
+      HttpMessageNotReadableException ex) {
+    return build(
+        ErrorDefinition.GENERIC_BAD_REQUEST,
+        HttpStatus.BAD_REQUEST,
+        ErrorDefinition.GENERIC_BAD_REQUEST.getDescription());
   }
 
   @ExceptionHandler(ResponseStatusException.class)

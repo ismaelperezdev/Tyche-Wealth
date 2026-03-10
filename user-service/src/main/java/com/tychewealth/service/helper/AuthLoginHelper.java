@@ -6,6 +6,7 @@ import com.tychewealth.dto.user.UserResponseDto;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.mapper.user.UserMapper;
 import com.tychewealth.service.token.AuthTokenPayload;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -16,11 +17,16 @@ import org.springframework.stereotype.Component;
 public class AuthLoginHelper {
 
   private final AuthTokenHelper authTokenHelper;
+  private final AuthRefreshTokenHelper refreshTokenHelper;
   private final UserMapper userMapper;
 
   public LoginResponseDto login(UserEntity user) {
     UserResponseDto response = userMapper.toDto(user);
     AuthTokenPayload tokenPayload = authTokenHelper.generateAccessToken(user);
+    refreshTokenHelper.revokeActiveTokensByUserId(user.getId());
+    String refreshToken = refreshTokenHelper.generateRefreshToken();
+    Instant refreshTokenExpiresAt = refreshTokenHelper.calculateRefreshTokenExpiration();
+    refreshTokenHelper.saveToken(user, refreshToken, refreshTokenExpiresAt);
 
     log.info(
         LogConstants.REQUEST_SUCCESS + LogConstants.LOGIN_USER_ID,
@@ -29,6 +35,10 @@ public class AuthLoginHelper {
         user.getId());
 
     return new LoginResponseDto(
-        tokenPayload.tokenType(), tokenPayload.accessToken(), tokenPayload.expiresIn(), response);
+        tokenPayload.tokenType(),
+        tokenPayload.accessToken(),
+        refreshToken,
+        tokenPayload.expiresIn(),
+        response);
   }
 }

@@ -1,5 +1,6 @@
 package com.tychewealth.repository;
 
+import static com.tychewealth.testdata.EntityBuilder.buildUser;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -37,13 +38,5 @@ class UserRepositoryTest {
 
     assertTrue(result.isPresent());
     assertEquals("carlos@tyche.com", result.get().getEmail());
-  }
-
-  private UserEntity buildUser(String email, String username) {
-    UserEntity user = new UserEntity();
-    user.setEmail(email);
-    user.setUsername(username);
-    user.setPassword("secret123");
-    return user;
   }
 }

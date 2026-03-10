@@ -21,7 +21,7 @@ public class AuthTokenHelper {
 
   public AuthTokenHelper(
       @Value("${app.auth.jwt.secret}") String jwtSecret,
-      @Value("${app.auth.jwt.access-token-ttl-seconds:3600}") long accessTokenTtlSeconds) {
+      @Value("${app.auth.jwt.access-token-ttl-seconds:900}") long accessTokenTtlSeconds) {
 
     if (accessTokenTtlSeconds <= 0)
       throw new IllegalArgumentException(

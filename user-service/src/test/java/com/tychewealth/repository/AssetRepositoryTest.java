@@ -1,5 +1,8 @@
 package com.tychewealth.repository;
 
+import static com.tychewealth.testdata.EntityBuilder.buildAsset;
+import static com.tychewealth.testdata.EntityBuilder.buildPortfolio;
+import static com.tychewealth.testdata.EntityBuilder.buildUser;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,7 +15,6 @@ import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.enums.InvestmentHorizonEnum;
 import com.tychewealth.enums.RiskProfileEnum;
 import com.tychewealth.enums.StrategyTypeEnum;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -100,47 +102,5 @@ class AssetRepositoryTest {
     Boolean exists = assetRepository.existsByPortfolioIdAndSymbol(portfolio.getId(), "TSLA");
 
     assertEquals(Boolean.TRUE, exists);
-  }
-
-  private UserEntity buildUser(String email, String username) {
-    UserEntity user = new UserEntity();
-    user.setEmail(email);
-    user.setUsername(username);
-    user.setPassword("secret123");
-    return user;
-  }
-
-  private PortfolioEntity buildPortfolio(
-      UserEntity user,
-      String name,
-      CurrencyCodeEnum currency,
-      RiskProfileEnum riskProfile,
-      StrategyTypeEnum strategyType,
-      InvestmentHorizonEnum investmentHorizon) {
-    PortfolioEntity item = new PortfolioEntity();
-    item.setUser(user);
-    item.setName(name);
-    item.setDescription(name + " description");
-    item.setBaseCurrency(currency);
-    item.setRiskProfile(riskProfile);
-    item.setInvestmentHorizon(investmentHorizon);
-    item.setStrategyType(strategyType);
-    item.setMaxRisk(new BigDecimal("0.40"));
-    return item;
-  }
-
-  private AssetEntity buildAsset(
-      PortfolioEntity portfolio,
-      String symbol,
-      AssetTypeEnum assetType,
-      CurrencyCodeEnum currency) {
-    AssetEntity item = new AssetEntity();
-    item.setPortfolio(portfolio);
-    item.setSymbol(symbol);
-    item.setAssetType(assetType);
-    item.setQuantity(new BigDecimal("10.00000000"));
-    item.setAveragePrice(new BigDecimal("123.4567"));
-    item.setCurrency(currency);
-    return item;
   }
 }

@@ -1,5 +1,6 @@
 package com.tychewealth.dto.user;
 
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -9,11 +10,10 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class LoginResponseDto {
+public class RefreshTokenResponseDto {
 
   private String tokenType;
   private String accessToken;
+  private Instant expiresAt;
   private String refreshToken;
-  private long expiresIn;
-  private UserResponseDto user;
 }
