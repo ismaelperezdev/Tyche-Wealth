@@ -1,31 +1,49 @@
 package com.tychewealth.service.helper;
 
 import static com.tychewealth.constants.AuthConstants.REFRESH_TOKEN_BYTE_LENGTH;
+import static com.tychewealth.constants.LogConstants.AUTH;
+import static com.tychewealth.constants.LogConstants.INVALID_REFRESH_TOKEN_MESSAGE;
+import static com.tychewealth.constants.LogConstants.REFRESH_TOKEN_ACTION;
+import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 
 import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
+import com.tychewealth.error.exception.AuthException;
+import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.RefreshTokenRepository;
+import com.tychewealth.service.monitoring.AuthMetrics;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Component
 public class AuthRefreshTokenHelper {
 
   private final RefreshTokenRepository refreshTokenRepository;
+  private final AuthMetrics authMetrics;
   private final SecureRandom secureRandom = new SecureRandom();
   private final long refreshTokenTtlSeconds;
 
   public AuthRefreshTokenHelper(
       RefreshTokenRepository refreshTokenRepository,
+      AuthMetrics authMetrics,
       @Value("${app.auth.jwt.refresh-token-ttl-seconds:1209600}") long refreshTokenTtlSeconds) {
+    if (refreshTokenTtlSeconds <= 0) {
+      throw new IllegalArgumentException("Refresh token TTL must be positive");
+    }
     this.refreshTokenRepository = refreshTokenRepository;
+    this.authMetrics = authMetrics;
     this.refreshTokenTtlSeconds = refreshTokenTtlSeconds;
   }
 
+  @Transactional
   public void saveToken(UserEntity user, String token, Instant expiresAt) {
     RefreshTokenEntity refreshToken = new RefreshTokenEntity();
 
@@ -35,27 +53,41 @@ public class AuthRefreshTokenHelper {
     refreshToken.setRevoked(false);
 
     refreshTokenRepository.save(refreshToken);
+    authMetrics.recordTokensIssued(1);
   }
 
   @Transactional
   public int revokeActiveTokensByUserId(Long userId) {
-    return refreshTokenRepository.revokeActiveTokensByUserId(userId);
+    int revokedCount = refreshTokenRepository.revokeActiveTokensByUserId(userId, Instant.now());
+    authMetrics.recordTokensRevoked(revokedCount);
+    return revokedCount;
   }
 
   @Transactional
-  public boolean revokeToken(String token) {
-    return refreshTokenRepository
-        .findByToken(token)
-        .map(
-            refreshToken -> {
-              if (refreshToken.isRevoked()) {
-                return false;
-              }
-              refreshToken.setRevoked(true);
-              refreshTokenRepository.save(refreshToken);
-              return true;
-            })
-        .orElse(false);
+  public RefreshTokenEntity validateRefreshToken(String token) {
+    int revokedCount = refreshTokenRepository.revokeTokenIfActive(token, Instant.now());
+    authMetrics.recordTokensRevoked(revokedCount);
+
+    if (revokedCount == 0) {
+      throwInvalidRefreshToken();
+    }
+
+    return findByToken(token)
+        .orElseThrow(
+            () ->
+                new IllegalStateException("Refresh token disappeared after successful revocation"));
+  }
+
+  public Optional<RefreshTokenEntity> findByToken(String token) {
+    return refreshTokenRepository.findByToken(token);
+  }
+
+  private void throwInvalidRefreshToken() {
+    log.warn(REQUEST_CONFLICT, AUTH, REFRESH_TOKEN_ACTION, INVALID_REFRESH_TOKEN_MESSAGE);
+    authMetrics.recordRefreshFailure();
+
+    throw new AuthException(
+        ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID, null, HttpStatus.UNAUTHORIZED);
   }
 
   public String generateRefreshToken() {

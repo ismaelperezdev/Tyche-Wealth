@@ -6,14 +6,12 @@ import com.tychewealth.constants.LogConstants;
 import com.tychewealth.dto.user.request.LoginRequestDto;
 import com.tychewealth.dto.user.request.RefreshTokenRequestDto;
 import com.tychewealth.dto.user.request.RegisterRequestDto;
-import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
-import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.UserRepository;
+import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.utils.Utils;
-import java.time.Instant;
 import java.util.regex.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,13 +28,13 @@ public class AuthValidationHelper {
   private static final Pattern LOGIN_PASSWORD_PATTERN = Pattern.compile(LOGIN_PASSWORD_POLICY);
 
   private final UserRepository userRepository;
-  private final RefreshTokenRepository refreshTokenRepository;
   private final PasswordEncoder passwordEncoder;
+  private final AuthMetrics authMetrics;
 
   public void validateRegisterRequest(RegisterRequestDto register) {
     validateEmailIsAvailable(register.getEmail());
     validateUsernameIsAvailable(register.getUsername());
-    validateLoginPasswordFormat(register.getPassword());
+    validateRegisterPasswordFormat(register.getPassword());
   }
 
   public UserEntity validateLoginRequest(LoginRequestDto login) {
@@ -53,6 +51,8 @@ public class AuthValidationHelper {
           LogConstants.AUTH,
           LogConstants.REGISTER_ACTION,
           "email already exists");
+      authMetrics.recordRegisterFailure();
+      authMetrics.recordRegisterConflict();
 
       throw new AuthException(
           ErrorDefinition.AUTH_REGISTRATION_CONFLICT, null, HttpStatus.CONFLICT);
@@ -67,6 +67,8 @@ public class AuthValidationHelper {
           LogConstants.AUTH,
           LogConstants.REGISTER_ACTION,
           "username already exists");
+      authMetrics.recordRegisterFailure();
+      authMetrics.recordRegisterConflict();
 
       throw new AuthException(
           ErrorDefinition.AUTH_REGISTRATION_CONFLICT, null, HttpStatus.CONFLICT);
@@ -84,6 +86,8 @@ public class AuthValidationHelper {
                   LogConstants.AUTH,
                   LogConstants.LOGIN_ACTION,
                   "invalid login credentials");
+              authMetrics.recordLoginFailure();
+              authMetrics.recordLoginInvalidCredentials();
               return new AuthException(
                   ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS, null, HttpStatus.UNAUTHORIZED);
             });
@@ -94,6 +98,20 @@ public class AuthValidationHelper {
     validateLoginPasswordMatches(rawPassword, encodedPassword);
   }
 
+  public void validateRegisterPasswordFormat(String password) {
+    if (password == null || !LOGIN_PASSWORD_PATTERN.matcher(password).matches()) {
+      log.warn(
+          LogConstants.REQUEST_CONFLICT,
+          LogConstants.AUTH,
+          LogConstants.REGISTER_ACTION,
+          "invalid password format for register");
+      authMetrics.recordRegisterFailure();
+
+      throw new AuthException(
+          ErrorDefinition.AUTH_REGISTER_PASSWORD_FORMAT_INVALID, null, HttpStatus.BAD_REQUEST);
+    }
+  }
+
   public void validateLoginPasswordFormat(String password) {
     if (password == null || !LOGIN_PASSWORD_PATTERN.matcher(password).matches()) {
       log.warn(
@@ -101,6 +119,7 @@ public class AuthValidationHelper {
           LogConstants.AUTH,
           LogConstants.LOGIN_ACTION,
           "invalid password format for login");
+      authMetrics.recordLoginFailure();
 
       throw new AuthException(
           ErrorDefinition.AUTH_LOGIN_PASSWORD_FORMAT_INVALID, null, HttpStatus.BAD_REQUEST);
@@ -114,13 +133,15 @@ public class AuthValidationHelper {
           LogConstants.AUTH,
           LogConstants.LOGIN_ACTION,
           "invalid login credentials");
+      authMetrics.recordLoginFailure();
+      authMetrics.recordLoginInvalidCredentials();
 
       throw new AuthException(
           ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS, null, HttpStatus.UNAUTHORIZED);
     }
   }
 
-  public RefreshTokenEntity validateRefreshToken(RefreshTokenRequestDto refreshTokenRequestDto) {
+  public void validateRefreshTokenRequest(RefreshTokenRequestDto refreshTokenRequestDto) {
     if (refreshTokenRequestDto == null
         || !StringUtils.hasText(refreshTokenRequestDto.getRefreshToken())) {
       log.warn(
@@ -128,36 +149,10 @@ public class AuthValidationHelper {
           LogConstants.AUTH,
           LogConstants.REFRESH_TOKEN_ACTION,
           LogConstants.INVALID_REFRESH_TOKEN_MESSAGE);
+      authMetrics.recordRefreshFailure();
 
       throw new AuthException(
           ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID, null, HttpStatus.UNAUTHORIZED);
     }
-
-    RefreshTokenEntity token =
-        refreshTokenRepository
-            .findByToken(refreshTokenRequestDto.getRefreshToken())
-            .orElseThrow(
-                () -> {
-                  log.warn(
-                      LogConstants.REQUEST_CONFLICT,
-                      LogConstants.AUTH,
-                      LogConstants.REFRESH_TOKEN_ACTION,
-                      LogConstants.INVALID_REFRESH_TOKEN_MESSAGE);
-                  return new AuthException(
-                      ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID, null, HttpStatus.UNAUTHORIZED);
-                });
-
-    if (token.isRevoked() || token.getExpiresAt().isBefore(Instant.now())) {
-      log.warn(
-          LogConstants.REQUEST_CONFLICT,
-          LogConstants.AUTH,
-          LogConstants.REFRESH_TOKEN_ACTION,
-          LogConstants.INVALID_REFRESH_TOKEN_MESSAGE);
-
-      throw new AuthException(
-          ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID, null, HttpStatus.UNAUTHORIZED);
-    }
-
-    return token;
   }
 }
