@@ -77,10 +77,10 @@ public class AuthServiceImpl implements AuthService {
   @Override
   @Transactional
   public RefreshTokenResponseDto refresh(RefreshTokenRequestDto refreshTokenRequestDto) {
-    RefreshTokenEntity currentRefreshToken =
-        authValidationHelper.validateRefreshToken(refreshTokenRequestDto);
+    authValidationHelper.validateRefreshTokenRequest(refreshTokenRequestDto);
 
-    authRefreshTokenHelper.revokeToken(currentRefreshToken.getToken());
+    RefreshTokenEntity currentRefreshToken =
+        authRefreshTokenHelper.validateRefreshToken(refreshTokenRequestDto.getRefreshToken());
 
     UserEntity user = currentRefreshToken.getUser();
     AuthTokenPayload accessTokenPayload = authTokenHelper.generateAccessToken(user);
