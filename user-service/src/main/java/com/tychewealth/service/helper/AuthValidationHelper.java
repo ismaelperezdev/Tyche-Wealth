@@ -6,14 +6,12 @@ import com.tychewealth.constants.LogConstants;
 import com.tychewealth.dto.user.request.LoginRequestDto;
 import com.tychewealth.dto.user.request.RefreshTokenRequestDto;
 import com.tychewealth.dto.user.request.RegisterRequestDto;
-import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
-import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.UserRepository;
+import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.utils.Utils;
-import java.time.Instant;
 import java.util.regex.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,21 +28,44 @@ public class AuthValidationHelper {
   private static final Pattern LOGIN_PASSWORD_PATTERN = Pattern.compile(LOGIN_PASSWORD_POLICY);
 
   private final UserRepository userRepository;
-  private final RefreshTokenRepository refreshTokenRepository;
   private final PasswordEncoder passwordEncoder;
+  private final AuthMetrics authMetrics;
 
+  /**
+   * Validates a registration request by checking email availability, username availability, and password format.
+   *
+   * @param register the registration DTO containing email, username, and password to validate
+   * @throws AuthException if any validation fails (email or username already in use, or password format is invalid)
+   */
   public void validateRegisterRequest(RegisterRequestDto register) {
     validateEmailIsAvailable(register.getEmail());
     validateUsernameIsAvailable(register.getUsername());
-    validateLoginPasswordFormat(register.getPassword());
+    validateRegisterPasswordFormat(register.getPassword());
   }
 
+  /**
+   * Validates the provided login request and authenticates the corresponding user.
+   *
+   * @param login the login request containing email and password
+   * @return the user matching the provided email and password
+   * @throws AuthException if the email is not registered or the password is invalid
+   */
   public UserEntity validateLoginRequest(LoginRequestDto login) {
     UserEntity user = validateLoginEmail(login.getEmail());
     validateLoginPassword(login.getPassword(), user.getPassword());
     return user;
   }
 
+  /**
+   * Ensures the provided email is not already registered.
+   *
+   * The email is normalized before checking the user repository; if a user with the
+   * normalized email exists this method records registration failure/ conflict metrics
+   * and throws an AuthException.
+   *
+   * @param email the candidate email address to validate (may be null or unnormalized)
+   * @throws AuthException if the normalized email is already associated with an existing user
+   */
   public void validateEmailIsAvailable(String email) {
     String normalizedEmail = Utils.normalizeIdentity(email);
     if (userRepository.findByEmail(normalizedEmail).isPresent()) {
@@ -53,12 +74,20 @@ public class AuthValidationHelper {
           LogConstants.AUTH,
           LogConstants.REGISTER_ACTION,
           "email already exists");
+      authMetrics.recordRegisterFailure();
+      authMetrics.recordRegisterConflict();
 
       throw new AuthException(
           ErrorDefinition.AUTH_REGISTRATION_CONFLICT, null, HttpStatus.CONFLICT);
     }
   }
 
+  /**
+   * Validates that the provided username is available for registration.
+   *
+   * @param username the username to check (will be normalized before lookup)
+   * @throws AuthException if the normalized username already exists; error `AUTH_REGISTRATION_CONFLICT` with HTTP 409
+   */
   public void validateUsernameIsAvailable(String username) {
     String normalizedUsername = Utils.normalizeIdentity(username);
     if (userRepository.findByUsername(normalizedUsername).isPresent()) {
@@ -67,12 +96,21 @@ public class AuthValidationHelper {
           LogConstants.AUTH,
           LogConstants.REGISTER_ACTION,
           "username already exists");
+      authMetrics.recordRegisterFailure();
+      authMetrics.recordRegisterConflict();
 
       throw new AuthException(
           ErrorDefinition.AUTH_REGISTRATION_CONFLICT, null, HttpStatus.CONFLICT);
     }
   }
 
+  /**
+   * Validate that an account exists for the given email and return the corresponding user.
+   *
+   * @param email the email address to normalize and look up
+   * @return the matching UserEntity
+   * @throws AuthException if no user is found for the normalized email (AUTH_LOGIN_INVALID_CREDENTIALS, HTTP 401)
+   */
   public UserEntity validateLoginEmail(String email) {
     String normalizedEmail = Utils.normalizeIdentity(email);
     return userRepository
@@ -84,16 +122,51 @@ public class AuthValidationHelper {
                   LogConstants.AUTH,
                   LogConstants.LOGIN_ACTION,
                   "invalid login credentials");
+              authMetrics.recordLoginFailure();
+              authMetrics.recordLoginInvalidCredentials();
               return new AuthException(
                   ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS, null, HttpStatus.UNAUTHORIZED);
             });
   }
 
+  /**
+   * Validates that a provided plaintext password meets the password format rules and matches the stored encoded password.
+   *
+   * @param rawPassword     the plaintext password supplied by the user
+   * @param encodedPassword the stored encoded (hashed) password to compare against
+   */
   public void validateLoginPassword(String rawPassword, String encodedPassword) {
     validateLoginPasswordFormat(rawPassword);
     validateLoginPasswordMatches(rawPassword, encodedPassword);
   }
 
+  /**
+   * Validate that a registration password meets the service's password policy.
+   *
+   * @param password the candidate password; must not be null and must match the class's password policy pattern
+   * @throws AuthException if the password is null or does not conform to the required pattern (error: AUTH_REGISTER_PASSWORD_FORMAT_INVALID, HTTP 400)
+   */
+  public void validateRegisterPasswordFormat(String password) {
+    if (password == null || !LOGIN_PASSWORD_PATTERN.matcher(password).matches()) {
+      log.warn(
+          LogConstants.REQUEST_CONFLICT,
+          LogConstants.AUTH,
+          LogConstants.REGISTER_ACTION,
+          "invalid password format for register");
+      authMetrics.recordRegisterFailure();
+
+      throw new AuthException(
+          ErrorDefinition.AUTH_REGISTER_PASSWORD_FORMAT_INVALID, null, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  /**
+   * Validate that the provided login password meets the configured password policy.
+   *
+   * @param password the raw password to validate
+   * @throws AuthException if the password is null or does not match the required format; the exception
+   *     uses ErrorDefinition.AUTH_LOGIN_PASSWORD_FORMAT_INVALID and corresponds to HTTP 400
+   */
   public void validateLoginPasswordFormat(String password) {
     if (password == null || !LOGIN_PASSWORD_PATTERN.matcher(password).matches()) {
       log.warn(
@@ -101,12 +174,20 @@ public class AuthValidationHelper {
           LogConstants.AUTH,
           LogConstants.LOGIN_ACTION,
           "invalid password format for login");
+      authMetrics.recordLoginFailure();
 
       throw new AuthException(
           ErrorDefinition.AUTH_LOGIN_PASSWORD_FORMAT_INVALID, null, HttpStatus.BAD_REQUEST);
     }
   }
 
+  /**
+   * Checks that the provided plaintext password matches the stored encoded password.
+   *
+   * @param rawPassword     the plaintext password provided by the user
+   * @param encodedPassword the stored encoded (hashed) password to verify against
+   * @throws AuthException if the passwords do not match (authentication failure)
+   */
   public void validateLoginPasswordMatches(String rawPassword, String encodedPassword) {
     if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
       log.warn(
@@ -114,13 +195,21 @@ public class AuthValidationHelper {
           LogConstants.AUTH,
           LogConstants.LOGIN_ACTION,
           "invalid login credentials");
+      authMetrics.recordLoginFailure();
+      authMetrics.recordLoginInvalidCredentials();
 
       throw new AuthException(
           ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS, null, HttpStatus.UNAUTHORIZED);
     }
   }
 
-  public RefreshTokenEntity validateRefreshToken(RefreshTokenRequestDto refreshTokenRequestDto) {
+  /**
+   * Validates that a refresh token request contains a non-empty refresh token.
+   *
+   * @param refreshTokenRequestDto the refresh token request DTO to validate
+   * @throws AuthException if the DTO is null or its refresh token is missing or empty
+   */
+  public void validateRefreshTokenRequest(RefreshTokenRequestDto refreshTokenRequestDto) {
     if (refreshTokenRequestDto == null
         || !StringUtils.hasText(refreshTokenRequestDto.getRefreshToken())) {
       log.warn(
@@ -128,36 +217,10 @@ public class AuthValidationHelper {
           LogConstants.AUTH,
           LogConstants.REFRESH_TOKEN_ACTION,
           LogConstants.INVALID_REFRESH_TOKEN_MESSAGE);
+      authMetrics.recordRefreshFailure();
 
       throw new AuthException(
           ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID, null, HttpStatus.UNAUTHORIZED);
     }
-
-    RefreshTokenEntity token =
-        refreshTokenRepository
-            .findByToken(refreshTokenRequestDto.getRefreshToken())
-            .orElseThrow(
-                () -> {
-                  log.warn(
-                      LogConstants.REQUEST_CONFLICT,
-                      LogConstants.AUTH,
-                      LogConstants.REFRESH_TOKEN_ACTION,
-                      LogConstants.INVALID_REFRESH_TOKEN_MESSAGE);
-                  return new AuthException(
-                      ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID, null, HttpStatus.UNAUTHORIZED);
-                });
-
-    if (token.isRevoked() || token.getExpiresAt().isBefore(Instant.now())) {
-      log.warn(
-          LogConstants.REQUEST_CONFLICT,
-          LogConstants.AUTH,
-          LogConstants.REFRESH_TOKEN_ACTION,
-          LogConstants.INVALID_REFRESH_TOKEN_MESSAGE);
-
-      throw new AuthException(
-          ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID, null, HttpStatus.UNAUTHORIZED);
-    }
-
-    return token;
   }
 }

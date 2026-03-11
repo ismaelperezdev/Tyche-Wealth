@@ -88,6 +88,12 @@ public class ErrorHandler {
     return ResponseEntity.status(status).body(response);
   }
 
+  /**
+   * Map an HTTP status to the corresponding internal ErrorDefinition.
+   *
+   * @param status the HTTP status to map to an internal error definition
+   * @return the ErrorDefinition corresponding to the provided HTTP status; falls back to {@code GENERIC_INTERNAL_ERROR} for unmapped statuses
+   */
   private ErrorDefinition mapByStatus(HttpStatus status) {
     return switch (status) {
       case BAD_REQUEST -> ErrorDefinition.GENERIC_BAD_REQUEST;
@@ -95,6 +101,7 @@ public class ErrorHandler {
       case FORBIDDEN -> ErrorDefinition.FORBIDDEN;
       case NOT_FOUND -> ErrorDefinition.RESOURCE_NOT_FOUND;
       case CONFLICT -> ErrorDefinition.CONFLICT;
+      case TOO_MANY_REQUESTS -> ErrorDefinition.RATE_LIMITED;
       default -> ErrorDefinition.GENERIC_INTERNAL_ERROR;
     };
   }
