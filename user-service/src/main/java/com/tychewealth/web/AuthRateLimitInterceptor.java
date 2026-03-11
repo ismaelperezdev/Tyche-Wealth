@@ -93,7 +93,7 @@ public class AuthRateLimitInterceptor implements HandlerInterceptor {
 
   private void evictExpiredRequests(Deque<Long> timestamps, long now) {
     long threshold = now - windowMillis;
-    while (!timestamps.isEmpty() && timestamps.peekFirst() < threshold) {
+    while (!timestamps.isEmpty() && timestamps.peekFirst() <= threshold) {
       timestamps.removeFirst();
     }
   }

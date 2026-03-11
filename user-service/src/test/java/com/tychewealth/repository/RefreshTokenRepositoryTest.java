@@ -72,18 +72,22 @@ class RefreshTokenRepositoryTest {
   void revokeActiveTokensByUserIdRevokesOnlyActiveTokensForSpecifiedUser() {
     UserEntity targetUser = userRepository.save(buildUser("sofia@tyche.com", "sofia"));
     UserEntity otherUser = userRepository.save(buildUser("diego@tyche.com", "diego"));
+    Instant now = Instant.now();
 
     RefreshTokenEntity activeToken =
         refreshTokenRepository.save(
-            buildRefreshToken(ACTIVE_TOKEN, targetUser, Instant.now().plusSeconds(3600), false));
+            buildRefreshToken(ACTIVE_TOKEN, targetUser, now.plusSeconds(3600), false));
     RefreshTokenEntity alreadyRevokedToken =
         refreshTokenRepository.save(
-            buildRefreshToken(REVOKED_TOKEN, targetUser, Instant.now().plusSeconds(3600), true));
+            buildRefreshToken(REVOKED_TOKEN, targetUser, now.plusSeconds(3600), true));
+    RefreshTokenEntity expiredUnrevokedToken =
+        refreshTokenRepository.save(
+            buildRefreshToken(EXPIRED_REFRESH_TOKEN, targetUser, now.minusSeconds(5), false));
     RefreshTokenEntity otherUserActiveToken =
         refreshTokenRepository.save(
-            buildRefreshToken(OTHER_USER_TOKEN, otherUser, Instant.now().plusSeconds(3600), false));
+            buildRefreshToken(OTHER_USER_TOKEN, otherUser, now.plusSeconds(3600), false));
 
-    int revokedCount = refreshTokenRepository.revokeActiveTokensByUserId(targetUser.getId());
+    int revokedCount = refreshTokenRepository.revokeActiveTokensByUserId(targetUser.getId(), now);
 
     assertEquals(1, revokedCount);
     assertTrue(
@@ -91,6 +95,11 @@ class RefreshTokenRepositoryTest {
     assertTrue(
         refreshTokenRepository
             .findByToken(alreadyRevokedToken.getToken())
+            .orElseThrow()
+            .isRevoked());
+    assertFalse(
+        refreshTokenRepository
+            .findByToken(expiredUnrevokedToken.getToken())
             .orElseThrow()
             .isRevoked());
     assertFalse(

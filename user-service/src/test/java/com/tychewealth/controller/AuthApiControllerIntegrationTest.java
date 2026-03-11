@@ -176,6 +176,7 @@ class AuthApiControllerIntegrationTest {
                 .value(ErrorDefinition.AUTH_REGISTRATION_CONFLICT.getDescription()));
   }
 
+  @Test
   void registerReturnsTooManyRequestsWhenRateLimitIsExceeded() throws Exception {
     RegisterRequestDto invalidRegisterRequest = new RegisterRequestDto("", "", "short");
     double requestsBefore = counterValue(METRIC_AUTH_REGISTER_REQUESTS);

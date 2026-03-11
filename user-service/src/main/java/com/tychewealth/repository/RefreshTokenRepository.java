@@ -18,8 +18,15 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity
   @Transactional
   @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query(
-      "update RefreshTokenEntity rt set rt.revoked = true where rt.user.id = :userId and rt.revoked = false")
-  int revokeActiveTokensByUserId(@Param("userId") Long userId);
+      """
+      update RefreshTokenEntity rt
+         set rt.revoked = true
+       where rt.user.id = :userId
+         and rt.revoked = false
+         and rt.expiresAt > :currentTime
+      """)
+  int revokeActiveTokensByUserId(
+      @Param("userId") Long userId, @Param("currentTime") Instant currentTime);
 
   @Transactional
   @Modifying(clearAutomatically = true, flushAutomatically = true)

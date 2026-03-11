@@ -58,7 +58,7 @@ public class AuthRefreshTokenHelper {
 
   @Transactional
   public int revokeActiveTokensByUserId(Long userId) {
-    int revokedCount = refreshTokenRepository.revokeActiveTokensByUserId(userId);
+    int revokedCount = refreshTokenRepository.revokeActiveTokensByUserId(userId, Instant.now());
     authMetrics.recordTokensRevoked(revokedCount);
     return revokedCount;
   }
