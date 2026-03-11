@@ -12,6 +12,10 @@ public final class AuthConstants {
   public static final String TOKEN_TYPE_BEARER = "Bearer";
   public static final int REFRESH_TOKEN_BYTE_LENGTH = 32;
 
+  public static final String LOGIN_RATE_LIMIT_MESSAGE = "Too many login requests";
+  public static final String REGISTER_RATE_LIMIT_MESSAGE = "Too many register requests";
+  public static final String REFRESH_RATE_LIMIT_MESSAGE = "Too many refresh token requests";
+
   public static final String METRIC_AUTH_REGISTER_REQUESTS = "tyche.auth.register.requests";
   public static final String METRIC_AUTH_REGISTER_SUCCESS = "tyche.auth.register.success";
   public static final String METRIC_AUTH_REGISTER_FAILURE = "tyche.auth.register.failure";

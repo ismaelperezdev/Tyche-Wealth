@@ -1,21 +1,19 @@
 package com.tychewealth.web;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import org.springframework.http.HttpStatus;
-import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 public class AuthRateLimitInterceptor implements HandlerInterceptor {
-
-  private static final String FORWARDED_FOR_HEADER = "X-Forwarded-For";
 
   private final int maxRequests;
   private final long windowMillis;
@@ -23,7 +21,7 @@ public class AuthRateLimitInterceptor implements HandlerInterceptor {
   private final Consumer<String> requestMetricRecorder;
   private final Consumer<String> rateLimitedMetricRecorder;
   private final Clock clock;
-  private final Map<String, Deque<Long>> requestsByClient = new ConcurrentHashMap<>();
+  private final Cache<String, Deque<Long>> requestsByClient;
 
   public AuthRateLimitInterceptor(
       int maxRequests,
@@ -37,6 +35,7 @@ public class AuthRateLimitInterceptor implements HandlerInterceptor {
         rejectionMessage,
         requestMetricRecorder,
         rateLimitedMetricRecorder,
+        buildRequestsByClientCache(windowSeconds),
         Clock.systemUTC());
   }
 
@@ -46,6 +45,7 @@ public class AuthRateLimitInterceptor implements HandlerInterceptor {
       String rejectionMessage,
       Consumer<String> requestMetricRecorder,
       Consumer<String> rateLimitedMetricRecorder,
+      Cache<String, Deque<Long>> requestsByClient,
       Clock clock) {
     if (maxRequests <= 0) {
       throw new IllegalArgumentException("Rate limit max requests must be positive");
@@ -58,6 +58,7 @@ public class AuthRateLimitInterceptor implements HandlerInterceptor {
     this.rejectionMessage = rejectionMessage;
     this.requestMetricRecorder = requestMetricRecorder;
     this.rateLimitedMetricRecorder = rateLimitedMetricRecorder;
+    this.requestsByClient = requestsByClient;
     this.clock = clock;
   }
 
@@ -70,8 +71,7 @@ public class AuthRateLimitInterceptor implements HandlerInterceptor {
 
     String clientKey = resolveClientKey(request);
     long now = clock.millis();
-    Deque<Long> timestamps =
-        requestsByClient.computeIfAbsent(clientKey, ignored -> new ArrayDeque<>());
+    Deque<Long> timestamps = requestsByClient.get(clientKey, ignored -> new ArrayDeque<>());
 
     synchronized (timestamps) {
       evictExpiredRequests(timestamps, now);
@@ -88,7 +88,7 @@ public class AuthRateLimitInterceptor implements HandlerInterceptor {
   }
 
   public void reset() {
-    requestsByClient.clear();
+    requestsByClient.invalidateAll();
   }
 
   private void evictExpiredRequests(Deque<Long> timestamps, long now) {
@@ -99,10 +99,10 @@ public class AuthRateLimitInterceptor implements HandlerInterceptor {
   }
 
   private String resolveClientKey(HttpServletRequest request) {
-    String forwardedFor = request.getHeader(FORWARDED_FOR_HEADER);
-    if (StringUtils.hasText(forwardedFor)) {
-      return forwardedFor.split(",")[0].trim();
-    }
     return request.getRemoteAddr();
+  }
+
+  private static Cache<String, Deque<Long>> buildRequestsByClientCache(long windowSeconds) {
+    return Caffeine.newBuilder().expireAfterAccess(Duration.ofSeconds(windowSeconds)).build();
   }
 }
