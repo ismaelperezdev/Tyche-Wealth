@@ -1,6 +1,7 @@
 package com.tychewealth.controller;
 
 import static com.tychewealth.constants.ApiConstants.AUTH_LOGIN_URL;
+import static com.tychewealth.constants.ApiConstants.AUTH_LOGOUT_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_REFRESH_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_REGISTER_URL;
 import static com.tychewealth.constants.AuthConstants.LOGIN_RATE_LIMIT_MESSAGE;
@@ -439,6 +440,37 @@ class AuthApiControllerIntegrationTest {
     assertEquals(rateLimitedBefore + 1, counterValue(METRIC_AUTH_REFRESH_RATE_LIMITED));
   }
 
+  @Test
+  void logoutRevokesRefreshTokenWhenTokenIsValid() throws Exception {
+    UserEntity user = userRepository.save(existingLoginUser);
+    refreshTokenRepository.save(
+        buildRefreshToken(EXISTING_REFRESH_TOKEN, user, Instant.now().plusSeconds(3600), false));
+
+    logout(EXISTING_REFRESH_TOKEN).andExpect(status().isNoContent());
+
+    assertTrue(
+        refreshTokenRepository.findByToken(EXISTING_REFRESH_TOKEN).orElseThrow().isRevoked());
+  }
+
+  @Test
+  void logoutReturnsUnauthorizedWhenRefreshTokenDoesNotExist() throws Exception {
+    logout(MISSING_REFRESH_TOKEN)
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID.getType()))
+        .andExpect(
+            jsonPath("$.description")
+                .value(ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID.getDescription()));
+  }
+
+  @Test
+  void logoutReturnsBadRequestWhenPayloadIsInvalid() throws Exception {
+    logout(" ")
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getType()));
+  }
+
   private double counterValue(String counterName) {
     var counter = meterRegistry.find(counterName).counter();
     return counter == null ? 0 : counter.count();
@@ -472,6 +504,13 @@ class AuthApiControllerIntegrationTest {
   private ResultActions refresh(String refreshToken) throws Exception {
     return mockMvc.perform(
         post(AUTH_REFRESH_URL)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(new RefreshTokenRequestDto(refreshToken))));
+  }
+
+  private ResultActions logout(String refreshToken) throws Exception {
+    return mockMvc.perform(
+        post(AUTH_LOGOUT_URL)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(new RefreshTokenRequestDto(refreshToken))));
   }

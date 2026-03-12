@@ -58,4 +58,13 @@ public class AuthApiController implements AuthApi {
     RefreshTokenResponseDto response = authService.refresh(refreshTokenRequestDto);
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
+
+  @Override
+  public ResponseEntity<Void> logout(
+      @Valid @RequestBody RefreshTokenRequestDto refreshTokenRequestDto) {
+    log.info(LogConstants.REQUEST_START, LogConstants.AUTH, LogConstants.LOGOUT_ACTION);
+
+    authService.logout(refreshTokenRequestDto);
+    return ResponseEntity.noContent().build();
+  }
 }
