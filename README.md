@@ -1,3 +1,3 @@
 📚 Documentation Portal: https://ismaelperezdev.github.io/Tyche-Wealth/ 
 
-📝 Source Docs: [/docs](knowledge/)
+📝 Source Docs: [/docs](docs/)
