@@ -23,7 +23,7 @@
         <lombok.version>1.18.38</lombok.version>
         <spotless.version>2.44.4</spotless.version>
         <checkstyle.plugin.version>3.6.0</checkstyle.plugin.version>
-        <dependency-check.version>10.0.4</dependency-check.version>
+        <dependency-check.version>12.1.3</dependency-check.version>
         <jjwt.version>0.12.7</jjwt.version>
         <jacoco.version>0.8.13</jacoco.version>
         <jacoco.minimum.line.coverage>0.60</jacoco.minimum.line.coverage>
@@ -201,8 +201,17 @@
                         <format>HTML</format>
                         <format>JSON</format>
                     </formats>
-                    <failBuildOnCVSS>11</failBuildOnCVSS>
+                    <failBuildOnCVSS>9</failBuildOnCVSS>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>dependency-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>

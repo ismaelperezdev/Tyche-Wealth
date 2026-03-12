@@ -51,6 +51,7 @@ jobs:
 
   security:
     runs-on: ubuntu-latest
+    timeout-minutes: 8
 
     defaults:
       run:
@@ -66,6 +67,14 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
+
+      - name: Cache Dependency-Check data
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp
+          key: dependency-check-${{ runner.os }}-${{ hashFiles('user-service/pom.xml') }}
+          restore-keys: |
+            dependency-check-${{ runner.os }}-
 
       - name: Make Maven wrapper executable
         run: chmod +x mvnw
