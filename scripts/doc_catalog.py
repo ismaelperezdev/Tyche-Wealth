@@ -20,19 +20,18 @@ class ServiceCatalog:
     }
 
     STATIC_DOC_TARGETS = (
-        Path("docs/architecture/system.md"),
-        Path("docs/database/overview.md"),
+        Path("docs/knowledge/architecture/system.md"),
+        Path("docs/knowledge/database/overview.md"),
     )
 
     def __init__(self, repo_root: Path) -> None:
         self.repo_root = repo_root
-        self.docs_root = repo_root / "docs"
+        self.docs_root = repo_root / "docs" / "knowledge"
         self.templates_root = repo_root / "scripts" / "templates"
         self.index_path = self.docs_root / "index.md"
         self.project_context_path = self.docs_root / "project-context.md"
         self.reports_root = self.docs_root / "reports"
         self.docs_excluded_prefixes = {
-            self.docs_root / ".obsidian",
             self.docs_root / "generated",
             self.docs_root / "reports",
         }

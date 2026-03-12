@@ -36,6 +36,7 @@ This page consolidates the implemented database model across the repository.
 | `users` | `UserEntity` | Stores the primary user identity and credential state. | Portfolio |
 
 ### Relationships
+
 ```mermaid
 %%{init: {
   "theme": "base",
@@ -107,6 +108,7 @@ flowchart LR
 - Treat JPA entities and schema-management files as the source of truth for persistence details.
 - Review nullability, token revocation flags, timestamps, and foreign-key ownership in code before changing this page.
 - Liquibase changelogs are present and should be checked together with entities when schema behavior changes.
+
 
 ## Constraints and Persistence Notes
 

@@ -378,7 +378,7 @@ def get_project_facts() -> str:
     return f"""
 - Implemented microservices currently detected: {service_names}
 - Use repository code as the primary source of truth over older markdown.
-- Treat `docs/project-context.md` as stable read-only context and the real `docs/` tree as the target structure to maintain.
+- Treat `docs/knowledge/project-context.md` as stable read-only context and the real `docs/knowledge/` tree as the target structure to maintain.
 - Prefer service-specific source files, controllers, DTOs, entities, repositories, configuration, and changelogs when deriving facts.
 - Only describe endpoints, tables, integrations, or flows that are visible in code or explicitly marked as conceptual.
 - Service-specific runtime details such as ports, base paths, Swagger URLs, and environment keys must come from the relevant service sources, not from generic assumptions.
@@ -606,10 +606,10 @@ Reusable template for this document type:
 Current page content:
 {current_doc}
 
-Current docs/project-context.md:
+Current docs/knowledge/project-context.md:
 {project_context}
 
-Current docs/index.md:
+Current docs/knowledge/index.md:
 {index_content}
 
 Current service README:
@@ -769,8 +769,8 @@ def main() -> None:
                 "\n".join(
                     [
                         "- This run updates the real `docs/` structure instead of creating per-class documentation.",
-                        "- `docs/project-context.md` is treated as read-only context by this script.",
-                        "- `docs/index.md` and service `README.md` files are refreshed as part of the cycle.",
+                        "- `docs/knowledge/project-context.md` is treated as read-only context by this script.",
+                        "- `docs/knowledge/index.md` and service `README.md` files are refreshed as part of the cycle.",
                         "- Services are discovered from repository folders matching `*-service`.",
                     ]
                 ),

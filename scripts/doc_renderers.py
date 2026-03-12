@@ -75,7 +75,7 @@ class BaseServiceRenderer:
 
     def render_service_readme(self) -> str:
         service_title = self.service.name.replace("-", " ").title()
-        docs_prefix = f"docs/services/{self.service.name}"
+        docs_prefix = f"docs/knowledge/services/{self.service.name}"
         run_command = self._build_local_run_command()
         props = self.facts.application_properties
         app_name = props.get("spring.application.name", self.service.name)
@@ -217,10 +217,10 @@ Configuration files:
 
 ## Related Documentation
 
-- `docs/services/{self.service.name}/api.md`
-- `docs/services/{self.service.name}/data-model.md`
-- `docs/services/{self.service.name}/runtime.md`
-- `docs/project-context.md`
+- `docs/knowledge/services/{self.service.name}/api.md`
+- `docs/knowledge/services/{self.service.name}/data-model.md`
+- `docs/knowledge/services/{self.service.name}/runtime.md`
+- `docs/knowledge/project-context.md`
 """
 
     def render_service_api(self) -> str:
@@ -285,9 +285,9 @@ This page consolidates the persistence model for `{self.service.name}`. It repla
 
 ## Related Documentation
 
-- `docs/services/{self.service.name}/overview.md`
-- `docs/services/{self.service.name}/runtime.md`
-- `docs/database/overview.md`
+- `docs/knowledge/services/{self.service.name}/overview.md`
+- `docs/knowledge/services/{self.service.name}/runtime.md`
+- `docs/knowledge/database/overview.md`
 """
 
     def render_service_runtime(self) -> str:

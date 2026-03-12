@@ -49,7 +49,7 @@
 
 ## Related Documentation
 
-- `docs/services/user-service/api.md`
-- `docs/services/user-service/data-model.md`
-- `docs/services/user-service/runtime.md`
-- `docs/project-context.md`
+- `docs/knowledge/services/user-service/api.md`
+- `docs/knowledge/services/user-service/data-model.md`
+- `docs/knowledge/services/user-service/runtime.md`
+- `docs/knowledge/project-context.md`

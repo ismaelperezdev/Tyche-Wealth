@@ -4,14 +4,14 @@ _This run refreshed the compact documentation set, using deterministic renderers
 
 ## Run Metadata
 
-- Report file: `2026-03-12-165939-generate_docs.md`
+- Report file: `2026-03-12-172953-generate_docs.md`
 - Latest alias: `latest-generate_docs.md`
 - Script: `generate_docs.py`
 - Branch kind: `feature`
 - Branch: `TYCHE-10-implement-ci-pipeline`
 - Raw git branch: `feature_TYCHE-10-implement-ci-pipeline`
-- Started at: `2026-03-12T16:59:39.633996+00:00`
-- Finished at: `2026-03-12T16:59:40.438813+00:00`
+- Started at: `2026-03-12T17:29:53.879374+00:00`
+- Finished at: `2026-03-12T17:29:54.751541+00:00`
 
 ## Quick Read
 
@@ -32,13 +32,13 @@ _This run refreshed the compact documentation set, using deterministic renderers
 
 ## Target Documentation Pages
 
-- `docs/architecture/system.md`
-- `docs/database/overview.md`
-- `docs/services/user-service/api.md`
-- `docs/services/user-service/data-model.md`
-- `docs/services/user-service/overview.md`
-- `docs/services/user-service/readme.md`
-- `docs/services/user-service/runtime.md`
+- `docs/knowledge/architecture/system.md`
+- `docs/knowledge/database/overview.md`
+- `docs/knowledge/services/user-service/api.md`
+- `docs/knowledge/services/user-service/data-model.md`
+- `docs/knowledge/services/user-service/overview.md`
+- `docs/knowledge/services/user-service/readme.md`
+- `docs/knowledge/services/user-service/runtime.md`
 
 ## Service Source Files Used
 
@@ -189,15 +189,15 @@ _This run refreshed the compact documentation set, using deterministic renderers
 
 ## Updated Pages
 
-- updated `docs\architecture\system.md` using `template`
-- updated `docs\database\overview.md` using `template`
-- updated `docs\services\user-service\api.md` using `template`
-- updated `docs\services\user-service\data-model.md` using `template`
-- updated `docs\services\user-service\overview.md` using `template`
-- updated `docs\services\user-service\readme.md` using `template`
-- updated `docs\services\user-service\runtime.md` using `template`
+- updated `docs\knowledge\architecture\system.md` using `template`
+- updated `docs\knowledge\database\overview.md` using `template`
+- updated `docs\knowledge\services\user-service\api.md` using `template`
+- updated `docs\knowledge\services\user-service\data-model.md` using `template`
+- updated `docs\knowledge\services\user-service\overview.md` using `template`
+- updated `docs\knowledge\services\user-service\readme.md` using `template`
+- updated `docs\knowledge\services\user-service\runtime.md` using `template`
 - updated `user-service\README.md` using `template`
-- updated `docs\index.md` using `template`
+- updated `docs\knowledge\index.md` using `template`
 
 ## Skipped Items
 
@@ -206,24 +206,24 @@ _This run refreshed the compact documentation set, using deterministic renderers
 ## Notes
 
 - This run updates the real `docs/` structure instead of creating per-class documentation.
-- `docs/project-context.md` is treated as read-only context by this script.
-- `docs/index.md` and service `README.md` files are refreshed as part of the cycle.
+- `docs/knowledge/project-context.md` is treated as read-only context by this script.
+- `docs/knowledge/index.md` and service `README.md` files are refreshed as part of the cycle.
 - Services are discovered from repository folders matching `*-service`.
 
 ## Rollback Prompt
 
 ```text
-Usa el workspace actual. Quiero hacer rollback solo de los cambios introducidos por el reporte `2026-03-12-165939-generate_docs.md` del script `generate_docs.py`.
+Usa el workspace actual. Quiero hacer rollback solo de los cambios introducidos por el reporte `2026-03-12-172953-generate_docs.md` del script `generate_docs.py`.
 Revierte únicamente estos archivos si siguen coincidiendo con esa ejecución:
-- `docs/architecture/system.md`
-- `docs/database/overview.md`
-- `docs/services/user-service/api.md`
-- `docs/services/user-service/data-model.md`
-- `docs/services/user-service/overview.md`
-- `docs/services/user-service/readme.md`
-- `docs/services/user-service/runtime.md`
+- `docs/knowledge/architecture/system.md`
+- `docs/knowledge/database/overview.md`
+- `docs/knowledge/services/user-service/api.md`
+- `docs/knowledge/services/user-service/data-model.md`
+- `docs/knowledge/services/user-service/overview.md`
+- `docs/knowledge/services/user-service/readme.md`
+- `docs/knowledge/services/user-service/runtime.md`
 - `user-service/README.md`
-- `docs/index.md`
+- `docs/knowledge/index.md`
 No toques cambios ajenos del usuario.
 Si alguno de esos archivos ha cambiado después de este reporte, pregúntame antes de sobrescribirlo.
 ```

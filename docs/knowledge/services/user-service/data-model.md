@@ -93,6 +93,7 @@ This page consolidates the persistence model for `user-service`. It replaces the
 - One record owns a collection associated with `PortfolioEntity`.
 
 ## Relationships
+
 ```mermaid
 %%{init: {
   "theme": "base",
@@ -160,6 +161,6 @@ flowchart LR
 
 ## Related Documentation
 
-- `docs/services/user-service/overview.md`
-- `docs/services/user-service/runtime.md`
-- `docs/database/overview.md`
+- `docs/knowledge/services/user-service/overview.md`
+- `docs/knowledge/services/user-service/runtime.md`
+- `docs/knowledge/database/overview.md`

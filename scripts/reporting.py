@@ -117,7 +117,7 @@ def rebuild_report_indexes(reports_root: Path) -> None:
     root_lines = [
         "## Overview",
         "",
-        "This section indexes documentation automation reports stored under `docs/reports/`.",
+        "This section indexes documentation automation reports stored under `docs/knowledge/reports/`.",
         "",
         "## Available Branch Kinds",
         "",

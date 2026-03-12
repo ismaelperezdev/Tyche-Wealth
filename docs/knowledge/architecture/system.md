@@ -51,6 +51,7 @@ This page consolidates the backend architecture that is actually implemented tod
 ## Interactions
 
 ### user-service
+
 ```mermaid
 %%{init: {
   "theme": "base",

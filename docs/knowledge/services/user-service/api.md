@@ -144,6 +144,7 @@ Validates a refresh token, rotates token state, and returns refreshed credential
 ## Flows and Sequence Diagrams
 
 ### Register Flow
+
 ```mermaid
 %%{init: {
   "theme": "base",
@@ -196,6 +197,7 @@ flowchart LR
 ```
 
 ### Login Sequence
+
 ```mermaid
 %%{init: {
   "theme": "base",
@@ -262,6 +264,7 @@ sequenceDiagram
 ```
 
 ### Refresh Sequence
+
 ```mermaid
 %%{init: {
   "theme": "base",
@@ -331,6 +334,7 @@ sequenceDiagram
 ```
 
 ### Refresh Token Lifecycle
+
 ```mermaid
 %%{init: {
   "theme": "base",

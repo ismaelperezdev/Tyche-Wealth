@@ -254,7 +254,7 @@ flowchart LR
 
 | Page | Why open it |
 | --- | --- |
-| `docs/services/user-service/overview.md` | Service scope, responsibilities, and architecture-facing summary. |
-| `docs/services/user-service/api.md` | Implemented endpoints, validation rules, and API diagrams. |
-| `docs/services/user-service/data-model.md` | Entities, relationships, and persistence details. |
-| `docs/services/user-service/runtime.md` | Setup, runtime configuration, security, and operations. |
+| `docs/knowledge/services/user-service/overview.md` | Service scope, responsibilities, and architecture-facing summary. |
+| `docs/knowledge/services/user-service/api.md` | Implemented endpoints, validation rules, and API diagrams. |
+| `docs/knowledge/services/user-service/data-model.md` | Entities, relationships, and persistence details. |
+| `docs/knowledge/services/user-service/runtime.md` | Setup, runtime configuration, security, and operations. |

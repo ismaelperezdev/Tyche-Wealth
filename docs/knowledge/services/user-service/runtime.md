@@ -17,16 +17,17 @@ This page consolidates local setup, runtime configuration, security, and operati
 
 ## Requirements
 
-- The service name is `user-service`.
-- The default configured port is `8080`.
-- The service requires a PostgreSQL-backed database.
-- Build and local execution are handled by Maven.
+- Spring application name: `user-service`
+- Default configured port: `8080`
+- Requires a PostgreSQL-backed datasource according to the current service configuration.
+- Build and local execution are driven from the service Maven project.
 
 ## Run Locally
 
 - Start the backing infrastructure expected by the service, especially the configured PostgreSQL instance.
 - Provide local-only overrides through `application-local.properties` in the repository root or service folder.
 - Run the service with the checked-in build tooling:
+
 ```powershell
 cd user-service
 .\mvnw.cmd spring-boot:run

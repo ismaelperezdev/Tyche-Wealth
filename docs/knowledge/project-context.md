@@ -263,7 +263,7 @@ At the end of each documentation generation or update cycle, the agent should cr
 Recommended location:
 
 - keep all execution reports under a common folder inside `docs/`
-- use `docs/reports/<branch-name>/` as the default structure
+- use `docs/knowledge/reports/<branch-name>/` as the default structure
 - this keeps reports separated from architecture, API, and service documentation pages
 
 Recommended filename patterns:
@@ -287,8 +287,8 @@ Rules for the change report:
 - Keep it readable for humans first.
 - Summarize meaningful changes, not every trivial wording tweak.
 - Be explicit when a document was updated to match code reality.
-- Avoid mixing reports with normal documentation pages outside `docs/reports/`.
-- If no branch name is available, fall back to `docs/reports/_unknown-branch/`.
+- Avoid mixing reports with normal documentation pages outside `docs/knowledge/reports/`.
+- If no branch name is available, fall back to `docs/knowledge/reports/_unknown-branch/`.
 
 ## Canonical Sources by Topic
 

@@ -2,7 +2,7 @@ site_name: Tyche Wealth Docs
 site_description: Technical documentation for the Tyche Wealth repository
 site_url: ""
 repo_name: ismap/Tyche-Wealth
-docs_dir: docs
+docs_dir: docs/knowledge
 theme:
   name: material
   language: en
