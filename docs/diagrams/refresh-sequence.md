@@ -1,3 +1,0 @@
-# Refresh Sequence Diagram
-
-TODO

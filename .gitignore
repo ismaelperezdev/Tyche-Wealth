@@ -3,6 +3,7 @@ target/
 build/
 out/
 dist/
+site/
 
 # Java / JVM
 *.class
@@ -24,6 +25,7 @@ logs/
 .env
 .env.*
 *.local
+application-local.properties
 user-service/application-local.properties
 
 # IDEs and editors

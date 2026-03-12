@@ -1,3 +1,0 @@
-# Database Schema
-
-TODO
