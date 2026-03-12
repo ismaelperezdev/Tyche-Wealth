@@ -72,10 +72,7 @@ public class AuthRefreshTokenHelper {
       throwInvalidRefreshToken();
     }
 
-    return findByToken(token)
-        .orElseThrow(
-            () ->
-                new IllegalStateException("Refresh token disappeared after successful revocation"));
+    return findByToken(token).orElseThrow(this::buildInvalidRefreshTokenException);
   }
 
   public Optional<RefreshTokenEntity> findByToken(String token) {
@@ -86,7 +83,11 @@ public class AuthRefreshTokenHelper {
     log.warn(REQUEST_CONFLICT, AUTH, REFRESH_TOKEN_ACTION, INVALID_REFRESH_TOKEN_MESSAGE);
     authMetrics.recordRefreshFailure();
 
-    throw new AuthException(
+    throw buildInvalidRefreshTokenException();
+  }
+
+  private AuthException buildInvalidRefreshTokenException() {
+    return new AuthException(
         ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID, null, HttpStatus.UNAUTHORIZED);
   }
 

@@ -30,4 +30,7 @@ public interface AuthApi {
   @PostMapping(value = "/refresh", consumes = REQUEST_CONSUMES, produces = REQUEST_PRODUCES)
   ResponseEntity<RefreshTokenResponseDto> refresh(
       @Valid @RequestBody RefreshTokenRequestDto refreshTokenRequestDto);
+
+  @PostMapping(value = "/logout", consumes = REQUEST_CONSUMES)
+  ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequestDto refreshTokenRequestDto);
 }

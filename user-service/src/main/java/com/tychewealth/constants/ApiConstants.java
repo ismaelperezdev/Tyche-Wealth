@@ -11,6 +11,7 @@ public class ApiConstants {
   public static final String AUTH_REGISTER_URL = AUTH_BASE_URL + "/register";
   public static final String AUTH_LOGIN_URL = AUTH_BASE_URL + "/login";
   public static final String AUTH_REFRESH_URL = AUTH_BASE_URL + "/refresh";
+  public static final String AUTH_LOGOUT_URL = AUTH_BASE_URL + "/logout";
 
   public static final String REQUEST_PRODUCES = MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8";
   public static final String REQUEST_CONSUMES = MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8";

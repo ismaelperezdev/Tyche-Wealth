@@ -97,6 +97,20 @@ public class AuthServiceImpl implements AuthService {
         newRefreshToken);
   }
 
+  @Override
+  @Transactional
+  public void logout(RefreshTokenRequestDto refreshTokenRequestDto) {
+    authValidationHelper.validateRefreshTokenRequest(refreshTokenRequestDto);
+    RefreshTokenEntity refreshToken =
+        authRefreshTokenHelper.validateRefreshToken(refreshTokenRequestDto.getRefreshToken());
+
+    log.info(
+        LogConstants.REQUEST_SUCCESS + LogConstants.LOGOUT_USER_ID,
+        LogConstants.AUTH,
+        LogConstants.LOGOUT_ACTION,
+        refreshToken.getUser().getId());
+  }
+
   private boolean isUserUniqueConstraintViolation(Throwable throwable) {
     Throwable current = throwable;
 
