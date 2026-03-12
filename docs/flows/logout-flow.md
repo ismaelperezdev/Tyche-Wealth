@@ -1,3 +1,0 @@
-# Logout Flow
-
-TODO

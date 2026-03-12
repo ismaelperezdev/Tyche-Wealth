@@ -1,3 +1,0 @@
-# System Architecture Diagram
-
-TODO

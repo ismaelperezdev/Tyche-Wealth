@@ -1,0 +1,63 @@
+site_name: Tyche Wealth Docs
+site_description: Technical documentation for the Tyche Wealth repository
+site_url: ""
+repo_name: ismap/Tyche-Wealth
+docs_dir: docs/knowledge
+theme:
+  name: material
+  language: en
+  font:
+    text: Merriweather Sans
+    code: JetBrains Mono
+  palette:
+    - scheme: default
+      primary: custom
+      accent: custom
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.indexes
+    - content.tabs.link
+    - content.code.copy
+extra_css:
+  - stylesheets/extra.css
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+plugins:
+  - search
+extra:
+  homepage: /
+nav:
+  - Home: index.md
+  - Project Context: project-context.md
+  - Architecture:
+      - System Architecture: architecture/system.md
+  - Database:
+      - Overview: database/overview.md
+  - Services:
+      - User Service:
+          - README: services/user-service/readme.md
+          - Overview: services/user-service/overview.md
+          - API: services/user-service/api.md
+          - Data Model: services/user-service/data-model.md
+          - Runtime: services/user-service/runtime.md
+  - Reports:
+      - Overview: reports/index.md
+      - Feature Branches: reports/feature/index.md
