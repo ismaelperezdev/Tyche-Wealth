@@ -1,0 +1,85 @@
+name: User Service PR CI
+
+on:
+  pull_request:
+    paths:
+      - "user-service/**"
+      - ".github/workflows/user-service-pr.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+    defaults:
+      run:
+        working-directory: user-service
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Maven wrapper
+        run: chmod +x mvnw
+
+      - name: Check format
+        run: ./mvnw spotless:check
+
+      - name: Check build
+        run: ./mvnw -DskipTests package
+
+      - name: Tests
+        run: ./mvnw test
+
+      - name: Run SonarQube analysis
+        if: ${{ env.SONAR_HOST_URL != '' && env.SONAR_TOKEN != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./mvnw sonar:sonar -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_TOKEN}
+
+  security:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: user-service
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Maven wrapper executable
+        run: chmod +x mvnw
+
+      - name: Security Scan
+        run: ./mvnw org.owasp:dependency-check-maven:check
+
+      - name: Upload Dependency Check report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: user-service-dependency-check-pr
+          path: |
+            user-service/target/dependency-check-report.html
+            user-service/target/dependency-check-report.json
+          if-no-files-found: ignore

@@ -1,0 +1,132 @@
+name: User Service Main CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "user-service/**"
+      - ".github/workflows/user-service-main.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: user-service
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Maven wrapper
+        run: chmod +x mvnw
+
+      - name: Check format
+        run: ./mvnw spotless:check
+
+      - name: Check build
+        run: ./mvnw -DskipTests package
+
+      - name: Tests
+        run: ./mvnw verify
+
+  security:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: user-service
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Make Maven wrapper executable
+        run: chmod +x mvnw
+
+      - name: Run OWASP Dependency Check
+        run: ./mvnw org.owasp:dependency-check-maven:check
+
+      - name: Upload Dependency Check report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: user-service-dependency-check-main
+          path: |
+            user-service/target/dependency-check-report.html
+            user-service/target/dependency-check-report.json
+          if-no-files-found: ignore
+
+  docs-generation:
+    needs:
+      - verify
+      - security
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install docs dependencies
+        run: pip install -r requirements-docs.txt
+
+      - name: Generate documentation
+        run: python scripts/generate_docs.py
+
+      - name: Review diagrams
+        run: python scripts/review_diagrams.py
+
+      - name: Docs polish
+        run: python scripts/polish_docs.py --deterministic-only
+
+      - name: Build documentation site
+        run: mkdocs build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy-docs:
+    needs: docs-generation
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
