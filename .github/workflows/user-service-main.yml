@@ -52,6 +52,8 @@ jobs:
   security:
     runs-on: ubuntu-latest
     timeout-minutes: 8
+    env:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
     defaults:
       run:
@@ -80,7 +82,7 @@ jobs:
         run: chmod +x mvnw
 
       - name: Run OWASP Dependency Check
-        run: ./mvnw org.owasp:dependency-check-maven:check
+        run: ./mvnw org.owasp:dependency-check-maven:check -DnvdApiKeyEnvironmentVariable=NVD_API_KEY
 
       - name: Upload Dependency Check report
         if: always()
