@@ -47,7 +47,7 @@ jobs:
         run: ./mvnw -DskipTests package
 
       - name: Tests
-        run: ./mvnw verify
+        run: ./mvnw verify -Ddependency-check.skip=true
 
   security:
     runs-on: ubuntu-latest
