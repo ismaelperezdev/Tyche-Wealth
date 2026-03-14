@@ -2,6 +2,7 @@ package com.tychewealth.controller;
 
 import static com.tychewealth.constants.ApiConstants.USER_ME_PASSWORD_URL;
 import static com.tychewealth.constants.ApiConstants.USER_ME_URL;
+import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static com.tychewealth.constants.TestConstants.TEST_EMAIL_LAURA;
 import static com.tychewealth.constants.TestConstants.TEST_OCCUPIED_USERNAME;
 import static com.tychewealth.constants.TestConstants.TEST_OTHER_EMAIL;
@@ -27,6 +28,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -92,6 +94,27 @@ class UserApiControllerIntegrationTest {
   @Test
   void retrieveReturnsUnauthorizedWhenUserIsNotAuthenticated() throws Exception {
     retrieveRequestUnauthorized(mockMvc)
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
+        .andExpect(jsonPath("$.description").value(ErrorDefinition.UNAUTHORIZED.getDescription()));
+  }
+
+  @Test
+  void retrieveAcceptsLowercaseBearerScheme() throws Exception {
+    UserEntity saved = userRepository.save(existingUser);
+    String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
+
+    mockMvc
+        .perform(get(USER_ME_URL).header(AUTHORIZATION_HEADER, "bearer " + accessToken))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(saved.getId()));
+  }
+
+  @Test
+  void retrieveReturnsUnauthorizedWhenAuthorizationSchemeIsInvalid() throws Exception {
+    mockMvc
+        .perform(get(USER_ME_URL).header(AUTHORIZATION_HEADER, "basic token"))
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
