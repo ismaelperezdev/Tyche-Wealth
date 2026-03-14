@@ -1,4 +1,4 @@
-package com.tychewealth.support;
+package com.tychewealth.service.helper;
 
 import static com.tychewealth.constants.ApiConstants.AUTH_LOGIN_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_LOGOUT_URL;
@@ -16,9 +16,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
-public final class AuthTestSupport {
+public final class AuthTestHelper {
 
-  private AuthTestSupport() {}
+  private AuthTestHelper() {}
 
   public static LoginResponseDto login(
       MockMvc mockMvc, ObjectMapper objectMapper, LoginRequestDto request) throws Exception {
