@@ -1,5 +1,8 @@
 package com.tychewealth.dto.user.request;
 
+import static com.tychewealth.constants.ValidationConstants.MUST_BE_BETWEEN_3_AND_30_CHARACTERS;
+import static com.tychewealth.constants.ValidationConstants.MUST_NOT_BE_BLANK;
+
 import com.tychewealth.utils.Utils;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -12,8 +15,8 @@ import lombok.Setter;
 @NoArgsConstructor
 public class UserUpdateRequestDto {
 
-  @NotBlank(message = "Username cannot be blank")
-  @Size(min = 3, max = 30, message = "Username must be between 3 and 30 characters")
+  @NotBlank(message = MUST_NOT_BE_BLANK)
+  @Size(min = 3, max = 30, message = MUST_BE_BETWEEN_3_AND_30_CHARACTERS)
   private String username;
 
   public void setUsername(String username) {

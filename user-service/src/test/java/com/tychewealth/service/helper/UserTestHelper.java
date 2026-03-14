@@ -1,5 +1,6 @@
 package com.tychewealth.service.helper;
 
+import static com.tychewealth.constants.ApiConstants.USER_ME_PASSWORD_URL;
 import static com.tychewealth.constants.ApiConstants.USER_ME_URL;
 import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER_PREFIX;
@@ -44,6 +45,43 @@ public final class UserTestHelper {
         patch(USER_ME_URL)
             .contentType(MediaType.APPLICATION_JSON)
             .content("{\"username\":\"" + username + "\"}"));
+  }
+
+  public static ResultActions updatePasswordRequest(
+      MockMvc mockMvc,
+      String accessToken,
+      String currentPassword,
+      String newPassword,
+      String confirmNewPassword)
+      throws Exception {
+    return mockMvc.perform(
+        patch(USER_ME_PASSWORD_URL)
+            .header(AUTHORIZATION_HEADER, authorizationHeader(accessToken))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                "{\"currentPassword\":\""
+                    + currentPassword
+                    + "\",\"newPassword\":\""
+                    + newPassword
+                    + "\",\"confirmNewPassword\":\""
+                    + confirmNewPassword
+                    + "\"}"));
+  }
+
+  public static ResultActions updatePasswordRequestUnauthorized(
+      MockMvc mockMvc, String currentPassword, String newPassword, String confirmNewPassword)
+      throws Exception {
+    return mockMvc.perform(
+        patch(USER_ME_PASSWORD_URL)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                "{\"currentPassword\":\""
+                    + currentPassword
+                    + "\",\"newPassword\":\""
+                    + newPassword
+                    + "\",\"confirmNewPassword\":\""
+                    + confirmNewPassword
+                    + "\"}"));
   }
 
   public static ResultActions deleteRequest(MockMvc mockMvc, String accessToken) throws Exception {

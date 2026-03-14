@@ -1,8 +1,8 @@
-package com.tychewealth.service.helper;
+package com.tychewealth.service.helper.auth;
 
 import com.tychewealth.constants.LogConstants;
+import com.tychewealth.dto.auth.request.RegisterRequestDto;
 import com.tychewealth.dto.user.UserResponseDto;
-import com.tychewealth.dto.user.request.RegisterRequestDto;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.mapper.user.UserMapper;
 import com.tychewealth.repository.UserRepository;
@@ -30,7 +30,7 @@ public class AuthRegisterHelper {
     authMetrics.recordRegisterSuccess();
 
     log.info(
-        LogConstants.REQUEST_SUCCESS + LogConstants.REGISTER_CREATED_USER_ID,
+        LogConstants.REQUEST_SUCCESS + LogConstants.USER_ID,
         LogConstants.AUTH,
         LogConstants.REGISTER_ACTION,
         created.getId());

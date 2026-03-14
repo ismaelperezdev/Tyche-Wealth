@@ -8,10 +8,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tychewealth.dto.user.LoginResponseDto;
-import com.tychewealth.dto.user.request.LoginRequestDto;
-import com.tychewealth.dto.user.request.RefreshTokenRequestDto;
-import com.tychewealth.dto.user.request.RegisterRequestDto;
+import com.tychewealth.dto.auth.LoginResponseDto;
+import com.tychewealth.dto.auth.request.LoginRequestDto;
+import com.tychewealth.dto.auth.request.RefreshTokenRequestDto;
+import com.tychewealth.dto.auth.request.RegisterRequestDto;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;

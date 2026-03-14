@@ -1,5 +1,6 @@
 package com.tychewealth.repository;
 
+import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
 import static com.tychewealth.testdata.EntityBuilder.buildPortfolio;
 import static com.tychewealth.testdata.EntityBuilder.buildUser;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,7 +34,7 @@ class PortfolioRepositoryTest {
 
   @BeforeEach
   void setUp() {
-    user = userRepository.save(buildUser("maria@tyche.com", "maria"));
+    user = userRepository.save(buildUser("maria@tyche.com", "maria", TEST_PASSWORD_VALID));
   }
 
   @Test

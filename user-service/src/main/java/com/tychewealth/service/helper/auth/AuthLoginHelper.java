@@ -1,10 +1,12 @@
-package com.tychewealth.service.helper;
+package com.tychewealth.service.helper.auth;
 
 import com.tychewealth.constants.LogConstants;
-import com.tychewealth.dto.user.LoginResponseDto;
+import com.tychewealth.dto.auth.LoginResponseDto;
 import com.tychewealth.dto.user.UserResponseDto;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.mapper.user.UserMapper;
+import com.tychewealth.service.helper.AuthRefreshTokenHelper;
+import com.tychewealth.service.helper.AuthTokenHelper;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.AuthTokenPayload;
 import java.time.Instant;
@@ -32,7 +34,7 @@ public class AuthLoginHelper {
     authMetrics.recordLoginSuccess();
 
     log.info(
-        LogConstants.REQUEST_SUCCESS + LogConstants.LOGIN_USER_ID,
+        LogConstants.REQUEST_SUCCESS + LogConstants.USER_ID,
         LogConstants.AUTH,
         LogConstants.LOGIN_ACTION,
         user.getId());

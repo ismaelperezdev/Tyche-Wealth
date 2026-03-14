@@ -2,8 +2,9 @@ package com.tychewealth.config;
 
 import com.tychewealth.controller.impl.AuthApiController;
 import com.tychewealth.error.handler.ErrorHandler;
-import com.tychewealth.service.helper.AuthRegisterHelper;
-import com.tychewealth.service.helper.AuthValidationHelper;
+import com.tychewealth.service.helper.TokenValidationHelper;
+import com.tychewealth.service.helper.auth.AuthRegisterHelper;
+import com.tychewealth.service.helper.auth.AuthValidationHelper;
 import com.tychewealth.service.impl.AuthServiceImpl;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
@@ -14,6 +15,7 @@ import org.springframework.context.annotation.Import;
   AuthApiController.class,
   AuthServiceImpl.class,
   AuthValidationHelper.class,
+  TokenValidationHelper.class,
   AuthRegisterHelper.class,
   ErrorHandler.class
 })

@@ -45,10 +45,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.config.AuthIntegrationTestConfig;
 import com.tychewealth.config.RefreshRateLimitConfig;
-import com.tychewealth.dto.user.LoginResponseDto;
-import com.tychewealth.dto.user.RefreshTokenResponseDto;
-import com.tychewealth.dto.user.request.LoginRequestDto;
-import com.tychewealth.dto.user.request.RegisterRequestDto;
+import com.tychewealth.dto.auth.LoginResponseDto;
+import com.tychewealth.dto.auth.RefreshTokenResponseDto;
+import com.tychewealth.dto.auth.request.LoginRequestDto;
+import com.tychewealth.dto.auth.request.RegisterRequestDto;
 import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.handler.ErrorDefinition;

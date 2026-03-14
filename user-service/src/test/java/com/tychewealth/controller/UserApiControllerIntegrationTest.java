@@ -3,6 +3,8 @@ package com.tychewealth.controller;
 import static com.tychewealth.constants.TestConstants.TEST_EMAIL_LAURA;
 import static com.tychewealth.constants.TestConstants.TEST_OCCUPIED_USERNAME;
 import static com.tychewealth.constants.TestConstants.TEST_OTHER_EMAIL;
+import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_INVALID;
+import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_NEW_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_UPDATE_USERNAME_NORMALIZED;
 import static com.tychewealth.constants.TestConstants.TEST_UPDATE_USERNAME_REQUEST;
@@ -11,23 +13,36 @@ import static com.tychewealth.service.helper.UserTestHelper.deleteRequest;
 import static com.tychewealth.service.helper.UserTestHelper.deleteRequestUnauthorized;
 import static com.tychewealth.service.helper.UserTestHelper.retrieveRequest;
 import static com.tychewealth.service.helper.UserTestHelper.retrieveRequestUnauthorized;
+import static com.tychewealth.service.helper.UserTestHelper.updatePasswordRequest;
+import static com.tychewealth.service.helper.UserTestHelper.updatePasswordRequestUnauthorized;
 import static com.tychewealth.service.helper.UserTestHelper.updateRequest;
 import static com.tychewealth.service.helper.UserTestHelper.updateRequestUnauthorized;
+import static com.tychewealth.testdata.EntityBuilder.buildRefreshToken;
 import static com.tychewealth.testdata.EntityBuilder.buildUser;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.tychewealth.config.UserIntegrationTestConfig;
+import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.handler.ErrorDefinition;
+import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.helper.AuthTokenHelper;
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -38,6 +53,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class UserApiControllerIntegrationTest {
 
   @Autowired private MockMvc mockMvc;
+  @Autowired private RefreshTokenRepository refreshTokenRepository;
   @Autowired private UserRepository userRepository;
   @Autowired private AuthTokenHelper authTokenHelper;
   @Autowired private PasswordEncoder passwordEncoder;
@@ -46,6 +62,7 @@ class UserApiControllerIntegrationTest {
 
   @BeforeEach
   void setUp() {
+    refreshTokenRepository.deleteAll();
     userRepository.deleteAll();
     existingUser =
         buildUser(
@@ -99,6 +116,25 @@ class UserApiControllerIntegrationTest {
         .andExpect(jsonPath("$.description").value(ErrorDefinition.UNAUTHORIZED.getDescription()));
   }
 
+  @ParameterizedTest
+  @MethodSource("com.tychewealth.testdata.UserTestData#invalidUpdateRequests")
+  void updateReturnsBadRequestForInvalidPayload(String requestBody, String expectedMessage)
+      throws Exception {
+    UserEntity saved = userRepository.saveAndFlush(existingUser);
+    String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
+
+    mockMvc
+        .perform(
+            patch("/tyche-wealth/user-service/v1/user/me")
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getType()))
+        .andExpect(jsonPath("$.description").value(containsString(expectedMessage)));
+  }
+
   @Test
   void updateReturnsNotFoundWhenAuthenticatedUserWasSoftDeleted() throws Exception {
     UserEntity saved = userRepository.save(existingUser);
@@ -117,10 +153,9 @@ class UserApiControllerIntegrationTest {
   @Test
   void updateReturnsConflictWhenUsernameAlreadyExists() throws Exception {
     UserEntity saved = userRepository.saveAndFlush(existingUser);
-    UserEntity anotherUser = new UserEntity();
-    anotherUser.setEmail(TEST_OTHER_EMAIL);
-    anotherUser.setUsername(TEST_OCCUPIED_USERNAME);
-    anotherUser.setPassword(passwordEncoder.encode(TEST_PASSWORD_VALID));
+    UserEntity anotherUser =
+        buildUser(
+            TEST_OTHER_EMAIL, TEST_OCCUPIED_USERNAME, passwordEncoder.encode(TEST_PASSWORD_VALID));
     userRepository.saveAndFlush(anotherUser);
     String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
 
@@ -131,6 +166,141 @@ class UserApiControllerIntegrationTest {
         .andExpect(
             jsonPath("$.description")
                 .value(ErrorDefinition.USER_USERNAME_CONFLICT.getDescription()));
+  }
+
+  @Test
+  void updatePasswordChangesPasswordAndRevokesActiveRefreshTokens() throws Exception {
+    UserEntity saved = userRepository.saveAndFlush(existingUser);
+    RefreshTokenEntity refreshToken =
+        refreshTokenRepository.saveAndFlush(
+            buildRefreshToken(
+                "user-password-change-token", saved, Instant.now().plusSeconds(300), false));
+    String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
+
+    updatePasswordRequest(
+            mockMvc,
+            accessToken,
+            TEST_PASSWORD_VALID,
+            TEST_PASSWORD_NEW_VALID,
+            TEST_PASSWORD_NEW_VALID)
+        .andExpect(status().isNoContent());
+
+    UserEntity updatedUser = userRepository.findById(saved.getId()).orElseThrow();
+    assertTrue(passwordEncoder.matches(TEST_PASSWORD_NEW_VALID, updatedUser.getPassword()));
+    assertTrue(
+        refreshTokenRepository.findByToken(refreshToken.getToken()).orElseThrow().isRevoked());
+  }
+
+  @Test
+  void updatePasswordReturnsUnauthorizedWhenUserIsNotAuthenticated() throws Exception {
+    updatePasswordRequestUnauthorized(
+            mockMvc, TEST_PASSWORD_VALID, TEST_PASSWORD_NEW_VALID, TEST_PASSWORD_NEW_VALID)
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
+        .andExpect(jsonPath("$.description").value(ErrorDefinition.UNAUTHORIZED.getDescription()));
+  }
+
+  @ParameterizedTest
+  @MethodSource("com.tychewealth.testdata.UserTestData#invalidPasswordUpdateRequests")
+  void updatePasswordReturnsBadRequestForInvalidPayload(String requestBody, String expectedMessage)
+      throws Exception {
+    UserEntity saved = userRepository.saveAndFlush(existingUser);
+    String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
+
+    mockMvc
+        .perform(
+            patch("/tyche-wealth/user-service/v1/user/me/password")
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getType()))
+        .andExpect(jsonPath("$.description").value(containsString(expectedMessage)));
+  }
+
+  @Test
+  void updatePasswordReturnsCleanValidationMessageWhenConfirmationDoesNotMatch() throws Exception {
+    UserEntity saved = userRepository.saveAndFlush(existingUser);
+    String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
+
+    mockMvc
+        .perform(
+            patch("/tyche-wealth/user-service/v1/user/me/password")
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "currentPassword": "Secret123!",
+                      "newPassword": "NewSecret456!",
+                      "confirmNewPassword": "Mismatch456!"
+                    }
+                    """))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getType()))
+        .andExpect(
+            jsonPath("$.description").value("New password and confirm new password must match"));
+  }
+
+  @Test
+  void updatePasswordReturnsUnauthorizedWhenCurrentPasswordIsInvalid() throws Exception {
+    UserEntity saved = userRepository.saveAndFlush(existingUser);
+    String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
+
+    updatePasswordRequest(
+            mockMvc,
+            accessToken,
+            TEST_PASSWORD_INVALID,
+            TEST_PASSWORD_NEW_VALID,
+            TEST_PASSWORD_NEW_VALID)
+        .andExpect(status().isUnauthorized())
+        .andExpect(
+            jsonPath("$.code").value(ErrorDefinition.USER_CURRENT_PASSWORD_INVALID.getCode()))
+        .andExpect(
+            jsonPath("$.type").value(ErrorDefinition.USER_CURRENT_PASSWORD_INVALID.getType()))
+        .andExpect(
+            jsonPath("$.description")
+                .value(ErrorDefinition.USER_CURRENT_PASSWORD_INVALID.getDescription()));
+  }
+
+  @Test
+  void updatePasswordReturnsNotFoundWhenAuthenticatedUserWasSoftDeleted() throws Exception {
+    UserEntity saved = userRepository.saveAndFlush(existingUser);
+    saved.setDeletedAt(java.time.LocalDateTime.now());
+    userRepository.saveAndFlush(saved);
+    String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
+
+    updatePasswordRequest(
+            mockMvc,
+            accessToken,
+            TEST_PASSWORD_VALID,
+            TEST_PASSWORD_NEW_VALID,
+            TEST_PASSWORD_NEW_VALID)
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.USER_NOT_FOUND.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.USER_NOT_FOUND.getType()))
+        .andExpect(
+            jsonPath("$.description").value(ErrorDefinition.USER_NOT_FOUND.getDescription()));
+  }
+
+  @Test
+  void updatePasswordReturnsBadRequestWhenNewPasswordMatchesCurrentPassword() throws Exception {
+    UserEntity saved = userRepository.saveAndFlush(existingUser);
+    String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
+
+    updatePasswordRequest(
+            mockMvc, accessToken, TEST_PASSWORD_VALID, TEST_PASSWORD_VALID, TEST_PASSWORD_VALID)
+        .andExpect(status().isBadRequest())
+        .andExpect(
+            jsonPath("$.code").value(ErrorDefinition.USER_NEW_PASSWORD_MUST_BE_DIFFERENT.getCode()))
+        .andExpect(
+            jsonPath("$.type").value(ErrorDefinition.USER_NEW_PASSWORD_MUST_BE_DIFFERENT.getType()))
+        .andExpect(
+            jsonPath("$.description")
+                .value(ErrorDefinition.USER_NEW_PASSWORD_MUST_BE_DIFFERENT.getDescription()));
   }
 
   @Test

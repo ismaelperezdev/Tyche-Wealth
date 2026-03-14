@@ -16,10 +16,6 @@ public final class EntityBuilder {
 
   private EntityBuilder() {}
 
-  public static UserEntity buildUser(String email, String username) {
-    return buildUser(email, username, "secret123");
-  }
-
   public static UserEntity buildUser(String email, String username, String password) {
     UserEntity user = new UserEntity();
     user.setEmail(email);

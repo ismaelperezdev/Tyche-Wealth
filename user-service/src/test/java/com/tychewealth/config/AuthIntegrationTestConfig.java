@@ -7,11 +7,12 @@ import com.tychewealth.error.handler.ErrorHandler;
 import com.tychewealth.mapper.user.UserMapper;
 import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.UserRepository;
-import com.tychewealth.service.helper.AuthLoginHelper;
 import com.tychewealth.service.helper.AuthRefreshTokenHelper;
-import com.tychewealth.service.helper.AuthRegisterHelper;
 import com.tychewealth.service.helper.AuthTokenHelper;
-import com.tychewealth.service.helper.AuthValidationHelper;
+import com.tychewealth.service.helper.TokenValidationHelper;
+import com.tychewealth.service.helper.auth.AuthLoginHelper;
+import com.tychewealth.service.helper.auth.AuthRegisterHelper;
+import com.tychewealth.service.helper.auth.AuthValidationHelper;
 import com.tychewealth.service.impl.AuthServiceImpl;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import org.springframework.boot.SpringBootConfiguration;
@@ -35,6 +36,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
       AuthRegisterHelper.class,
       AuthLoginHelper.class,
       AuthTokenHelper.class,
+      TokenValidationHelper.class,
       AuthRefreshTokenHelper.class,
       AuthMetrics.class,
       ErrorHandler.class,

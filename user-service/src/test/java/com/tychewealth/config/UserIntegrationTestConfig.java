@@ -7,7 +7,8 @@ import com.tychewealth.mapper.user.UserMapper;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.helper.AuthRefreshTokenHelper;
 import com.tychewealth.service.helper.AuthTokenHelper;
-import com.tychewealth.service.helper.UserValidationHelper;
+import com.tychewealth.service.helper.user.UserHelper;
+import com.tychewealth.service.helper.user.UserValidationHelper;
 import com.tychewealth.service.impl.UserServiceImpl;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import org.springframework.boot.SpringBootConfiguration;
@@ -17,7 +18,6 @@ import org.springframework.boot.test.util.TestPropertyValues;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
@@ -25,19 +25,16 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableAutoConfiguration
 @Import(IntegrationTestConfig.class)
 @ComponentScan(
-    basePackages = "com.tychewealth",
-    useDefaultFilters = false,
-    includeFilters = {
-      @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = UserApiController.class),
-      @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = UserServiceImpl.class),
-      @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = AuthTokenHelper.class),
-      @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = AuthMetrics.class),
-      @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = ErrorHandler.class),
-      @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = UserMapper.class),
-      @ComponentScan.Filter(
-          type = FilterType.ASSIGNABLE_TYPE,
-          classes = AuthRefreshTokenHelper.class),
-      @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = UserValidationHelper.class)
+    basePackageClasses = {
+      UserApiController.class,
+      UserServiceImpl.class,
+      AuthTokenHelper.class,
+      AuthMetrics.class,
+      ErrorHandler.class,
+      UserMapper.class,
+      AuthRefreshTokenHelper.class,
+      UserHelper.class,
+      UserValidationHelper.class
     })
 @EnableJpaRepositories(basePackageClasses = UserRepository.class)
 @EntityScan(basePackageClasses = UserEntity.class)

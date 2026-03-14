@@ -1,11 +1,10 @@
-package com.tychewealth.service.helper;
+package com.tychewealth.service.helper.auth;
 
 import static com.tychewealth.constants.AuthConstants.LOGIN_PASSWORD_POLICY;
 
 import com.tychewealth.constants.LogConstants;
-import com.tychewealth.dto.user.request.LoginRequestDto;
-import com.tychewealth.dto.user.request.RefreshTokenRequestDto;
-import com.tychewealth.dto.user.request.RegisterRequestDto;
+import com.tychewealth.dto.auth.request.LoginRequestDto;
+import com.tychewealth.dto.auth.request.RegisterRequestDto;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
@@ -18,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 @Slf4j
 @Component
@@ -85,7 +83,7 @@ public class AuthValidationHelper {
                   LogConstants.REQUEST_CONFLICT,
                   LogConstants.AUTH,
                   LogConstants.LOGIN_ACTION,
-                  "invalid login credentials");
+                  LogConstants.INVALID_LOGIN_CREDENTIALS_MESSAGE);
               authMetrics.recordLoginFailure();
               authMetrics.recordLoginInvalidCredentials();
               return new AuthException(
@@ -104,7 +102,7 @@ public class AuthValidationHelper {
           LogConstants.REQUEST_CONFLICT,
           LogConstants.AUTH,
           LogConstants.REGISTER_ACTION,
-          "invalid password format for register");
+          LogConstants.INVALID_PASSWORD_FORMAT_MESSAGE);
       authMetrics.recordRegisterFailure();
 
       throw new AuthException(
@@ -118,7 +116,7 @@ public class AuthValidationHelper {
           LogConstants.REQUEST_CONFLICT,
           LogConstants.AUTH,
           LogConstants.LOGIN_ACTION,
-          "invalid password format for login");
+          LogConstants.INVALID_PASSWORD_FORMAT_MESSAGE);
       authMetrics.recordLoginFailure();
 
       throw new AuthException(
@@ -132,27 +130,12 @@ public class AuthValidationHelper {
           LogConstants.REQUEST_CONFLICT,
           LogConstants.AUTH,
           LogConstants.LOGIN_ACTION,
-          "invalid login credentials");
+          LogConstants.INVALID_LOGIN_CREDENTIALS_MESSAGE);
       authMetrics.recordLoginFailure();
       authMetrics.recordLoginInvalidCredentials();
 
       throw new AuthException(
           ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS, null, HttpStatus.UNAUTHORIZED);
-    }
-  }
-
-  public void validateRefreshTokenRequest(RefreshTokenRequestDto refreshTokenRequestDto) {
-    if (refreshTokenRequestDto == null
-        || !StringUtils.hasText(refreshTokenRequestDto.getRefreshToken())) {
-      log.warn(
-          LogConstants.REQUEST_CONFLICT,
-          LogConstants.AUTH,
-          LogConstants.REFRESH_TOKEN_ACTION,
-          LogConstants.INVALID_REFRESH_TOKEN_MESSAGE);
-      authMetrics.recordRefreshFailure();
-
-      throw new AuthException(
-          ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID, null, HttpStatus.UNAUTHORIZED);
     }
   }
 }

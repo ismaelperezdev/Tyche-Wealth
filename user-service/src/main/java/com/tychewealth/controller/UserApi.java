@@ -6,6 +6,7 @@ import static com.tychewealth.constants.ApiConstants.USER_BASE_URL;
 import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 
 import com.tychewealth.dto.user.UserResponseDto;
+import com.tychewealth.dto.user.request.UserPasswordUpdateRequestDto;
 import com.tychewealth.dto.user.request.UserUpdateRequestDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -29,6 +30,11 @@ public interface UserApi {
   ResponseEntity<UserResponseDto> update(
       @RequestHeader(value = AUTHORIZATION_HEADER, required = false) String authorizationHeader,
       @Valid @RequestBody UserUpdateRequestDto updateRequest);
+
+  @PatchMapping(value = "/me/password", consumes = REQUEST_CONSUMES)
+  ResponseEntity<Void> updatePassword(
+      @RequestHeader(value = AUTHORIZATION_HEADER, required = false) String authorizationHeader,
+      @Valid @RequestBody UserPasswordUpdateRequestDto updatePasswordRequest);
 
   @DeleteMapping(value = "/me")
   ResponseEntity<Void> delete(

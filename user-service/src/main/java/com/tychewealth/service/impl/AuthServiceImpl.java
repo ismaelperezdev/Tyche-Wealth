@@ -4,22 +4,23 @@ import static com.tychewealth.constants.AuthConstants.EMAIL_CONSTRAINT;
 import static com.tychewealth.constants.AuthConstants.USERNAME_CONSTRAINT;
 
 import com.tychewealth.constants.LogConstants;
-import com.tychewealth.dto.user.LoginResponseDto;
-import com.tychewealth.dto.user.RefreshTokenResponseDto;
+import com.tychewealth.dto.auth.LoginResponseDto;
+import com.tychewealth.dto.auth.RefreshTokenResponseDto;
+import com.tychewealth.dto.auth.request.LoginRequestDto;
+import com.tychewealth.dto.auth.request.RefreshTokenRequestDto;
+import com.tychewealth.dto.auth.request.RegisterRequestDto;
 import com.tychewealth.dto.user.UserResponseDto;
-import com.tychewealth.dto.user.request.LoginRequestDto;
-import com.tychewealth.dto.user.request.RefreshTokenRequestDto;
-import com.tychewealth.dto.user.request.RegisterRequestDto;
 import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.service.AuthService;
-import com.tychewealth.service.helper.AuthLoginHelper;
 import com.tychewealth.service.helper.AuthRefreshTokenHelper;
-import com.tychewealth.service.helper.AuthRegisterHelper;
 import com.tychewealth.service.helper.AuthTokenHelper;
-import com.tychewealth.service.helper.AuthValidationHelper;
+import com.tychewealth.service.helper.TokenValidationHelper;
+import com.tychewealth.service.helper.auth.AuthLoginHelper;
+import com.tychewealth.service.helper.auth.AuthRegisterHelper;
+import com.tychewealth.service.helper.auth.AuthValidationHelper;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.AuthTokenPayload;
 import java.time.Instant;
@@ -42,6 +43,7 @@ public class AuthServiceImpl implements AuthService {
   private final AuthLoginHelper authLoginHelper;
   private final AuthRefreshTokenHelper authRefreshTokenHelper;
   private final AuthTokenHelper authTokenHelper;
+  private final TokenValidationHelper tokenValidationHelper;
   private final AuthMetrics authMetrics;
 
   @Override
@@ -77,7 +79,7 @@ public class AuthServiceImpl implements AuthService {
   @Override
   @Transactional
   public RefreshTokenResponseDto refresh(RefreshTokenRequestDto refreshTokenRequestDto) {
-    authValidationHelper.validateRefreshTokenRequest(refreshTokenRequestDto);
+    tokenValidationHelper.validateRefreshTokenRequest(refreshTokenRequestDto);
 
     RefreshTokenEntity currentRefreshToken =
         authRefreshTokenHelper.validateRefreshToken(refreshTokenRequestDto.getRefreshToken());
@@ -100,12 +102,12 @@ public class AuthServiceImpl implements AuthService {
   @Override
   @Transactional
   public void logout(RefreshTokenRequestDto refreshTokenRequestDto) {
-    authValidationHelper.validateRefreshTokenRequest(refreshTokenRequestDto);
+    tokenValidationHelper.validateRefreshTokenRequest(refreshTokenRequestDto);
     RefreshTokenEntity refreshToken =
         authRefreshTokenHelper.validateRefreshToken(refreshTokenRequestDto.getRefreshToken());
 
     log.info(
-        LogConstants.REQUEST_SUCCESS + LogConstants.LOGOUT_USER_ID,
+        LogConstants.REQUEST_SUCCESS + LogConstants.USER_ID,
         LogConstants.AUTH,
         LogConstants.LOGOUT_ACTION,
         refreshToken.getUser().getId());

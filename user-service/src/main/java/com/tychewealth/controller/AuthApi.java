@@ -4,12 +4,12 @@ import static com.tychewealth.constants.ApiConstants.REQUEST_CONSUMES;
 import static com.tychewealth.constants.ApiConstants.REQUEST_PRODUCES;
 import static com.tychewealth.constants.ApiConstants.URL_FOLDER_V1;
 
-import com.tychewealth.dto.user.LoginResponseDto;
-import com.tychewealth.dto.user.RefreshTokenResponseDto;
+import com.tychewealth.dto.auth.LoginResponseDto;
+import com.tychewealth.dto.auth.RefreshTokenResponseDto;
+import com.tychewealth.dto.auth.request.LoginRequestDto;
+import com.tychewealth.dto.auth.request.RefreshTokenRequestDto;
+import com.tychewealth.dto.auth.request.RegisterRequestDto;
 import com.tychewealth.dto.user.UserResponseDto;
-import com.tychewealth.dto.user.request.LoginRequestDto;
-import com.tychewealth.dto.user.request.RefreshTokenRequestDto;
-import com.tychewealth.dto.user.request.RegisterRequestDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;

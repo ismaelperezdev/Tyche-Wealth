@@ -6,6 +6,7 @@ public final class TestConstants {
   public static final String TEST_USERNAME_LAURA = "lauragomez";
   public static final String TEST_PASSWORD_VALID = "Secret123!";
   public static final String TEST_PASSWORD_INVALID = "Wrong123!";
+  public static final String TEST_PASSWORD_NEW_VALID = "NewSecret456!";
 
   public static final String TEST_UPDATE_USERNAME_REQUEST = "AfterUpdate";
   public static final String TEST_UPDATE_USERNAME_NORMALIZED = "afterupdate";

@@ -112,6 +112,9 @@ public class ErrorHandler {
   private String toFieldMessage(FieldError error) {
     String message =
         error.getDefaultMessage() == null ? "invalid value" : error.getDefaultMessage();
+    if ("AssertTrue".equals(error.getCode())) {
+      return message;
+    }
     return error.getField() + ": " + message;
   }
 }

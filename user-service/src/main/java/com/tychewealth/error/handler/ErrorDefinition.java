@@ -36,7 +36,13 @@ public enum ErrorDefinition {
   // USER
   USER_NOT_FOUND("TYCHE-200", "USER_NOT_FOUND", "The requested user was not found"),
   USER_USERNAME_CONFLICT(
-      "TYCHE-201", "USER_USERNAME_CONFLICT", "A user with the provided username already exists");
+      "TYCHE-201", "USER_USERNAME_CONFLICT", "A user with the provided username already exists"),
+  USER_CURRENT_PASSWORD_INVALID(
+      "TYCHE-202", "USER_CURRENT_PASSWORD_INVALID", "The provided current password is invalid"),
+  USER_NEW_PASSWORD_MUST_BE_DIFFERENT(
+      "TYCHE-203",
+      "USER_NEW_PASSWORD_MUST_BE_DIFFERENT",
+      "The new password must be different from the current password");
 
   private final String code;
   private final String type;

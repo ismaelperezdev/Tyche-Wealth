@@ -1,5 +1,11 @@
 package com.tychewealth.dto.portfolio.request;
 
+import static com.tychewealth.constants.ValidationConstants.MUST_BE_BETWEEN_3_AND_60_CHARACTERS;
+import static com.tychewealth.constants.ValidationConstants.MUST_BE_GREATER_THAN_OR_EQUAL_TO_0_00;
+import static com.tychewealth.constants.ValidationConstants.MUST_BE_LESS_THAN_OR_EQUAL_TO_1_00;
+import static com.tychewealth.constants.ValidationConstants.MUST_HAVE_UP_TO_1_INTEGER_DIGIT_AND_2_DECIMALS;
+import static com.tychewealth.constants.ValidationConstants.MUST_NOT_BE_BLANK;
+
 import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.enums.InvestmentHorizonEnum;
 import com.tychewealth.enums.RiskProfileEnum;
@@ -8,7 +14,6 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
@@ -22,9 +27,8 @@ import lombok.Setter;
 @AllArgsConstructor
 public class PortfolioUpdateRequestDto {
 
-  @NotBlank(message = "Name cannot be blank")
-  @Size(min = 3, max = 60, message = "Name must be between 3 and 60 characters")
-  @Pattern(regexp = ".*\\S.*", message = "Name must not be blank")
+  @NotBlank(message = MUST_NOT_BE_BLANK)
+  @Size(min = 3, max = 60, message = MUST_BE_BETWEEN_3_AND_60_CHARACTERS)
   private String name;
 
   private String description;
@@ -37,11 +41,8 @@ public class PortfolioUpdateRequestDto {
 
   private StrategyTypeEnum strategyType;
 
-  @Digits(
-      integer = 1,
-      fraction = 2,
-      message = "Max risk must have up to 1 integer digit and 2 decimals")
-  @DecimalMin(value = "0.00", message = "Max risk must be greater than or equal to 0.00")
-  @DecimalMax(value = "1.00", message = "Max risk must be less than or equal to 1.00")
+  @Digits(integer = 1, fraction = 2, message = MUST_HAVE_UP_TO_1_INTEGER_DIGIT_AND_2_DECIMALS)
+  @DecimalMin(value = "0.00", message = MUST_BE_GREATER_THAN_OR_EQUAL_TO_0_00)
+  @DecimalMax(value = "1.00", message = MUST_BE_LESS_THAN_OR_EQUAL_TO_1_00)
   private BigDecimal maxRisk;
 }

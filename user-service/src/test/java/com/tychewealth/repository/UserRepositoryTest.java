@@ -1,5 +1,6 @@
 package com.tychewealth.repository;
 
+import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
 import static com.tychewealth.testdata.EntityBuilder.buildUser;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -21,7 +22,7 @@ class UserRepositoryTest {
 
   @Test
   void findByEmailReturnsSavedUser() {
-    UserEntity user = buildUser("maria@tyche.com", "maria");
+    UserEntity user = buildUser("maria@tyche.com", "maria", TEST_PASSWORD_VALID);
     userRepository.save(user);
 
     Optional<UserEntity> result = userRepository.findByEmail("maria@tyche.com");
@@ -32,7 +33,7 @@ class UserRepositoryTest {
 
   @Test
   void findByUsernameReturnsSavedUser() {
-    UserEntity user = buildUser("carlos@tyche.com", "carlos");
+    UserEntity user = buildUser("carlos@tyche.com", "carlos", TEST_PASSWORD_VALID);
     userRepository.save(user);
 
     Optional<UserEntity> result = userRepository.findByUsername("carlos");
@@ -43,7 +44,7 @@ class UserRepositoryTest {
 
   @Test
   void findByIdAndDeletedAtIsNullExcludesSoftDeletedUser() {
-    UserEntity user = buildUser("lucia@tyche.com", "lucia");
+    UserEntity user = buildUser("lucia@tyche.com", "lucia", TEST_PASSWORD_VALID);
     user.setDeletedAt(LocalDateTime.now());
     UserEntity saved = userRepository.save(user);
 
