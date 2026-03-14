@@ -6,7 +6,7 @@ public final class AuthConstants {
   public static final String USERNAME_CONSTRAINT = "uk_users_username";
 
   public static final String LOGIN_PASSWORD_POLICY =
-      "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^\\w\\s]).{8,72}$";
+      "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^\\w\\s]).+$";
 
   public static final int BCRYPT_MAX_PASSWORD_BYTES = 72;
   public static final String AUTHORIZATION_HEADER = "Authorization";

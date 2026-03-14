@@ -19,18 +19,12 @@ public class ErrorHandler {
 
   @ExceptionHandler(AuthException.class)
   public ResponseEntity<ErrorResponse> handleAuthException(AuthException ex) {
-    ErrorDefinition definition =
-        ex.getErrorDefinition() != null ? ex.getErrorDefinition() : ErrorDefinition.CONFLICT;
-    HttpStatus status = ex.getHttpStatus() == null ? HttpStatus.CONFLICT : ex.getHttpStatus();
-    return build(definition, status, definition.getDescription());
+    return buildFromException(ex.getErrorDefinition(), ex.getHttpStatus());
   }
 
   @ExceptionHandler(UserException.class)
   public ResponseEntity<ErrorResponse> handleUserException(UserException ex) {
-    ErrorDefinition definition =
-        ex.getErrorDefinition() != null ? ex.getErrorDefinition() : ErrorDefinition.CONFLICT;
-    HttpStatus status = ex.getHttpStatus() == null ? HttpStatus.CONFLICT : ex.getHttpStatus();
-    return build(definition, status, definition.getDescription());
+    return buildFromException(ex.getErrorDefinition(), ex.getHttpStatus());
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -95,6 +89,14 @@ public class ErrorHandler {
             .build();
 
     return ResponseEntity.status(status).body(response);
+  }
+
+  private ResponseEntity<ErrorResponse> buildFromException(
+      ErrorDefinition errorDefinition, HttpStatus httpStatus) {
+    ErrorDefinition definition =
+        errorDefinition != null ? errorDefinition : ErrorDefinition.CONFLICT;
+    HttpStatus status = httpStatus == null ? HttpStatus.CONFLICT : httpStatus;
+    return build(definition, status, definition.getDescription());
   }
 
   private ErrorDefinition mapByStatus(HttpStatus status) {

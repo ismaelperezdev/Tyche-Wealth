@@ -14,10 +14,14 @@ public class UserException extends RuntimeException {
 
   public UserException(
       ErrorDefinition errorDefinition, Map<String, String> metadata, HttpStatus httpStatus) {
+    this(resolve(errorDefinition), metadata, httpStatus);
+  }
 
-    super(resolveError(errorDefinition).getDescription());
+  private UserException(
+      ResolvedError resolvedError, Map<String, String> metadata, HttpStatus httpStatus) {
+    super(resolvedError.errorDefinition().getDescription());
 
-    this.errorDefinition = resolveError(errorDefinition);
+    this.errorDefinition = resolvedError.errorDefinition();
     this.metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
     this.httpStatus = httpStatus == null ? HttpStatus.CONFLICT : httpStatus;
   }
@@ -27,7 +31,9 @@ public class UserException extends RuntimeException {
     return new UserException(errorDefinition, metadata, httpStatus);
   }
 
-  private static ErrorDefinition resolveError(ErrorDefinition errorDefinition) {
-    return errorDefinition == null ? ErrorDefinition.CONFLICT : errorDefinition;
+  private static ResolvedError resolve(ErrorDefinition errorDefinition) {
+    return new ResolvedError(errorDefinition == null ? ErrorDefinition.CONFLICT : errorDefinition);
   }
+
+  private record ResolvedError(ErrorDefinition errorDefinition) {}
 }

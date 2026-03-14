@@ -1,4 +1,4 @@
-package com.tychewealth.service.helper;
+package com.tychewealth.testhelper;
 
 import static com.tychewealth.constants.ApiConstants.AUTH_LOGIN_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_LOGOUT_URL;
@@ -62,5 +62,12 @@ public final class AuthTestHelper {
         post(AUTH_LOGOUT_URL)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(new RefreshTokenRequestDto(refreshToken))));
+  }
+
+  public static String buildLongEmail() {
+    String local = "a".repeat(64);
+    String label63 = "b".repeat(63);
+    String domain = label63 + "." + label63 + "." + label63 + ".es";
+    return local + "@" + domain;
   }
 }

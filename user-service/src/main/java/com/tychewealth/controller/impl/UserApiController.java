@@ -1,5 +1,7 @@
 package com.tychewealth.controller.impl;
 
+import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
+
 import com.tychewealth.constants.LogConstants;
 import com.tychewealth.controller.UserApi;
 import com.tychewealth.dto.user.UserResponseDto;
@@ -25,7 +27,7 @@ public class UserApiController implements UserApi {
 
   @Override
   public ResponseEntity<UserResponseDto> retrieve(
-      @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+      @RequestHeader(value = AUTHORIZATION_HEADER, required = false) String authorizationHeader) {
     log.info(LogConstants.REQUEST_START, LogConstants.USER, LogConstants.RETRIEVE_ACTION);
 
     UserResponseDto response = userService.retrieve(authorizationHeader);
@@ -41,7 +43,7 @@ public class UserApiController implements UserApi {
 
   @Override
   public ResponseEntity<UserResponseDto> update(
-      @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+      @RequestHeader(value = AUTHORIZATION_HEADER, required = false) String authorizationHeader,
       @Valid @RequestBody UserUpdateRequestDto updateRequest) {
     log.info(
         LogConstants.REQUEST_START + LogConstants.UPDATE_REQUEST_FIELDS,
@@ -62,7 +64,7 @@ public class UserApiController implements UserApi {
 
   @Override
   public ResponseEntity<Void> updatePassword(
-      @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+      @RequestHeader(value = AUTHORIZATION_HEADER, required = false) String authorizationHeader,
       @Valid @RequestBody UserPasswordUpdateRequestDto updatePasswordRequest) {
     log.info(LogConstants.REQUEST_START, LogConstants.USER, LogConstants.UPDATE_PASSWORD_ACTION);
 
@@ -79,7 +81,7 @@ public class UserApiController implements UserApi {
 
   @Override
   public ResponseEntity<Void> delete(
-      @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+      @RequestHeader(value = AUTHORIZATION_HEADER, required = false) String authorizationHeader) {
     log.info(LogConstants.REQUEST_START, LogConstants.USER, LogConstants.DELETE_ACTION);
 
     Long deletedUserId = userService.delete(authorizationHeader);

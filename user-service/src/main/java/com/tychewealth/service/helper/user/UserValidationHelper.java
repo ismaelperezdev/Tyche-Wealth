@@ -19,7 +19,7 @@ public class UserValidationHelper {
   public void validateUsernameIsAvailableForUpdate(String username, Long currentUserId) {
     String normalizedUsername = Utils.normalizeIdentity(username);
     userRepository
-        .findByUsername(normalizedUsername)
+        .findByUsernameAndDeletedAtIsNull(normalizedUsername)
         .filter(user -> !user.getId().equals(currentUserId))
         .ifPresent(
             user -> {

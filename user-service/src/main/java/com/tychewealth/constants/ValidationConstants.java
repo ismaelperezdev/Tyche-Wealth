@@ -15,6 +15,8 @@ public final class ValidationConstants {
       "must include uppercase, lowercase, number and symbol";
   public static final String MUST_BE_AT_MOST_72_BYTES_WHEN_UTF_8_ENCODED =
       "must be at most 72 bytes when UTF-8 encoded";
+  public static final String NEW_PASSWORD_AND_CONFIRM_MUST_MATCH =
+      "New password and confirm new password must match";
 
   public static final String MUST_BE_BETWEEN_3_AND_60_CHARACTERS =
       "must be between 3 and 60 characters";

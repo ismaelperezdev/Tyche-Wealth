@@ -43,7 +43,7 @@ public class AuthValidationHelper {
 
   public void validateEmailIsAvailable(String email) {
     String normalizedEmail = Utils.normalizeIdentity(email);
-    if (userRepository.findByEmail(normalizedEmail).isPresent()) {
+    if (userRepository.findByEmailIncludingDeleted(normalizedEmail).isPresent()) {
       log.warn(
           LogConstants.REQUEST_CONFLICT,
           LogConstants.AUTH,
@@ -59,7 +59,7 @@ public class AuthValidationHelper {
 
   public void validateUsernameIsAvailable(String username) {
     String normalizedUsername = Utils.normalizeIdentity(username);
-    if (userRepository.findByUsername(normalizedUsername).isPresent()) {
+    if (userRepository.findByUsernameIncludingDeleted(normalizedUsername).isPresent()) {
       log.warn(
           LogConstants.REQUEST_CONFLICT,
           LogConstants.AUTH,

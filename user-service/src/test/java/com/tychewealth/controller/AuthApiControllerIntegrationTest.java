@@ -26,12 +26,12 @@ import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_METRICS
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_MISSING;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_REVOKED;
 import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
-import static com.tychewealth.service.helper.AuthTestHelper.login;
-import static com.tychewealth.service.helper.AuthTestHelper.loginRequest;
-import static com.tychewealth.service.helper.AuthTestHelper.logout;
-import static com.tychewealth.service.helper.AuthTestHelper.refresh;
-import static com.tychewealth.service.helper.AuthTestHelper.registerRequest;
 import static com.tychewealth.testdata.EntityBuilder.buildRefreshToken;
+import static com.tychewealth.testhelper.AuthTestHelper.login;
+import static com.tychewealth.testhelper.AuthTestHelper.loginRequest;
+import static com.tychewealth.testhelper.AuthTestHelper.logout;
+import static com.tychewealth.testhelper.AuthTestHelper.refresh;
+import static com.tychewealth.testhelper.AuthTestHelper.registerRequest;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -136,7 +136,8 @@ class AuthApiControllerIntegrationTest {
         .andExpect(jsonPath("$.createdAt").exists())
         .andExpect(jsonPath("$.password").doesNotExist());
 
-    UserEntity created = userRepository.findByEmail(validRequest.getEmail()).orElseThrow();
+    UserEntity created =
+        userRepository.findByEmailIncludingDeleted(validRequest.getEmail()).orElseThrow();
     assertNotNull(created.getId());
     assertNotEquals(validRequest.getPassword(), created.getPassword());
     assertTrue(passwordEncoder.matches(validRequest.getPassword(), created.getPassword()));

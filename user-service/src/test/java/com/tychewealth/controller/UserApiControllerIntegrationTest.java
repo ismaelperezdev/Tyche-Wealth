@@ -1,24 +1,28 @@
 package com.tychewealth.controller;
 
+import static com.tychewealth.constants.ApiConstants.USER_ME_PASSWORD_URL;
+import static com.tychewealth.constants.ApiConstants.USER_ME_URL;
 import static com.tychewealth.constants.TestConstants.TEST_EMAIL_LAURA;
 import static com.tychewealth.constants.TestConstants.TEST_OCCUPIED_USERNAME;
 import static com.tychewealth.constants.TestConstants.TEST_OTHER_EMAIL;
+import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_CONFIRM_MISMATCH;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_INVALID;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_NEW_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_UPDATE_USERNAME_NORMALIZED;
 import static com.tychewealth.constants.TestConstants.TEST_UPDATE_USERNAME_REQUEST;
 import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
-import static com.tychewealth.service.helper.UserTestHelper.deleteRequest;
-import static com.tychewealth.service.helper.UserTestHelper.deleteRequestUnauthorized;
-import static com.tychewealth.service.helper.UserTestHelper.retrieveRequest;
-import static com.tychewealth.service.helper.UserTestHelper.retrieveRequestUnauthorized;
-import static com.tychewealth.service.helper.UserTestHelper.updatePasswordRequest;
-import static com.tychewealth.service.helper.UserTestHelper.updatePasswordRequestUnauthorized;
-import static com.tychewealth.service.helper.UserTestHelper.updateRequest;
-import static com.tychewealth.service.helper.UserTestHelper.updateRequestUnauthorized;
 import static com.tychewealth.testdata.EntityBuilder.buildRefreshToken;
 import static com.tychewealth.testdata.EntityBuilder.buildUser;
+import static com.tychewealth.testhelper.UserTestHelper.deleteRequest;
+import static com.tychewealth.testhelper.UserTestHelper.deleteRequestUnauthorized;
+import static com.tychewealth.testhelper.UserTestHelper.passwordUpdateRequestBody;
+import static com.tychewealth.testhelper.UserTestHelper.retrieveRequest;
+import static com.tychewealth.testhelper.UserTestHelper.retrieveRequestUnauthorized;
+import static com.tychewealth.testhelper.UserTestHelper.updatePasswordRequest;
+import static com.tychewealth.testhelper.UserTestHelper.updatePasswordRequestUnauthorized;
+import static com.tychewealth.testhelper.UserTestHelper.updateRequest;
+import static com.tychewealth.testhelper.UserTestHelper.updateRequestUnauthorized;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -27,6 +31,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.config.UserIntegrationTestConfig;
 import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
@@ -53,6 +58,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class UserApiControllerIntegrationTest {
 
   @Autowired private MockMvc mockMvc;
+  @Autowired private ObjectMapper objectMapper;
   @Autowired private RefreshTokenRepository refreshTokenRepository;
   @Autowired private UserRepository userRepository;
   @Autowired private AuthTokenHelper authTokenHelper;
@@ -97,7 +103,7 @@ class UserApiControllerIntegrationTest {
     UserEntity saved = userRepository.save(existingUser);
     String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
 
-    updateRequest(mockMvc, accessToken, TEST_UPDATE_USERNAME_REQUEST)
+    updateRequest(mockMvc, objectMapper, accessToken, TEST_UPDATE_USERNAME_REQUEST)
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(saved.getId()))
         .andExpect(jsonPath("$.email").value(saved.getEmail()))
@@ -109,7 +115,7 @@ class UserApiControllerIntegrationTest {
 
   @Test
   void updateReturnsUnauthorizedWhenUserIsNotAuthenticated() throws Exception {
-    updateRequestUnauthorized(mockMvc, TEST_UPDATE_USERNAME_NORMALIZED)
+    updateRequestUnauthorized(mockMvc, objectMapper, TEST_UPDATE_USERNAME_NORMALIZED)
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
@@ -125,7 +131,7 @@ class UserApiControllerIntegrationTest {
 
     mockMvc
         .perform(
-            patch("/tyche-wealth/user-service/v1/user/me")
+            patch(USER_ME_URL)
                 .header("Authorization", "Bearer " + accessToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
@@ -142,7 +148,7 @@ class UserApiControllerIntegrationTest {
     userRepository.save(saved);
     String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
 
-    updateRequest(mockMvc, accessToken, TEST_UPDATE_USERNAME_NORMALIZED)
+    updateRequest(mockMvc, objectMapper, accessToken, TEST_UPDATE_USERNAME_NORMALIZED)
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.USER_NOT_FOUND.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.USER_NOT_FOUND.getType()))
@@ -159,7 +165,7 @@ class UserApiControllerIntegrationTest {
     userRepository.saveAndFlush(anotherUser);
     String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
 
-    updateRequest(mockMvc, accessToken, TEST_OCCUPIED_USERNAME)
+    updateRequest(mockMvc, objectMapper, accessToken, TEST_OCCUPIED_USERNAME)
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.USER_USERNAME_CONFLICT.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.USER_USERNAME_CONFLICT.getType()))
@@ -210,7 +216,7 @@ class UserApiControllerIntegrationTest {
 
     mockMvc
         .perform(
-            patch("/tyche-wealth/user-service/v1/user/me/password")
+            patch(USER_ME_PASSWORD_URL)
                 .header("Authorization", "Bearer " + accessToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
@@ -227,17 +233,14 @@ class UserApiControllerIntegrationTest {
 
     mockMvc
         .perform(
-            patch("/tyche-wealth/user-service/v1/user/me/password")
+            patch(USER_ME_PASSWORD_URL)
                 .header("Authorization", "Bearer " + accessToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
-                    """
-                    {
-                      "currentPassword": "Secret123!",
-                      "newPassword": "NewSecret456!",
-                      "confirmNewPassword": "Mismatch456!"
-                    }
-                    """))
+                    passwordUpdateRequestBody(
+                        TEST_PASSWORD_VALID,
+                        TEST_PASSWORD_NEW_VALID,
+                        TEST_PASSWORD_CONFIRM_MISMATCH)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getType()))

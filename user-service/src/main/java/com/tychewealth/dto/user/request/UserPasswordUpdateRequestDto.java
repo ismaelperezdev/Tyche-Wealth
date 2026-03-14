@@ -6,6 +6,7 @@ import static com.tychewealth.constants.ValidationConstants.MUST_BE_AT_LEAST_8_C
 import static com.tychewealth.constants.ValidationConstants.MUST_BE_AT_MOST_72_BYTES_WHEN_UTF_8_ENCODED;
 import static com.tychewealth.constants.ValidationConstants.MUST_INCLUDE_UPPERCASE_LOWERCASE_NUMBER_AND_SYMBOL;
 import static com.tychewealth.constants.ValidationConstants.MUST_NOT_BE_BLANK;
+import static com.tychewealth.constants.ValidationConstants.NEW_PASSWORD_AND_CONFIRM_MUST_MATCH;
 
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
@@ -43,7 +44,7 @@ public class UserPasswordUpdateRequestDto {
         || newPassword.getBytes(StandardCharsets.UTF_8).length <= BCRYPT_MAX_PASSWORD_BYTES;
   }
 
-  @AssertTrue(message = "New password and confirm new password must match")
+  @AssertTrue(message = NEW_PASSWORD_AND_CONFIRM_MUST_MATCH)
   private boolean isNewPasswordConfirmed() {
     return newPassword == null || newPassword.equals(confirmNewPassword);
   }

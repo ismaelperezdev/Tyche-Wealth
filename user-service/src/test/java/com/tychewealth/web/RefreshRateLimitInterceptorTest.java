@@ -4,15 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.Ticker;
 import com.tychewealth.service.monitoring.AuthMetrics;
+import com.tychewealth.testhelper.RateLimitWebTestHelper;
+import com.tychewealth.testhelper.RateLimitWebTestHelper.MutableClock;
+import com.tychewealth.testhelper.RateLimitWebTestHelper.MutableTicker;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.Deque;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -26,9 +23,9 @@ class RefreshRateLimitInterceptorTest {
     AuthMetrics authMetrics = new AuthMetrics(new SimpleMeterRegistry());
     RefreshRateLimitInterceptor interceptor = new RefreshRateLimitInterceptor(1, 60, authMetrics);
 
-    MockHttpServletRequest firstRequest = buildRequest("198.51.100.10");
-    MockHttpServletRequest secondRequest = buildRequest("203.0.113.20");
-    MockHttpServletResponse response = new MockHttpServletResponse();
+    MockHttpServletRequest firstRequest = RateLimitWebTestHelper.buildRequest("198.51.100.10");
+    MockHttpServletRequest secondRequest = RateLimitWebTestHelper.buildRequest("203.0.113.20");
+    MockHttpServletResponse response = RateLimitWebTestHelper.buildResponse();
     Object handler = new Object();
 
     assertDoesNotThrow(() -> interceptor.preHandle(firstRequest, response, handler));
@@ -42,13 +39,12 @@ class RefreshRateLimitInterceptorTest {
     AuthMetrics authMetrics = new AuthMetrics(new SimpleMeterRegistry());
     MutableTicker ticker = new MutableTicker();
     MutableClock clock = new MutableClock();
-    Cache<String, Deque<Long>> cache =
-        Caffeine.newBuilder().expireAfterAccess(Duration.ofSeconds(1)).ticker(ticker).build();
+    Cache<String, Deque<Long>> cache = RateLimitWebTestHelper.buildCache(1, ticker);
     RefreshRateLimitInterceptor interceptor =
         new RefreshRateLimitInterceptor(1, 1, authMetrics, cache, clock);
 
-    MockHttpServletRequest request = buildRequest(null);
-    MockHttpServletResponse response = new MockHttpServletResponse();
+    MockHttpServletRequest request = RateLimitWebTestHelper.buildRequest(null);
+    MockHttpServletResponse response = RateLimitWebTestHelper.buildResponse();
     Object handler = new Object();
 
     assertDoesNotThrow(() -> interceptor.preHandle(request, response, handler));
@@ -59,50 +55,5 @@ class RefreshRateLimitInterceptorTest {
     clock.advance(Duration.ofSeconds(2));
 
     assertDoesNotThrow(() -> interceptor.preHandle(request, response, handler));
-  }
-
-  private static MockHttpServletRequest buildRequest(String forwardedFor) {
-    MockHttpServletRequest request = new MockHttpServletRequest();
-    request.setRemoteAddr("127.0.0.1");
-    if (forwardedFor != null) {
-      request.addHeader("X-Forwarded-For", forwardedFor);
-    }
-    return request;
-  }
-
-  private static final class MutableTicker implements Ticker {
-    private long nanos;
-
-    @Override
-    public long read() {
-      return nanos;
-    }
-
-    private void advance(Duration duration) {
-      nanos += duration.toNanos();
-    }
-  }
-
-  private static final class MutableClock extends Clock {
-    private Instant instant = Instant.parse("2026-03-11T00:00:00Z");
-
-    @Override
-    public ZoneId getZone() {
-      return ZoneOffset.UTC;
-    }
-
-    @Override
-    public Clock withZone(ZoneId zone) {
-      return this;
-    }
-
-    @Override
-    public Instant instant() {
-      return instant;
-    }
-
-    private void advance(Duration duration) {
-      instant = instant.plus(duration);
-    }
   }
 }

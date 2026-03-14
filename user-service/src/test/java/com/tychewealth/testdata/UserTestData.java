@@ -1,5 +1,21 @@
 package com.tychewealth.testdata;
 
+import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_CONFIRM_MISMATCH;
+import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_LOWERCASE_ONLY;
+import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_NEW_VALID;
+import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_TOO_SHORT;
+import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
+import static com.tychewealth.constants.TestConstants.TEST_USERNAME_TOO_SHORT;
+import static com.tychewealth.constants.ValidationConstants.MUST_BE_AT_LEAST_8_CHARACTERS;
+import static com.tychewealth.constants.ValidationConstants.MUST_BE_AT_MOST_72_BYTES_WHEN_UTF_8_ENCODED;
+import static com.tychewealth.constants.ValidationConstants.MUST_BE_BETWEEN_3_AND_30_CHARACTERS;
+import static com.tychewealth.constants.ValidationConstants.MUST_INCLUDE_UPPERCASE_LOWERCASE_NUMBER_AND_SYMBOL;
+import static com.tychewealth.constants.ValidationConstants.MUST_NOT_BE_BLANK;
+import static com.tychewealth.constants.ValidationConstants.NEW_PASSWORD_AND_CONFIRM_MUST_MATCH;
+import static com.tychewealth.testhelper.UserTestHelper.buildOverBcryptLimitPassword;
+import static com.tychewealth.testhelper.UserTestHelper.passwordUpdateRequestBody;
+import static com.tychewealth.testhelper.UserTestHelper.updateRequestBody;
+
 import java.util.stream.Stream;
 import org.junit.jupiter.params.provider.Arguments;
 
@@ -9,45 +25,44 @@ public final class UserTestData {
 
   public static Stream<Arguments> invalidUpdateRequests() {
     return Stream.of(
-        Arguments.of("{\"username\":\" \"}", "must not be blank"),
-        Arguments.of("{\"username\":\"ab\"}", "must be between 3 and 30 characters"),
+        Arguments.of(updateRequestBody(" "), MUST_NOT_BE_BLANK),
         Arguments.of(
-            "{\"username\":\"" + "a".repeat(31) + "\"}", "must be between 3 and 30 characters"));
+            updateRequestBody(TEST_USERNAME_TOO_SHORT), MUST_BE_BETWEEN_3_AND_30_CHARACTERS),
+        Arguments.of(updateRequestBody("a".repeat(31)), MUST_BE_BETWEEN_3_AND_30_CHARACTERS));
   }
 
   public static Stream<Arguments> invalidPasswordUpdateRequests() {
     return Stream.of(
         Arguments.of(
-            "{\"currentPassword\":\" \",\"newPassword\":\"NewSecret456!\",\"confirmNewPassword\":\"NewSecret456!\"}",
-            "must not be blank"),
+            passwordUpdateRequestBody(" ", TEST_PASSWORD_NEW_VALID, TEST_PASSWORD_NEW_VALID),
+            MUST_NOT_BE_BLANK),
         Arguments.of(
-            "{\"currentPassword\":\"short1!\",\"newPassword\":\"NewSecret456!\",\"confirmNewPassword\":\"NewSecret456!\"}",
-            "must be at least 8 characters"),
+            passwordUpdateRequestBody(
+                TEST_PASSWORD_TOO_SHORT, TEST_PASSWORD_NEW_VALID, TEST_PASSWORD_NEW_VALID),
+            MUST_BE_AT_LEAST_8_CHARACTERS),
         Arguments.of(
-            "{\"currentPassword\":\"Secret123!\",\"newPassword\":\" \",\"confirmNewPassword\":\"NewSecret456!\"}",
-            "must not be blank"),
+            passwordUpdateRequestBody(TEST_PASSWORD_VALID, " ", TEST_PASSWORD_NEW_VALID),
+            MUST_NOT_BE_BLANK),
         Arguments.of(
-            "{\"currentPassword\":\"Secret123!\",\"newPassword\":\"short1!\",\"confirmNewPassword\":\"short1!\"}",
-            "must be at least 8 characters"),
+            passwordUpdateRequestBody(
+                TEST_PASSWORD_VALID, TEST_PASSWORD_TOO_SHORT, TEST_PASSWORD_TOO_SHORT),
+            MUST_BE_AT_LEAST_8_CHARACTERS),
         Arguments.of(
-            "{\"currentPassword\":\"Secret123!\",\"newPassword\":\"alllowercase1!\",\"confirmNewPassword\":\"alllowercase1!\"}",
-            "must include uppercase, lowercase, number and symbol"),
+            passwordUpdateRequestBody(
+                TEST_PASSWORD_VALID, TEST_PASSWORD_LOWERCASE_ONLY, TEST_PASSWORD_LOWERCASE_ONLY),
+            MUST_INCLUDE_UPPERCASE_LOWERCASE_NUMBER_AND_SYMBOL),
         Arguments.of(
-            "{\"currentPassword\":\"Secret123!\",\"newPassword\":\""
-                + buildOverBcryptLimitPassword()
-                + "\",\"confirmNewPassword\":\""
-                + buildOverBcryptLimitPassword()
-                + "\"}",
-            "must be at most 72 bytes when UTF-8 encoded"),
+            passwordUpdateRequestBody(
+                TEST_PASSWORD_VALID,
+                buildOverBcryptLimitPassword(),
+                buildOverBcryptLimitPassword()),
+            MUST_BE_AT_MOST_72_BYTES_WHEN_UTF_8_ENCODED),
         Arguments.of(
-            "{\"currentPassword\":\"Secret123!\",\"newPassword\":\"NewSecret456!\",\"confirmNewPassword\":\"\"}",
-            "must not be blank"),
+            passwordUpdateRequestBody(TEST_PASSWORD_VALID, TEST_PASSWORD_NEW_VALID, ""),
+            MUST_NOT_BE_BLANK),
         Arguments.of(
-            "{\"currentPassword\":\"Secret123!\",\"newPassword\":\"NewSecret456!\",\"confirmNewPassword\":\"Mismatch456!\"}",
-            "New password and confirm new password must match"));
-  }
-
-  private static String buildOverBcryptLimitPassword() {
-    return "Aa1!" + "á".repeat(35);
+            passwordUpdateRequestBody(
+                TEST_PASSWORD_VALID, TEST_PASSWORD_NEW_VALID, TEST_PASSWORD_CONFIRM_MISMATCH),
+            NEW_PASSWORD_AND_CONFIRM_MUST_MATCH));
   }
 }

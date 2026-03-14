@@ -23,4 +23,25 @@
 
     </changeSet>
 
+    <changeSet id="create-users-deleted-at-index" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <and>
+                <columnExists tableName="users" columnName="deleted_at"/>
+                <not>
+                    <indexExists tableName="users" indexName="idx_users_deleted_at"/>
+                </not>
+            </and>
+        </preConditions>
+
+        <createIndex indexName="idx_users_deleted_at" tableName="users">
+            <column name="deleted_at"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex indexName="idx_users_deleted_at" tableName="users"/>
+        </rollback>
+
+    </changeSet>
+
 </databaseChangeLog>

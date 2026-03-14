@@ -82,7 +82,9 @@ public class AuthTokenHelper {
   }
 
   private String extractBearerToken(String authorizationHeader) {
-    if (authorizationHeader == null || !authorizationHeader.startsWith(TOKEN_TYPE_BEARER_PREFIX)) {
+    if (authorizationHeader == null
+        || !authorizationHeader.regionMatches(
+            true, 0, TOKEN_TYPE_BEARER_PREFIX, 0, TOKEN_TYPE_BEARER_PREFIX.length())) {
       log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_AUTHORIZATION_HEADER_MESSAGE);
       throw new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);
     }

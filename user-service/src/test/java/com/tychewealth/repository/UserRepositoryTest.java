@@ -25,7 +25,7 @@ class UserRepositoryTest {
     UserEntity user = buildUser("maria@tyche.com", "maria", TEST_PASSWORD_VALID);
     userRepository.save(user);
 
-    Optional<UserEntity> result = userRepository.findByEmail("maria@tyche.com");
+    Optional<UserEntity> result = userRepository.findByEmailIncludingDeleted("maria@tyche.com");
 
     assertTrue(result.isPresent());
     assertEquals("maria", result.get().getUsername());
@@ -36,7 +36,7 @@ class UserRepositoryTest {
     UserEntity user = buildUser("carlos@tyche.com", "carlos", TEST_PASSWORD_VALID);
     userRepository.save(user);
 
-    Optional<UserEntity> result = userRepository.findByUsername("carlos");
+    Optional<UserEntity> result = userRepository.findByUsernameIncludingDeleted("carlos");
 
     assertTrue(result.isPresent());
     assertEquals("carlos@tyche.com", result.get().getEmail());

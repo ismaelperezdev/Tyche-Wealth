@@ -1,9 +1,11 @@
 package com.tychewealth.config;
 
 import com.tychewealth.controller.impl.UserApiController;
+import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.handler.ErrorHandler;
 import com.tychewealth.mapper.user.UserMapper;
+import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.helper.AuthRefreshTokenHelper;
 import com.tychewealth.service.helper.AuthTokenHelper;
@@ -36,8 +38,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
       UserHelper.class,
       UserValidationHelper.class
     })
-@EnableJpaRepositories(basePackageClasses = UserRepository.class)
-@EntityScan(basePackageClasses = UserEntity.class)
+@EnableJpaRepositories(basePackageClasses = {UserRepository.class, RefreshTokenRepository.class})
+@EntityScan(basePackageClasses = {UserEntity.class, RefreshTokenEntity.class})
 public class UserIntegrationTestConfig {
 
   public static class Initializer

@@ -6,6 +6,7 @@ import com.tychewealth.entity.UserEntity;
 import com.tychewealth.mapper.user.UserMapper;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.helper.AuthRefreshTokenHelper;
+import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,6 +29,7 @@ public class UserHelper {
     return userRepository.save(user);
   }
 
+  @Transactional
   public Long updatePassword(UserEntity user, UserPasswordUpdateRequestDto updatePasswordRequest) {
     userValidationHelper.validateCurrentPassword(
         updatePasswordRequest.getCurrentPassword(), user.getPassword());
@@ -39,6 +41,7 @@ public class UserHelper {
     return user.getId();
   }
 
+  @Transactional
   public Long softDelete(UserEntity user) {
     authRefreshTokenHelper.revokeActiveTokensByUserId(user.getId());
     user.setDeletedAt(LocalDateTime.now());
