@@ -1,6 +1,7 @@
 package com.tychewealth.service.helper;
 
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER;
+import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER_PREFIX;
 import static com.tychewealth.constants.LogConstants.ACCESS_TOKEN_ACTION;
 import static com.tychewealth.constants.LogConstants.AUTH;
 import static com.tychewealth.constants.LogConstants.INVALID_ACCESS_TOKEN_MESSAGE;
@@ -81,12 +82,12 @@ public class AuthTokenHelper {
   }
 
   private String extractBearerToken(String authorizationHeader) {
-    if (authorizationHeader == null || !authorizationHeader.startsWith(TOKEN_TYPE_BEARER + " ")) {
+    if (authorizationHeader == null || !authorizationHeader.startsWith(TOKEN_TYPE_BEARER_PREFIX)) {
       log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_AUTHORIZATION_HEADER_MESSAGE);
       throw new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);
     }
 
-    String token = authorizationHeader.substring((TOKEN_TYPE_BEARER + " ").length()).trim();
+    String token = authorizationHeader.substring(TOKEN_TYPE_BEARER_PREFIX.length()).trim();
     if (token.isEmpty()) {
       log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_AUTHORIZATION_HEADER_MESSAGE);
       throw new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);

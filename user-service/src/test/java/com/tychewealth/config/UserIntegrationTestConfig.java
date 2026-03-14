@@ -7,6 +7,7 @@ import com.tychewealth.mapper.user.UserMapper;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.helper.AuthRefreshTokenHelper;
 import com.tychewealth.service.helper.AuthTokenHelper;
+import com.tychewealth.service.helper.UserValidationHelper;
 import com.tychewealth.service.impl.UserServiceImpl;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import org.springframework.boot.SpringBootConfiguration;
@@ -35,7 +36,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
       @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = UserMapper.class),
       @ComponentScan.Filter(
           type = FilterType.ASSIGNABLE_TYPE,
-          classes = AuthRefreshTokenHelper.class)
+          classes = AuthRefreshTokenHelper.class),
+      @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = UserValidationHelper.class)
     })
 @EnableJpaRepositories(basePackageClasses = UserRepository.class)
 @EntityScan(basePackageClasses = UserEntity.class)

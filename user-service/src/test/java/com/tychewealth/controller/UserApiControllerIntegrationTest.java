@@ -1,10 +1,20 @@
 package com.tychewealth.controller;
 
-import static com.tychewealth.constants.ApiConstants.URL_FOLDER_V1;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static com.tychewealth.constants.TestConstants.TEST_EMAIL_LAURA;
+import static com.tychewealth.constants.TestConstants.TEST_OCCUPIED_USERNAME;
+import static com.tychewealth.constants.TestConstants.TEST_OTHER_EMAIL;
+import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
+import static com.tychewealth.constants.TestConstants.TEST_UPDATE_USERNAME_NORMALIZED;
+import static com.tychewealth.constants.TestConstants.TEST_UPDATE_USERNAME_REQUEST;
+import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
+import static com.tychewealth.service.helper.UserTestHelper.deleteRequest;
+import static com.tychewealth.service.helper.UserTestHelper.deleteRequestUnauthorized;
+import static com.tychewealth.service.helper.UserTestHelper.retrieveRequest;
+import static com.tychewealth.service.helper.UserTestHelper.retrieveRequestUnauthorized;
+import static com.tychewealth.service.helper.UserTestHelper.updateRequest;
+import static com.tychewealth.service.helper.UserTestHelper.updateRequestUnauthorized;
+import static com.tychewealth.testdata.EntityBuilder.buildUser;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -27,8 +37,6 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 class UserApiControllerIntegrationTest {
 
-  private static final String USER_ME_URL = URL_FOLDER_V1 + "/user/me";
-
   @Autowired private MockMvc mockMvc;
   @Autowired private UserRepository userRepository;
   @Autowired private AuthTokenHelper authTokenHelper;
@@ -39,11 +47,9 @@ class UserApiControllerIntegrationTest {
   @BeforeEach
   void setUp() {
     userRepository.deleteAll();
-
-    existingUser = new UserEntity();
-    existingUser.setEmail("laura.gomez@tychewealth.com");
-    existingUser.setUsername("lauragomez");
-    existingUser.setPassword(passwordEncoder.encode("Secret123!"));
+    existingUser =
+        buildUser(
+            TEST_EMAIL_LAURA, TEST_USERNAME_LAURA, passwordEncoder.encode(TEST_PASSWORD_VALID));
   }
 
   @Test
@@ -51,8 +57,7 @@ class UserApiControllerIntegrationTest {
     UserEntity saved = userRepository.save(existingUser);
     String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
 
-    mockMvc
-        .perform(get(USER_ME_URL).header("Authorization", "Bearer " + accessToken))
+    retrieveRequest(mockMvc, accessToken)
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(saved.getId()))
         .andExpect(jsonPath("$.email").value(saved.getEmail()))
@@ -63,8 +68,7 @@ class UserApiControllerIntegrationTest {
 
   @Test
   void retrieveReturnsUnauthorizedWhenUserIsNotAuthenticated() throws Exception {
-    mockMvc
-        .perform(get(USER_ME_URL))
+    retrieveRequestUnauthorized(mockMvc)
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
@@ -72,13 +76,69 @@ class UserApiControllerIntegrationTest {
   }
 
   @Test
+  void updateChangesUsernameWhenUserIsAuthenticated() throws Exception {
+    UserEntity saved = userRepository.save(existingUser);
+    String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
+
+    updateRequest(mockMvc, accessToken, TEST_UPDATE_USERNAME_REQUEST)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(saved.getId()))
+        .andExpect(jsonPath("$.email").value(saved.getEmail()))
+        .andExpect(jsonPath("$.username").value(TEST_UPDATE_USERNAME_NORMALIZED));
+
+    UserEntity updatedUser = userRepository.findById(saved.getId()).orElseThrow();
+    assertEquals(TEST_UPDATE_USERNAME_NORMALIZED, updatedUser.getUsername());
+  }
+
+  @Test
+  void updateReturnsUnauthorizedWhenUserIsNotAuthenticated() throws Exception {
+    updateRequestUnauthorized(mockMvc, TEST_UPDATE_USERNAME_NORMALIZED)
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
+        .andExpect(jsonPath("$.description").value(ErrorDefinition.UNAUTHORIZED.getDescription()));
+  }
+
+  @Test
+  void updateReturnsNotFoundWhenAuthenticatedUserWasSoftDeleted() throws Exception {
+    UserEntity saved = userRepository.save(existingUser);
+    saved.setDeletedAt(java.time.LocalDateTime.now());
+    userRepository.save(saved);
+    String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
+
+    updateRequest(mockMvc, accessToken, TEST_UPDATE_USERNAME_NORMALIZED)
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.USER_NOT_FOUND.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.USER_NOT_FOUND.getType()))
+        .andExpect(
+            jsonPath("$.description").value(ErrorDefinition.USER_NOT_FOUND.getDescription()));
+  }
+
+  @Test
+  void updateReturnsConflictWhenUsernameAlreadyExists() throws Exception {
+    UserEntity saved = userRepository.saveAndFlush(existingUser);
+    UserEntity anotherUser = new UserEntity();
+    anotherUser.setEmail(TEST_OTHER_EMAIL);
+    anotherUser.setUsername(TEST_OCCUPIED_USERNAME);
+    anotherUser.setPassword(passwordEncoder.encode(TEST_PASSWORD_VALID));
+    userRepository.saveAndFlush(anotherUser);
+    String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
+
+    updateRequest(mockMvc, accessToken, TEST_OCCUPIED_USERNAME)
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.USER_USERNAME_CONFLICT.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.USER_USERNAME_CONFLICT.getType()))
+        .andExpect(
+            jsonPath("$.description")
+                .value(ErrorDefinition.USER_USERNAME_CONFLICT.getDescription()));
+  }
+
+  @Test
   void deleteSoftDeletesUserWhenUserIsAuthenticated() throws Exception {
     UserEntity saved = userRepository.save(existingUser);
     String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
 
-    mockMvc
-        .perform(delete(USER_ME_URL).header("Authorization", "Bearer " + accessToken))
-        .andExpect(status().isNoContent());
+    deleteRequest(mockMvc, accessToken).andExpect(status().isNoContent());
 
     UserEntity deletedUser = userRepository.findById(saved.getId()).orElseThrow();
     assertNotNull(deletedUser.getDeletedAt());
@@ -87,8 +147,7 @@ class UserApiControllerIntegrationTest {
 
   @Test
   void deleteReturnsUnauthorizedWhenUserIsNotAuthenticated() throws Exception {
-    mockMvc
-        .perform(delete(USER_ME_URL))
+    deleteRequestUnauthorized(mockMvc)
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
@@ -102,8 +161,7 @@ class UserApiControllerIntegrationTest {
     userRepository.save(saved);
     String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
 
-    mockMvc
-        .perform(delete(USER_ME_URL).header("Authorization", "Bearer " + accessToken))
+    deleteRequest(mockMvc, accessToken)
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.USER_NOT_FOUND.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.USER_NOT_FOUND.getType()))

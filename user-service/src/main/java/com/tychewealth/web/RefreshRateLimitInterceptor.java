@@ -1,9 +1,8 @@
 package com.tychewealth.web;
 
-import static com.tychewealth.constants.AuthConstants.REFRESH_RATE_LIMIT_MESSAGE;
-
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -64,7 +63,8 @@ public class RefreshRateLimitInterceptor implements HandlerInterceptor {
       evictExpiredRequests(timestamps, now);
       if (timestamps.size() >= maxRequests) {
         authMetrics.recordRefreshRateLimited();
-        throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, REFRESH_RATE_LIMIT_MESSAGE);
+        throw new ResponseStatusException(
+            HttpStatus.TOO_MANY_REQUESTS, ErrorDefinition.RATE_LIMITED.getDescription());
       }
       timestamps.addLast(now);
     }

@@ -1,12 +1,12 @@
 package com.tychewealth.web;
 
-import static com.tychewealth.constants.AuthConstants.LOGIN_RATE_LIMIT_MESSAGE;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Ticker;
+import com.tychewealth.error.handler.ErrorDefinition;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -23,7 +23,8 @@ class AuthRateLimitInterceptorTest {
   @Test
   void preHandleUsesRemoteAddressInsteadOfForwardedForHeader() {
     AuthRateLimitInterceptor interceptor =
-        new AuthRateLimitInterceptor(1, 60, LOGIN_RATE_LIMIT_MESSAGE, null, null);
+        new AuthRateLimitInterceptor(
+            1, 60, ErrorDefinition.RATE_LIMITED.getDescription(), null, null);
 
     MockHttpServletRequest firstRequest = buildRequest("198.51.100.10");
     MockHttpServletRequest secondRequest = buildRequest("203.0.113.20");
@@ -43,7 +44,8 @@ class AuthRateLimitInterceptorTest {
     Cache<String, Deque<Long>> cache =
         Caffeine.newBuilder().expireAfterAccess(Duration.ofSeconds(1)).ticker(ticker).build();
     AuthRateLimitInterceptor interceptor =
-        new AuthRateLimitInterceptor(1, 1, LOGIN_RATE_LIMIT_MESSAGE, null, null, cache, clock);
+        new AuthRateLimitInterceptor(
+            1, 1, ErrorDefinition.RATE_LIMITED.getDescription(), null, null, cache, clock);
 
     MockHttpServletRequest request = buildRequest(null);
     MockHttpServletResponse response = new MockHttpServletResponse();

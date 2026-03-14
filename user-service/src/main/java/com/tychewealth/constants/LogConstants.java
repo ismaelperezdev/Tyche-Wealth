@@ -11,6 +11,7 @@ public final class LogConstants {
   public static final String REFRESH_TOKEN_ACTION = "[refresh-token]";
   public static final String LOGOUT_ACTION = "[logout]";
   public static final String RETRIEVE_ACTION = "[retrieve]";
+  public static final String UPDATE_ACTION = "[update]";
   public static final String DELETE_ACTION = "[delete]";
   public static final String ACCESS_TOKEN_ACTION = "[access-token]";
 
@@ -19,10 +20,12 @@ public final class LogConstants {
   public static final String REQUEST_CONFLICT = BASE_LOG + " Request rejected: {}";
   public static final String REGISTER_REQUEST_FIELDS = " username={}, email={}";
   public static final String LOGIN_REQUEST_FIELDS = " email={}";
+  public static final String UPDATE_REQUEST_FIELDS = " username={}";
   public static final String REGISTER_CREATED_USER_ID = " userId={}";
   public static final String LOGIN_USER_ID = " userId={}";
   public static final String LOGOUT_USER_ID = " userId={}";
   public static final String RETRIEVE_USER_ID = " userId={}";
+  public static final String UPDATE_USER_ID = " userId={}";
   public static final String DELETE_USER_ID = " userId={}";
   public static final String INVALID_REFRESH_TOKEN_MESSAGE = "invalid refresh token";
   public static final String INVALID_AUTHORIZATION_HEADER_MESSAGE = "invalid authorization header";

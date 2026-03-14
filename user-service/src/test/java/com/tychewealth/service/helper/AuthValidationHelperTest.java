@@ -1,7 +1,7 @@
 package com.tychewealth.service.helper;
 
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_LOGIN_FAILURE;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REGISTER_FAILURE;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_FAILURE;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_FAILURE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;

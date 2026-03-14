@@ -1,6 +1,7 @@
 package com.tychewealth.service.impl;
 
 import com.tychewealth.dto.user.UserResponseDto;
+import com.tychewealth.dto.user.request.UserUpdateRequestDto;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.exception.UserException;
 import com.tychewealth.error.handler.ErrorDefinition;
@@ -9,6 +10,7 @@ import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.UserService;
 import com.tychewealth.service.helper.AuthRefreshTokenHelper;
 import com.tychewealth.service.helper.AuthTokenHelper;
+import com.tychewealth.service.helper.UserValidationHelper;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,6 +25,7 @@ public class UserServiceImpl implements UserService {
   private final UserMapper userMapper;
   private final AuthTokenHelper authTokenHelper;
   private final AuthRefreshTokenHelper authRefreshTokenHelper;
+  private final UserValidationHelper userValidationHelper;
 
   @Override
   public UserResponseDto retrieve(String authorizationHeader) {
@@ -33,11 +36,24 @@ public class UserServiceImpl implements UserService {
 
   @Override
   @Transactional
+  public UserResponseDto update(String authorizationHeader, UserUpdateRequestDto updateRequest) {
+    Long id = authTokenHelper.extractUserId(authorizationHeader);
+    UserEntity user = findActiveUser(id);
+
+    userValidationHelper.validateUsernameIsAvailableForUpdate(updateRequest.getUsername(), id);
+    userMapper.update(updateRequest, user);
+
+    return userMapper.toDto(userRepository.save(user));
+  }
+
+  @Override
+  @Transactional
   public Long delete(String authorizationHeader) {
     Long id = authTokenHelper.extractUserId(authorizationHeader);
     UserEntity user = findActiveUser(id);
 
     authRefreshTokenHelper.revokeActiveTokensByUserId(id);
+
     user.setDeletedAt(LocalDateTime.now());
     userRepository.save(user);
 
