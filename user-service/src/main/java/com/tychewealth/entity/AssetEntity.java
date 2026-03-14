@@ -1,5 +1,12 @@
 package com.tychewealth.entity;
 
+import static com.tychewealth.constants.ValidationConstants.MUST_BE_AT_MOST_20_CHARACTERS;
+import static com.tychewealth.constants.ValidationConstants.MUST_BE_GREATER_THAN_0;
+import static com.tychewealth.constants.ValidationConstants.MUST_HAVE_UP_TO_11_INTEGER_DIGITS_AND_8_DECIMALS;
+import static com.tychewealth.constants.ValidationConstants.MUST_HAVE_UP_TO_15_INTEGER_DIGITS_AND_4_DECIMALS;
+import static com.tychewealth.constants.ValidationConstants.MUST_NOT_BE_BLANK;
+import static com.tychewealth.constants.ValidationConstants.MUST_NOT_BE_NULL;
+
 import com.tychewealth.enums.AssetTypeEnum;
 import com.tychewealth.enums.CurrencyCodeEnum;
 import jakarta.persistence.Column;
@@ -41,40 +48,34 @@ public class AssetEntity {
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "portfolio_id", nullable = false)
-  @NotNull(message = "Portfolio cannot be null")
+  @NotNull(message = MUST_NOT_BE_NULL)
   private PortfolioEntity portfolio;
 
   @Column(name = "symbol", nullable = false, length = 20)
-  @NotBlank(message = "Symbol cannot be blank")
-  @Size(max = 20, message = "Symbol must be at most 20 characters")
+  @NotBlank(message = MUST_NOT_BE_BLANK)
+  @Size(max = 20, message = MUST_BE_AT_MOST_20_CHARACTERS)
   private String symbol;
 
   @Enumerated(EnumType.STRING)
   @Column(name = "asset_type", nullable = false, length = 30)
-  @NotNull(message = "Asset type cannot be null")
+  @NotNull(message = MUST_NOT_BE_NULL)
   private AssetTypeEnum assetType;
 
   @Column(name = "quantity", nullable = false, precision = 19, scale = 8)
-  @NotNull(message = "Quantity cannot be null")
-  @Digits(
-      integer = 11,
-      fraction = 8,
-      message = "Quantity must have up to 11 integer digits and 8 decimals")
-  @DecimalMin(value = "0.00000001", message = "Quantity must be greater than 0")
+  @NotNull(message = MUST_NOT_BE_NULL)
+  @Digits(integer = 11, fraction = 8, message = MUST_HAVE_UP_TO_11_INTEGER_DIGITS_AND_8_DECIMALS)
+  @DecimalMin(value = "0.00000001", message = MUST_BE_GREATER_THAN_0)
   private BigDecimal quantity;
 
   @Column(name = "average_price", nullable = false, precision = 19, scale = 4)
-  @NotNull(message = "Average price cannot be null")
-  @Digits(
-      integer = 15,
-      fraction = 4,
-      message = "Average price must have up to 15 integer digits and 4 decimals")
-  @DecimalMin(value = "0.0000", inclusive = false, message = "Average price must be greater than 0")
+  @NotNull(message = MUST_NOT_BE_NULL)
+  @Digits(integer = 15, fraction = 4, message = MUST_HAVE_UP_TO_15_INTEGER_DIGITS_AND_4_DECIMALS)
+  @DecimalMin(value = "0.0000", inclusive = false, message = MUST_BE_GREATER_THAN_0)
   private BigDecimal averagePrice;
 
   @Enumerated(EnumType.STRING)
   @Column(name = "currency", nullable = false, length = 3)
-  @NotNull(message = "Currency cannot be null")
+  @NotNull(message = MUST_NOT_BE_NULL)
   private CurrencyCodeEnum currency;
 
   @Column(name = "created_at", nullable = false)

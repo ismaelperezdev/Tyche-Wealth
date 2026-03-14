@@ -1,21 +1,21 @@
 package com.tychewealth.service.monitoring;
 
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_LOGIN_FAILURE;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_LOGIN_INVALID_CREDENTIALS;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_LOGIN_RATE_LIMITED;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_LOGIN_REQUESTS;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_LOGIN_SUCCESS;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REFRESH_FAILURE;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REFRESH_RATE_LIMITED;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REFRESH_REQUESTS;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REFRESH_SUCCESS;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REFRESH_TOKEN_ISSUED;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REFRESH_TOKEN_REVOKED;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REGISTER_CONFLICT;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REGISTER_FAILURE;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REGISTER_RATE_LIMITED;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REGISTER_REQUESTS;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REGISTER_SUCCESS;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_FAILURE;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_INVALID_CREDENTIALS;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_RATE_LIMITED;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_REQUESTS;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_SUCCESS;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REFRESH_FAILURE;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REFRESH_RATE_LIMITED;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REFRESH_REQUESTS;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REFRESH_SUCCESS;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REFRESH_TOKEN_ISSUED;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REFRESH_TOKEN_REVOKED;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_CONFLICT;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_FAILURE;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_RATE_LIMITED;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_REQUESTS;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_SUCCESS;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;

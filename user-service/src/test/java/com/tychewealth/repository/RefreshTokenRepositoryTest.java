@@ -1,5 +1,6 @@
 package com.tychewealth.repository;
 
+import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
 import static com.tychewealth.testdata.EntityBuilder.buildRefreshToken;
 import static com.tychewealth.testdata.EntityBuilder.buildUser;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,7 +38,8 @@ class RefreshTokenRepositoryTest {
 
   @Test
   void findByTokenReturnsSavedToken() {
-    UserEntity user = userRepository.save(buildUser("lucia@tyche.com", "lucia"));
+    UserEntity user =
+        userRepository.save(buildUser("lucia@tyche.com", "lucia", TEST_PASSWORD_VALID));
     Instant expiresAt = Instant.now().plusSeconds(3600);
     refreshTokenRepository.save(buildRefreshToken(SAVED_REFRESH_TOKEN, user, expiresAt, false));
 
@@ -58,7 +60,8 @@ class RefreshTokenRepositoryTest {
 
   @Test
   void saveAssignsIdAndCreatedAt() {
-    UserEntity user = userRepository.save(buildUser("marco@tyche.com", "marco"));
+    UserEntity user =
+        userRepository.save(buildUser("marco@tyche.com", "marco", TEST_PASSWORD_VALID));
     RefreshTokenEntity saved =
         refreshTokenRepository.save(
             buildRefreshToken(
@@ -70,8 +73,10 @@ class RefreshTokenRepositoryTest {
 
   @Test
   void revokeActiveTokensByUserIdRevokesOnlyActiveTokensForSpecifiedUser() {
-    UserEntity targetUser = userRepository.save(buildUser("sofia@tyche.com", "sofia"));
-    UserEntity otherUser = userRepository.save(buildUser("diego@tyche.com", "diego"));
+    UserEntity targetUser =
+        userRepository.save(buildUser("sofia@tyche.com", "sofia", TEST_PASSWORD_VALID));
+    UserEntity otherUser =
+        userRepository.save(buildUser("diego@tyche.com", "diego", TEST_PASSWORD_VALID));
     Instant now = Instant.now();
 
     RefreshTokenEntity activeToken =
@@ -111,7 +116,7 @@ class RefreshTokenRepositoryTest {
 
   @Test
   void revokeTokenIfActiveRevokesOnlyNonExpiredNonRevokedToken() {
-    UserEntity user = userRepository.save(buildUser("nora@tyche.com", "nora"));
+    UserEntity user = userRepository.save(buildUser("nora@tyche.com", "nora", TEST_PASSWORD_VALID));
     Instant now = Instant.now();
 
     RefreshTokenEntity activeToken =

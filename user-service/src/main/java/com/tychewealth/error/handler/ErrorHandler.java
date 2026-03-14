@@ -1,6 +1,7 @@
 package com.tychewealth.error.handler;
 
 import com.tychewealth.error.exception.AuthException;
+import com.tychewealth.error.exception.UserException;
 import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -18,10 +19,12 @@ public class ErrorHandler {
 
   @ExceptionHandler(AuthException.class)
   public ResponseEntity<ErrorResponse> handleAuthException(AuthException ex) {
-    ErrorDefinition definition =
-        ex.getErrorDefinition() != null ? ex.getErrorDefinition() : ErrorDefinition.CONFLICT;
-    HttpStatus status = ex.getHttpStatus() == null ? HttpStatus.CONFLICT : ex.getHttpStatus();
-    return build(definition, status, definition.getDescription());
+    return buildFromException(ex.getErrorDefinition(), ex.getHttpStatus());
+  }
+
+  @ExceptionHandler(UserException.class)
+  public ResponseEntity<ErrorResponse> handleUserException(UserException ex) {
+    return buildFromException(ex.getErrorDefinition(), ex.getHttpStatus());
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -88,6 +91,14 @@ public class ErrorHandler {
     return ResponseEntity.status(status).body(response);
   }
 
+  private ResponseEntity<ErrorResponse> buildFromException(
+      ErrorDefinition errorDefinition, HttpStatus httpStatus) {
+    ErrorDefinition definition =
+        errorDefinition != null ? errorDefinition : ErrorDefinition.CONFLICT;
+    HttpStatus status = httpStatus == null ? HttpStatus.CONFLICT : httpStatus;
+    return build(definition, status, definition.getDescription());
+  }
+
   private ErrorDefinition mapByStatus(HttpStatus status) {
     return switch (status) {
       case BAD_REQUEST -> ErrorDefinition.GENERIC_BAD_REQUEST;
@@ -103,6 +114,9 @@ public class ErrorHandler {
   private String toFieldMessage(FieldError error) {
     String message =
         error.getDefaultMessage() == null ? "invalid value" : error.getDefaultMessage();
+    if ("AssertTrue".equals(error.getCode())) {
+      return message;
+    }
     return error.getField() + ": " + message;
   }
 }

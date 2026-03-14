@@ -1,10 +1,12 @@
 package com.tychewealth.repository;
 
+import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
 import static com.tychewealth.testdata.EntityBuilder.buildUser;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.tychewealth.entity.UserEntity;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,10 +22,10 @@ class UserRepositoryTest {
 
   @Test
   void findByEmailReturnsSavedUser() {
-    UserEntity user = buildUser("maria@tyche.com", "maria");
+    UserEntity user = buildUser("maria@tyche.com", "maria", TEST_PASSWORD_VALID);
     userRepository.save(user);
 
-    Optional<UserEntity> result = userRepository.findByEmail("maria@tyche.com");
+    Optional<UserEntity> result = userRepository.findByEmailIncludingDeleted("maria@tyche.com");
 
     assertTrue(result.isPresent());
     assertEquals("maria", result.get().getUsername());
@@ -31,12 +33,23 @@ class UserRepositoryTest {
 
   @Test
   void findByUsernameReturnsSavedUser() {
-    UserEntity user = buildUser("carlos@tyche.com", "carlos");
+    UserEntity user = buildUser("carlos@tyche.com", "carlos", TEST_PASSWORD_VALID);
     userRepository.save(user);
 
-    Optional<UserEntity> result = userRepository.findByUsername("carlos");
+    Optional<UserEntity> result = userRepository.findByUsernameIncludingDeleted("carlos");
 
     assertTrue(result.isPresent());
     assertEquals("carlos@tyche.com", result.get().getEmail());
+  }
+
+  @Test
+  void findByIdAndDeletedAtIsNullExcludesSoftDeletedUser() {
+    UserEntity user = buildUser("lucia@tyche.com", "lucia", TEST_PASSWORD_VALID);
+    user.setDeletedAt(LocalDateTime.now());
+    UserEntity saved = userRepository.save(user);
+
+    Optional<UserEntity> result = userRepository.findByIdAndDeletedAtIsNull(saved.getId());
+
+    assertTrue(result.isEmpty());
   }
 }

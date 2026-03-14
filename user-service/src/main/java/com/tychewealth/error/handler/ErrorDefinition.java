@@ -31,7 +31,18 @@ public enum ErrorDefinition {
   AUTH_REGISTER_PASSWORD_FORMAT_INVALID(
       "TYCHE-104",
       "AUTH_REGISTER_PASSWORD_FORMAT_INVALID",
-      "Password must be 8-72 characters and include at least one uppercase letter, one lowercase letter, one number, and one symbol");
+      "Password must be 8-72 characters and include at least one uppercase letter, one lowercase letter, one number, and one symbol"),
+
+  // USER
+  USER_NOT_FOUND("TYCHE-200", "USER_NOT_FOUND", "The requested user was not found"),
+  USER_USERNAME_CONFLICT(
+      "TYCHE-201", "USER_USERNAME_CONFLICT", "A user with the provided username already exists"),
+  USER_CURRENT_PASSWORD_INVALID(
+      "TYCHE-202", "USER_CURRENT_PASSWORD_INVALID", "The provided current password is invalid"),
+  USER_NEW_PASSWORD_MUST_BE_DIFFERENT(
+      "TYCHE-203",
+      "USER_NEW_PASSWORD_MUST_BE_DIFFERENT",
+      "The new password must be different from the current password");
 
   private final String code;
   private final String type;

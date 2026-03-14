@@ -2,12 +2,12 @@ package com.tychewealth.controller.impl;
 
 import com.tychewealth.constants.LogConstants;
 import com.tychewealth.controller.AuthApi;
-import com.tychewealth.dto.user.LoginResponseDto;
-import com.tychewealth.dto.user.RefreshTokenResponseDto;
+import com.tychewealth.dto.auth.LoginResponseDto;
+import com.tychewealth.dto.auth.RefreshTokenResponseDto;
+import com.tychewealth.dto.auth.request.LoginRequestDto;
+import com.tychewealth.dto.auth.request.RefreshTokenRequestDto;
+import com.tychewealth.dto.auth.request.RegisterRequestDto;
 import com.tychewealth.dto.user.UserResponseDto;
-import com.tychewealth.dto.user.request.LoginRequestDto;
-import com.tychewealth.dto.user.request.RefreshTokenRequestDto;
-import com.tychewealth.dto.user.request.RegisterRequestDto;
 import com.tychewealth.service.AuthService;
 import com.tychewealth.utils.LogContextFactory;
 import jakarta.validation.Valid;

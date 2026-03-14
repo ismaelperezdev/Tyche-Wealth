@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="add-users-deleted-at-column" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <columnExists tableName="users" columnName="deleted_at"/>
+            </not>
+        </preConditions>
+
+        <addColumn tableName="users">
+            <column name="deleted_at" type="TIMESTAMP"/>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="users" columnName="deleted_at"/>
+        </rollback>
+
+    </changeSet>
+
+    <changeSet id="create-users-deleted-at-index" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <and>
+                <columnExists tableName="users" columnName="deleted_at"/>
+                <not>
+                    <indexExists tableName="users" indexName="idx_users_deleted_at"/>
+                </not>
+            </and>
+        </preConditions>
+
+        <createIndex indexName="idx_users_deleted_at" tableName="users">
+            <column name="deleted_at"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex indexName="idx_users_deleted_at" tableName="users"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

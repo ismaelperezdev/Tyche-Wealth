@@ -1,5 +1,10 @@
 package com.tychewealth.entity;
 
+import static com.tychewealth.constants.ValidationConstants.MUST_BE_AT_MOST_254_CHARACTERS;
+import static com.tychewealth.constants.ValidationConstants.MUST_BE_A_VALID_EMAIL_ADDRESS;
+import static com.tychewealth.constants.ValidationConstants.MUST_BE_BETWEEN_3_AND_30_CHARACTERS;
+import static com.tychewealth.constants.ValidationConstants.MUST_NOT_BE_BLANK;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -32,23 +37,25 @@ public class UserEntity {
   private Long id;
 
   @Column(name = "email", nullable = false, length = 254, unique = true)
-  @NotBlank(message = "Email cannot be blank")
-  @Email(message = "Email format is invalid")
-  @Size(max = 254, message = "Email must be at most 254 characters")
+  @NotBlank(message = MUST_NOT_BE_BLANK)
+  @Email(message = MUST_BE_A_VALID_EMAIL_ADDRESS)
+  @Size(max = 254, message = MUST_BE_AT_MOST_254_CHARACTERS)
   private String email;
 
   @Column(name = "username", nullable = false, length = 30, unique = true)
-  @NotBlank(message = "Username cannot be blank")
-  @Size(min = 3, max = 30, message = "Username must be between 3 and 30 characters")
+  @NotBlank(message = MUST_NOT_BE_BLANK)
+  @Size(min = 3, max = 30, message = MUST_BE_BETWEEN_3_AND_30_CHARACTERS)
   private String username;
 
   @Column(name = "password", nullable = false, length = 72)
-  @NotBlank(message = "Password cannot be blank")
-  @Size(min = 8, max = 72, message = "Password must be between 8 and 72 characters")
+  @NotBlank(message = MUST_NOT_BE_BLANK)
   private String password;
 
   @Column(name = "created_at", nullable = false)
   private LocalDateTime createdAt;
+
+  @Column(name = "deleted_at")
+  private LocalDateTime deletedAt;
 
   @OneToMany(mappedBy = "user")
   private List<PortfolioEntity> portfolios = new ArrayList<>();

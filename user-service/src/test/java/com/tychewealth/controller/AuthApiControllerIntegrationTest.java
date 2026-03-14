@@ -1,29 +1,37 @@
 package com.tychewealth.controller;
 
-import static com.tychewealth.constants.ApiConstants.AUTH_LOGIN_URL;
-import static com.tychewealth.constants.ApiConstants.AUTH_LOGOUT_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_REFRESH_URL;
-import static com.tychewealth.constants.ApiConstants.AUTH_REGISTER_URL;
-import static com.tychewealth.constants.AuthConstants.LOGIN_RATE_LIMIT_MESSAGE;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_LOGIN_FAILURE;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_LOGIN_INVALID_CREDENTIALS;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_LOGIN_RATE_LIMITED;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_LOGIN_REQUESTS;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_LOGIN_SUCCESS;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REFRESH_RATE_LIMITED;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REFRESH_REQUESTS;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REFRESH_SUCCESS;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REFRESH_TOKEN_ISSUED;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REFRESH_TOKEN_REVOKED;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REGISTER_CONFLICT;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REGISTER_FAILURE;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REGISTER_RATE_LIMITED;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REGISTER_REQUESTS;
-import static com.tychewealth.constants.AuthConstants.METRIC_AUTH_REGISTER_SUCCESS;
-import static com.tychewealth.constants.AuthConstants.REFRESH_RATE_LIMIT_MESSAGE;
-import static com.tychewealth.constants.AuthConstants.REGISTER_RATE_LIMIT_MESSAGE;
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_FAILURE;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_INVALID_CREDENTIALS;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_RATE_LIMITED;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_REQUESTS;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_SUCCESS;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REFRESH_RATE_LIMITED;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REFRESH_REQUESTS;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REFRESH_SUCCESS;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REFRESH_TOKEN_ISSUED;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REFRESH_TOKEN_REVOKED;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_CONFLICT;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_FAILURE;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_RATE_LIMITED;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_REQUESTS;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_SUCCESS;
+import static com.tychewealth.constants.TestConstants.TEST_EMAIL_LAURA;
+import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_INVALID;
+import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
+import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_EXISTING;
+import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_EXPIRED;
+import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_METRICS;
+import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_MISSING;
+import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_REVOKED;
+import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
 import static com.tychewealth.testdata.EntityBuilder.buildRefreshToken;
+import static com.tychewealth.testhelper.AuthTestHelper.login;
+import static com.tychewealth.testhelper.AuthTestHelper.loginRequest;
+import static com.tychewealth.testhelper.AuthTestHelper.logout;
+import static com.tychewealth.testhelper.AuthTestHelper.refresh;
+import static com.tychewealth.testhelper.AuthTestHelper.registerRequest;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -37,11 +45,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.config.AuthIntegrationTestConfig;
 import com.tychewealth.config.RefreshRateLimitConfig;
-import com.tychewealth.dto.user.LoginResponseDto;
-import com.tychewealth.dto.user.RefreshTokenResponseDto;
-import com.tychewealth.dto.user.request.LoginRequestDto;
-import com.tychewealth.dto.user.request.RefreshTokenRequestDto;
-import com.tychewealth.dto.user.request.RegisterRequestDto;
+import com.tychewealth.dto.auth.LoginResponseDto;
+import com.tychewealth.dto.auth.RefreshTokenResponseDto;
+import com.tychewealth.dto.auth.request.LoginRequestDto;
+import com.tychewealth.dto.auth.request.RegisterRequestDto;
 import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.handler.ErrorDefinition;
@@ -60,20 +67,11 @@ import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
 
 @SpringBootTest(classes = AuthIntegrationTestConfig.class)
 @ContextConfiguration(initializers = AuthIntegrationTestConfig.Initializer.class)
 @AutoConfigureMockMvc
 class AuthApiControllerIntegrationTest {
-
-  private static final String MISSING_REFRESH_TOKEN = "missing-token";
-  private static final String EXISTING_REFRESH_TOKEN = "existing-refresh-token";
-  private static final String REVOKED_REFRESH_TOKEN = "revoked-refresh-token";
-  private static final String EXPIRED_REFRESH_TOKEN = "expired-refresh-token";
-  private static final String METRICS_REFRESH_TOKEN = "metrics-refresh-token";
-  private static final String VALID_PASSWORD = "Secret123!";
-  private static final String INVALID_PASSWORD = "Wrong123!";
 
   @Autowired private MockMvc mockMvc;
 
@@ -100,22 +98,22 @@ class AuthApiControllerIntegrationTest {
     userRepository.deleteAll();
     rateLimitConfig.resetAll();
     validRequest =
-        new RegisterRequestDto("laura.gomez@tychewealth.com", "lauragomez", VALID_PASSWORD);
+        new RegisterRequestDto(TEST_EMAIL_LAURA, TEST_USERNAME_LAURA, TEST_PASSWORD_VALID);
     conflictByEmailRequest =
-        new RegisterRequestDto(validRequest.getEmail(), "carlosmartin", VALID_PASSWORD);
+        new RegisterRequestDto(validRequest.getEmail(), "carlosmartin", TEST_PASSWORD_VALID);
     conflictByUsernameRequest =
         new RegisterRequestDto(
-            "pablo.ortega@tychewealth.com", validRequest.getUsername(), VALID_PASSWORD);
+            "pablo.ortega@tychewealth.com", validRequest.getUsername(), TEST_PASSWORD_VALID);
 
     existingEmailUser = new UserEntity();
     existingEmailUser.setEmail(validRequest.getEmail());
     existingEmailUser.setUsername("anabelruiz");
-    existingEmailUser.setPassword(passwordEncoder.encode(VALID_PASSWORD));
+    existingEmailUser.setPassword(passwordEncoder.encode(TEST_PASSWORD_VALID));
 
     existingUsernameUser = new UserEntity();
     existingUsernameUser.setEmail("mario.santos@tychewealth.com");
     existingUsernameUser.setUsername(validRequest.getUsername());
-    existingUsernameUser.setPassword(passwordEncoder.encode(VALID_PASSWORD));
+    existingUsernameUser.setPassword(passwordEncoder.encode(TEST_PASSWORD_VALID));
 
     existingLoginUser = new UserEntity();
     existingLoginUser.setEmail(validRequest.getEmail());
@@ -130,7 +128,7 @@ class AuthApiControllerIntegrationTest {
     double requestsBefore = counterValue(METRIC_AUTH_REGISTER_REQUESTS);
     double successBefore = counterValue(METRIC_AUTH_REGISTER_SUCCESS);
 
-    registerRequest(validRequest)
+    registerRequest(mockMvc, objectMapper, validRequest)
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").isNumber())
         .andExpect(jsonPath("$.email").value(validRequest.getEmail()))
@@ -138,7 +136,8 @@ class AuthApiControllerIntegrationTest {
         .andExpect(jsonPath("$.createdAt").exists())
         .andExpect(jsonPath("$.password").doesNotExist());
 
-    UserEntity created = userRepository.findByEmail(validRequest.getEmail()).orElseThrow();
+    UserEntity created =
+        userRepository.findByEmailIncludingDeleted(validRequest.getEmail()).orElseThrow();
     assertNotNull(created.getId());
     assertNotEquals(validRequest.getPassword(), created.getPassword());
     assertTrue(passwordEncoder.matches(validRequest.getPassword(), created.getPassword()));
@@ -152,7 +151,7 @@ class AuthApiControllerIntegrationTest {
     double failureBefore = counterValue(METRIC_AUTH_REGISTER_FAILURE);
     double conflictBefore = counterValue(METRIC_AUTH_REGISTER_CONFLICT);
 
-    registerRequest(conflictByEmailRequest)
+    registerRequest(mockMvc, objectMapper, conflictByEmailRequest)
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.AUTH_REGISTRATION_CONFLICT.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.AUTH_REGISTRATION_CONFLICT.getType()))
@@ -168,7 +167,7 @@ class AuthApiControllerIntegrationTest {
   void registerReturnsConflictWhenUsernameAlreadyExists() throws Exception {
     userRepository.save(existingUsernameUser);
 
-    registerRequest(conflictByUsernameRequest)
+    registerRequest(mockMvc, objectMapper, conflictByUsernameRequest)
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.AUTH_REGISTRATION_CONFLICT.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.AUTH_REGISTRATION_CONFLICT.getType()))
@@ -183,15 +182,17 @@ class AuthApiControllerIntegrationTest {
     double requestsBefore = counterValue(METRIC_AUTH_REGISTER_REQUESTS);
     double rateLimitedBefore = counterValue(METRIC_AUTH_REGISTER_RATE_LIMITED);
 
-    registerRequest(invalidRegisterRequest).andExpect(status().isBadRequest());
+    registerRequest(mockMvc, objectMapper, invalidRegisterRequest)
+        .andExpect(status().isBadRequest());
 
-    registerRequest(invalidRegisterRequest).andExpect(status().isBadRequest());
+    registerRequest(mockMvc, objectMapper, invalidRegisterRequest)
+        .andExpect(status().isBadRequest());
 
-    registerRequest(invalidRegisterRequest)
+    registerRequest(mockMvc, objectMapper, invalidRegisterRequest)
         .andExpect(status().isTooManyRequests())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.RATE_LIMITED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.RATE_LIMITED.getType()))
-        .andExpect(jsonPath("$.description").value(REGISTER_RATE_LIMIT_MESSAGE));
+        .andExpect(jsonPath("$.description").value(ErrorDefinition.RATE_LIMITED.getDescription()));
 
     assertEquals(requestsBefore + 3, counterValue(METRIC_AUTH_REGISTER_REQUESTS));
     assertEquals(rateLimitedBefore + 1, counterValue(METRIC_AUTH_REGISTER_RATE_LIMITED));
@@ -201,7 +202,7 @@ class AuthApiControllerIntegrationTest {
   @MethodSource("com.tychewealth.testdata.AuthTestData#invalidCreateRequests")
   void registerReturnsBadRequestForInvalidPayload(
       RegisterRequestDto invalidRequest, String expectedMessage) throws Exception {
-    registerRequest(invalidRequest)
+    registerRequest(mockMvc, objectMapper, invalidRequest)
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getType()))
@@ -214,7 +215,7 @@ class AuthApiControllerIntegrationTest {
     double requestsBefore = counterValue(METRIC_AUTH_LOGIN_REQUESTS);
     double successBefore = counterValue(METRIC_AUTH_LOGIN_SUCCESS);
 
-    loginRequest(validLoginRequest)
+    loginRequest(mockMvc, objectMapper, validLoginRequest)
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.tokenType").value(TOKEN_TYPE_BEARER))
         .andExpect(jsonPath("$.accessToken").isString())
@@ -236,9 +237,9 @@ class AuthApiControllerIntegrationTest {
     double invalidCredentialsBefore = counterValue(METRIC_AUTH_LOGIN_INVALID_CREDENTIALS);
 
     LoginRequestDto invalidLoginRequest =
-        new LoginRequestDto(validRequest.getEmail(), INVALID_PASSWORD);
+        new LoginRequestDto(validRequest.getEmail(), TEST_PASSWORD_INVALID);
 
-    loginRequest(invalidLoginRequest)
+    loginRequest(mockMvc, objectMapper, invalidLoginRequest)
         .andExpect(status().isUnauthorized())
         .andExpect(
             jsonPath("$.code").value(ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS.getCode()))
@@ -253,23 +254,39 @@ class AuthApiControllerIntegrationTest {
   }
 
   @Test
+  void loginReturnsUnauthorizedWhenUserWasSoftDeleted() throws Exception {
+    existingLoginUser.setDeletedAt(java.time.LocalDateTime.now());
+    userRepository.save(existingLoginUser);
+
+    loginRequest(mockMvc, objectMapper, validLoginRequest)
+        .andExpect(status().isUnauthorized())
+        .andExpect(
+            jsonPath("$.code").value(ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS.getCode()))
+        .andExpect(
+            jsonPath("$.type").value(ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS.getType()))
+        .andExpect(
+            jsonPath("$.description")
+                .value(ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS.getDescription()));
+  }
+
+  @Test
   void loginReturnsTooManyRequestsWhenRateLimitIsExceeded() throws Exception {
     userRepository.save(existingLoginUser);
     double requestsBefore = counterValue(METRIC_AUTH_LOGIN_REQUESTS);
     double rateLimitedBefore = counterValue(METRIC_AUTH_LOGIN_RATE_LIMITED);
 
     LoginRequestDto invalidLoginRequest =
-        new LoginRequestDto(validRequest.getEmail(), INVALID_PASSWORD);
+        new LoginRequestDto(validRequest.getEmail(), TEST_PASSWORD_INVALID);
 
-    loginRequest(invalidLoginRequest).andExpect(status().isUnauthorized());
+    loginRequest(mockMvc, objectMapper, invalidLoginRequest).andExpect(status().isUnauthorized());
 
-    loginRequest(invalidLoginRequest).andExpect(status().isUnauthorized());
+    loginRequest(mockMvc, objectMapper, invalidLoginRequest).andExpect(status().isUnauthorized());
 
-    loginRequest(invalidLoginRequest)
+    loginRequest(mockMvc, objectMapper, invalidLoginRequest)
         .andExpect(status().isTooManyRequests())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.RATE_LIMITED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.RATE_LIMITED.getType()))
-        .andExpect(jsonPath("$.description").value(LOGIN_RATE_LIMIT_MESSAGE));
+        .andExpect(jsonPath("$.description").value(ErrorDefinition.RATE_LIMITED.getDescription()));
 
     assertEquals(requestsBefore + 3, counterValue(METRIC_AUTH_LOGIN_REQUESTS));
     assertEquals(rateLimitedBefore + 1, counterValue(METRIC_AUTH_LOGIN_RATE_LIMITED));
@@ -279,16 +296,16 @@ class AuthApiControllerIntegrationTest {
   void secondLoginRevokesPreviousRefreshToken() throws Exception {
     userRepository.save(existingLoginUser);
 
-    LoginResponseDto firstLoginResponse = login(validLoginRequest);
-    LoginResponseDto secondLoginResponse = login(validLoginRequest);
+    LoginResponseDto firstLoginResponse = login(mockMvc, objectMapper, validLoginRequest);
+    LoginResponseDto secondLoginResponse = login(mockMvc, objectMapper, validLoginRequest);
     assertNotEquals(firstLoginResponse.getRefreshToken(), secondLoginResponse.getRefreshToken());
 
-    refresh(firstLoginResponse.getRefreshToken())
+    refresh(mockMvc, objectMapper, firstLoginResponse.getRefreshToken())
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID.getType()));
 
-    refresh(secondLoginResponse.getRefreshToken())
+    refresh(mockMvc, objectMapper, secondLoginResponse.getRefreshToken())
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.refreshToken").isString());
   }
@@ -297,7 +314,7 @@ class AuthApiControllerIntegrationTest {
   @MethodSource("com.tychewealth.testdata.AuthTestData#invalidLoginRequests")
   void loginReturnsBadRequestForInvalidPayload(
       LoginRequestDto invalidRequest, String expectedMessage) throws Exception {
-    loginRequest(invalidRequest)
+    loginRequest(mockMvc, objectMapper, invalidRequest)
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getType()))
@@ -307,13 +324,13 @@ class AuthApiControllerIntegrationTest {
   @Test
   void refreshRotatesTokensWhenRefreshTokenIsValid() throws Exception {
     UserEntity user = userRepository.save(existingLoginUser);
-    String previousTokenValue = EXISTING_REFRESH_TOKEN;
+    String previousTokenValue = TEST_REFRESH_TOKEN_EXISTING;
     RefreshTokenEntity previousToken =
         refreshTokenRepository.save(
             buildRefreshToken(previousTokenValue, user, Instant.now().plusSeconds(3600), false));
 
     String responseBody =
-        refresh(previousTokenValue)
+        refresh(mockMvc, objectMapper, previousTokenValue)
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.tokenType").value(TOKEN_TYPE_BEARER))
             .andExpect(jsonPath("$.accessToken").isString())
@@ -345,7 +362,7 @@ class AuthApiControllerIntegrationTest {
 
   @Test
   void refreshReturnsUnauthorizedWhenRefreshTokenDoesNotExist() throws Exception {
-    refresh(MISSING_REFRESH_TOKEN)
+    refresh(mockMvc, objectMapper, TEST_REFRESH_TOKEN_MISSING)
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID.getType()))
@@ -358,9 +375,9 @@ class AuthApiControllerIntegrationTest {
   void refreshReturnsUnauthorizedWhenRefreshTokenIsRevoked() throws Exception {
     UserEntity user = userRepository.save(existingLoginUser);
     refreshTokenRepository.save(
-        buildRefreshToken(REVOKED_REFRESH_TOKEN, user, Instant.now().plusSeconds(3600), true));
+        buildRefreshToken(TEST_REFRESH_TOKEN_REVOKED, user, Instant.now().plusSeconds(3600), true));
 
-    refresh(REVOKED_REFRESH_TOKEN)
+    refresh(mockMvc, objectMapper, TEST_REFRESH_TOKEN_REVOKED)
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID.getType()))
@@ -373,9 +390,9 @@ class AuthApiControllerIntegrationTest {
   void refreshReturnsUnauthorizedWhenRefreshTokenIsExpired() throws Exception {
     UserEntity user = userRepository.save(existingLoginUser);
     refreshTokenRepository.save(
-        buildRefreshToken(EXPIRED_REFRESH_TOKEN, user, Instant.now().minusSeconds(5), false));
+        buildRefreshToken(TEST_REFRESH_TOKEN_EXPIRED, user, Instant.now().minusSeconds(5), false));
 
-    refresh(EXPIRED_REFRESH_TOKEN)
+    refresh(mockMvc, objectMapper, TEST_REFRESH_TOKEN_EXPIRED)
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID.getType()))
@@ -386,7 +403,7 @@ class AuthApiControllerIntegrationTest {
 
   @Test
   void refreshReturnsBadRequestWhenPayloadIsInvalid() throws Exception {
-    refresh(" ")
+    refresh(mockMvc, objectMapper, " ")
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getType()));
@@ -404,7 +421,7 @@ class AuthApiControllerIntegrationTest {
   @Test
   void refreshRecordsRequestSuccessAndTokenLifecycleMetrics() throws Exception {
     UserEntity user = userRepository.save(existingLoginUser);
-    String previousTokenValue = METRICS_REFRESH_TOKEN;
+    String previousTokenValue = TEST_REFRESH_TOKEN_METRICS;
     refreshTokenRepository.save(
         buildRefreshToken(previousTokenValue, user, Instant.now().plusSeconds(3600), false));
 
@@ -413,7 +430,7 @@ class AuthApiControllerIntegrationTest {
     double issuedBefore = counterValue(METRIC_AUTH_REFRESH_TOKEN_ISSUED);
     double revokedBefore = counterValue(METRIC_AUTH_REFRESH_TOKEN_REVOKED);
 
-    refresh(previousTokenValue).andExpect(status().isOk());
+    refresh(mockMvc, objectMapper, previousTokenValue).andExpect(status().isOk());
 
     assertEquals(requestsBefore + 1, counterValue(METRIC_AUTH_REFRESH_REQUESTS));
     assertEquals(successBefore + 1, counterValue(METRIC_AUTH_REFRESH_SUCCESS));
@@ -426,15 +443,15 @@ class AuthApiControllerIntegrationTest {
     double requestsBefore = counterValue(METRIC_AUTH_REFRESH_REQUESTS);
     double rateLimitedBefore = counterValue(METRIC_AUTH_REFRESH_RATE_LIMITED);
 
-    refresh(MISSING_REFRESH_TOKEN).andExpect(status().isUnauthorized());
+    refresh(mockMvc, objectMapper, TEST_REFRESH_TOKEN_MISSING).andExpect(status().isUnauthorized());
 
-    refresh(MISSING_REFRESH_TOKEN).andExpect(status().isUnauthorized());
+    refresh(mockMvc, objectMapper, TEST_REFRESH_TOKEN_MISSING).andExpect(status().isUnauthorized());
 
-    refresh(MISSING_REFRESH_TOKEN)
+    refresh(mockMvc, objectMapper, TEST_REFRESH_TOKEN_MISSING)
         .andExpect(status().isTooManyRequests())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.RATE_LIMITED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.RATE_LIMITED.getType()))
-        .andExpect(jsonPath("$.description").value(REFRESH_RATE_LIMIT_MESSAGE));
+        .andExpect(jsonPath("$.description").value(ErrorDefinition.RATE_LIMITED.getDescription()));
 
     assertEquals(requestsBefore + 3, counterValue(METRIC_AUTH_REFRESH_REQUESTS));
     assertEquals(rateLimitedBefore + 1, counterValue(METRIC_AUTH_REFRESH_RATE_LIMITED));
@@ -444,17 +461,18 @@ class AuthApiControllerIntegrationTest {
   void logoutRevokesRefreshTokenWhenTokenIsValid() throws Exception {
     UserEntity user = userRepository.save(existingLoginUser);
     refreshTokenRepository.save(
-        buildRefreshToken(EXISTING_REFRESH_TOKEN, user, Instant.now().plusSeconds(3600), false));
+        buildRefreshToken(
+            TEST_REFRESH_TOKEN_EXISTING, user, Instant.now().plusSeconds(3600), false));
 
-    logout(EXISTING_REFRESH_TOKEN).andExpect(status().isNoContent());
+    logout(mockMvc, objectMapper, TEST_REFRESH_TOKEN_EXISTING).andExpect(status().isNoContent());
 
     assertTrue(
-        refreshTokenRepository.findByToken(EXISTING_REFRESH_TOKEN).orElseThrow().isRevoked());
+        refreshTokenRepository.findByToken(TEST_REFRESH_TOKEN_EXISTING).orElseThrow().isRevoked());
   }
 
   @Test
   void logoutReturnsUnauthorizedWhenRefreshTokenDoesNotExist() throws Exception {
-    logout(MISSING_REFRESH_TOKEN)
+    logout(mockMvc, objectMapper, TEST_REFRESH_TOKEN_MISSING)
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID.getType()))
@@ -465,7 +483,7 @@ class AuthApiControllerIntegrationTest {
 
   @Test
   void logoutReturnsBadRequestWhenPayloadIsInvalid() throws Exception {
-    logout(" ")
+    logout(mockMvc, objectMapper, " ")
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getType()));
@@ -474,44 +492,5 @@ class AuthApiControllerIntegrationTest {
   private double counterValue(String counterName) {
     var counter = meterRegistry.find(counterName).counter();
     return counter == null ? 0 : counter.count();
-  }
-
-  private LoginResponseDto login(LoginRequestDto request) throws Exception {
-    String responseBody =
-        loginRequest(request)
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-    return objectMapper.readValue(responseBody, LoginResponseDto.class);
-  }
-
-  private ResultActions registerRequest(RegisterRequestDto request) throws Exception {
-    return mockMvc.perform(
-        post(AUTH_REGISTER_URL)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)));
-  }
-
-  private ResultActions loginRequest(LoginRequestDto request) throws Exception {
-    return mockMvc.perform(
-        post(AUTH_LOGIN_URL)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)));
-  }
-
-  private ResultActions refresh(String refreshToken) throws Exception {
-    return mockMvc.perform(
-        post(AUTH_REFRESH_URL)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(new RefreshTokenRequestDto(refreshToken))));
-  }
-
-  private ResultActions logout(String refreshToken) throws Exception {
-    return mockMvc.perform(
-        post(AUTH_LOGOUT_URL)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(new RefreshTokenRequestDto(refreshToken))));
   }
 }

@@ -14,12 +14,7 @@ public class AuthException extends RuntimeException {
 
   public AuthException(
       ErrorDefinition errorDefinition, Map<String, String> metadata, HttpStatus httpStatus) {
-
-    super(resolveError(errorDefinition).getDescription());
-
-    this.errorDefinition = resolveError(errorDefinition);
-    this.metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
-    this.httpStatus = httpStatus == null ? HttpStatus.CONFLICT : httpStatus;
+    this(resolve(errorDefinition), metadata, httpStatus);
   }
 
   public static AuthException of(
@@ -27,7 +22,18 @@ public class AuthException extends RuntimeException {
     return new AuthException(errorDefinition, metadata, httpStatus);
   }
 
-  private static ErrorDefinition resolveError(ErrorDefinition errorDefinition) {
-    return errorDefinition == null ? ErrorDefinition.CONFLICT : errorDefinition;
+  private AuthException(
+      ResolvedError resolvedError, Map<String, String> metadata, HttpStatus httpStatus) {
+    super(resolvedError.errorDefinition().getDescription());
+
+    this.errorDefinition = resolvedError.errorDefinition();
+    this.metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
+    this.httpStatus = httpStatus == null ? HttpStatus.CONFLICT : httpStatus;
   }
+
+  private static ResolvedError resolve(ErrorDefinition errorDefinition) {
+    return new ResolvedError(errorDefinition == null ? ErrorDefinition.CONFLICT : errorDefinition);
+  }
+
+  private record ResolvedError(ErrorDefinition errorDefinition) {}
 }

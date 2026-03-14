@@ -1,6 +1,5 @@
-package com.tychewealth.dto.user.request;
+package com.tychewealth.dto.auth;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,8 +9,10 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class RefreshTokenRequestDto {
+public class RefreshTokenResponseDto {
 
-  @NotBlank(message = "Refresh token cannot be blank")
+  private String tokenType;
+  private String accessToken;
+  private long expiresIn;
   private String refreshToken;
 }

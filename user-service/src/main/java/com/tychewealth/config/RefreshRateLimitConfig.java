@@ -3,9 +3,8 @@ package com.tychewealth.config;
 import static com.tychewealth.constants.ApiConstants.AUTH_LOGIN_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_REFRESH_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_REGISTER_URL;
-import static com.tychewealth.constants.AuthConstants.LOGIN_RATE_LIMIT_MESSAGE;
-import static com.tychewealth.constants.AuthConstants.REGISTER_RATE_LIMIT_MESSAGE;
 
+import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.web.AuthRateLimitInterceptor;
 import com.tychewealth.web.RefreshRateLimitInterceptor;
@@ -32,14 +31,14 @@ public class RefreshRateLimitConfig implements WebMvcConfigurer {
         new AuthRateLimitInterceptor(
             login.getMaxRequests(),
             login.getWindowSeconds(),
-            LOGIN_RATE_LIMIT_MESSAGE,
+            ErrorDefinition.RATE_LIMITED.getDescription(),
             ignored -> authMetrics.recordLoginRequest(),
             ignored -> authMetrics.recordLoginRateLimited());
     this.registerRateLimitInterceptor =
         new AuthRateLimitInterceptor(
             register.getMaxRequests(),
             register.getWindowSeconds(),
-            REGISTER_RATE_LIMIT_MESSAGE,
+            ErrorDefinition.RATE_LIMITED.getDescription(),
             ignored -> authMetrics.recordRegisterRequest(),
             ignored -> authMetrics.recordRegisterRateLimited());
     this.refreshRateLimitInterceptor =
