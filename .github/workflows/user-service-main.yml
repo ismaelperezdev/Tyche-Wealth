@@ -54,6 +54,7 @@ jobs:
     timeout-minutes: 8
     env:
       NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+      DEPENDENCY_CHECK_DATA_DIR: ~/.dependency-check-data
 
     defaults:
       run:
@@ -73,7 +74,7 @@ jobs:
       - name: Cache Dependency-Check data
         uses: actions/cache@v4
         with:
-          path: ~/.m2/repository/org/owasp
+          path: ~/.dependency-check-data
           key: dependency-check-${{ runner.os }}-${{ hashFiles('user-service/pom.xml') }}
           restore-keys: |
             dependency-check-${{ runner.os }}-
@@ -82,7 +83,7 @@ jobs:
         run: chmod +x mvnw
 
       - name: Run OWASP Dependency Check
-        run: ./mvnw org.owasp:dependency-check-maven:check -DnvdApiKeyEnvironmentVariable=NVD_API_KEY
+        run: ./mvnw org.owasp:dependency-check-maven:check
 
       - name: Upload Dependency Check report
         if: always()
