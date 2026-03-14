@@ -197,6 +197,9 @@
                 <artifactId>dependency-check-maven</artifactId>
                 <version>${dependency-check.version}</version>
                 <configuration>
+                    <dataDirectory>${user.home}/.dependency-check-data</dataDirectory>
+                    <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+                    <ossindexAnalyzerEnabled>false</ossindexAnalyzerEnabled>
                     <formats>
                         <format>HTML</format>
                         <format>JSON</format>
