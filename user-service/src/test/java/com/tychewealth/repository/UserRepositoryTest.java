@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.tychewealth.entity.UserEntity;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,5 +39,16 @@ class UserRepositoryTest {
 
     assertTrue(result.isPresent());
     assertEquals("carlos@tyche.com", result.get().getEmail());
+  }
+
+  @Test
+  void findByIdAndDeletedAtIsNullExcludesSoftDeletedUser() {
+    UserEntity user = buildUser("lucia@tyche.com", "lucia");
+    user.setDeletedAt(LocalDateTime.now());
+    UserEntity saved = userRepository.save(user);
+
+    Optional<UserEntity> result = userRepository.findByIdAndDeletedAtIsNull(saved.getId());
+
+    assertTrue(result.isEmpty());
   }
 }

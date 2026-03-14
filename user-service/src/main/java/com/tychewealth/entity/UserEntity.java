@@ -50,6 +50,9 @@ public class UserEntity {
   @Column(name = "created_at", nullable = false)
   private LocalDateTime createdAt;
 
+  @Column(name = "deleted_at")
+  private LocalDateTime deletedAt;
+
   @OneToMany(mappedBy = "user")
   private List<PortfolioEntity> portfolios = new ArrayList<>();
 

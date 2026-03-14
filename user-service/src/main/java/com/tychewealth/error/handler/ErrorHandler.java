@@ -1,6 +1,7 @@
 package com.tychewealth.error.handler;
 
 import com.tychewealth.error.exception.AuthException;
+import com.tychewealth.error.exception.UserException;
 import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -18,6 +19,14 @@ public class ErrorHandler {
 
   @ExceptionHandler(AuthException.class)
   public ResponseEntity<ErrorResponse> handleAuthException(AuthException ex) {
+    ErrorDefinition definition =
+        ex.getErrorDefinition() != null ? ex.getErrorDefinition() : ErrorDefinition.CONFLICT;
+    HttpStatus status = ex.getHttpStatus() == null ? HttpStatus.CONFLICT : ex.getHttpStatus();
+    return build(definition, status, definition.getDescription());
+  }
+
+  @ExceptionHandler(UserException.class)
+  public ResponseEntity<ErrorResponse> handleUserException(UserException ex) {
     ErrorDefinition definition =
         ex.getErrorDefinition() != null ? ex.getErrorDefinition() : ErrorDefinition.CONFLICT;
     HttpStatus status = ex.getHttpStatus() == null ? HttpStatus.CONFLICT : ex.getHttpStatus();

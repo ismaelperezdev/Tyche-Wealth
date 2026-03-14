@@ -78,7 +78,7 @@ public class AuthValidationHelper {
   public UserEntity validateLoginEmail(String email) {
     String normalizedEmail = Utils.normalizeIdentity(email);
     return userRepository
-        .findByEmail(normalizedEmail)
+        .findByEmailAndDeletedAtIsNull(normalizedEmail)
         .orElseThrow(
             () -> {
               log.warn(
