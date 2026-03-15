@@ -1,4 +1,4 @@
-package com.tychewealth.service.helper;
+package com.tychewealth.service.helper.token;
 
 import static com.tychewealth.constants.AuthConstants.REFRESH_TOKEN_BYTE_LENGTH;
 import static com.tychewealth.constants.LogConstants.AUTH;
