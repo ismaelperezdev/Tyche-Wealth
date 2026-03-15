@@ -1,77 +1,54 @@
 # User Service Overview
 
-The `user-service` is an implemented Spring Boot backend service providing authentication functionality for registration, login, and token management.
+## Overview
 
-## Technical Overview
+`user-service` is an implemented Spring Boot service in this repository. The configured application name is `user-service` and the default local port is `8080`. At the current repository state it is one of `1` implemented backend services detected in code.
 
-### Service Details
+## At a Glance
 
-The `user-service` Spring Boot backend provides authentication functionality for user registration, login, and token management.
+| Aspect | Current State |
+| --- | --- |
+| Service name | `user-service` |
+| Spring application name | `user-service` |
+| Default local port | `8080` |
+| Detected HTTP endpoints | `6` |
+| Detected persisted entities | `4` |
+| Implementation slices | `config`, `controller`, `dto`, `entity`, `helper`, `mapper`, `repository`, `service`, `web` |
 
-**Service Information:**
-- **Service Name:** `user-service`
-- **Default Port:** `8080`
-- **Components:**
-    - HTTP Endpoints: `6`
-    - Persisted Entities: `4`
-    - Implementation Slices: `9`
+## Responsibilities
 
-### Responsibilities
+- Exposes the implemented authentication API for register, login, and refresh operations.
+- Coordinates validation, token generation, refresh-token lifecycle handling, and persistence updates.
+- Stores user-facing auth state and related portfolio or asset ownership data through JPA entities and repositories.
 
-This service implements the authentication API contract, orchestrating user registration, login, and token refresh operations. Key functions include:
+## Implemented Scope
 
-- Managing user credentials and security-related data using JPA entities
-- Orchestrating validation, token generation, security logic, and persistence updates
-- Handling authentication state management
+- Detected HTTP endpoints: `6`
+- Detected persisted entities: `4`
+- Detected implementation slices: `config`, `controller`, `dto`, `entity`, `helper`, `mapper`, `repository`, `service`, `web`
+- The implemented surface should be read from controllers, services, helpers, repositories, entities, and configuration classes rather than from older Markdown pages.
 
-### System Architecture
+## Main Components
 
-The service comprises these core layers:
+- API contracts and controller implementations define the externally visible HTTP surface.
+- Service and helper classes contain orchestration, validation, token, and domain logic.
+- Repositories and entities define persisted state and object relationships.
+- Configuration and web classes provide security, rate limiting, and request interception support.
 
-- **API:** Exposes functionality through controllers
-- **Services & Helpers:** Implements authentication workflows, validation, token handling, and domain logic
-- **Data Access Layer:** Manages persistence via JPA entities and repositories
-- **Configuration:** Implements security settings, interceptors, and dependency injection
-- **Mappers:** Converts domain objects between layers
-- **Runtime Components:** Manages application lifecycle and context
+## Security and Operational Notes
 
-## Security & Operations
-
-### Authentication Security
-
-**Password Handling:** Credential storage uses external BCrypt hashing.
-
-#### Access Tokens
-- Signed with HS256 algorithm
-- Signing key defined as `app.auth.jwt.secret`
-- **Token TTL:** `${JWT_ACCESS_TOKEN_TTL_SECONDS:900}` seconds
-
-#### Refresh Tokens
-- Generated using SecureRandom
-- Stored in a dedicated `refresh_tokens` table
-- **Token TTL:** `${JWT_REFRESH_TOKEN_TTL_SECONDS:1209600}` seconds
-
-### Operational Protections
-
-**Rate Limiting:**
-- Registration: `5` requests per `300 sec` per IP
-- Login: `10` requests per `60 sec` per IP
-- Refresh: `10` requests per `60 sec` per IP
-
-**Observability:**
-- Authentication request cycle tracking
-- API security interactions monitoring
-- Rate limiting event logging
-
-### Configuration Security
-Sensitive settings use environment variable substitution:
-- `app.auth.jwt.secret`
-- `JWT_ACCESS_TOKEN_TTL_SECONDS`
-- `JWT_REFRESH_TOKEN_TTL_SECONDS`
+- Password handling is centralized in `SecurityConfig` through a `BCryptPasswordEncoder`, so raw credentials are not persisted directly from controller input.
+- Access tokens are signed as JWTs with `HS256`; the signing secret is injected from `app.auth.jwt.secret`, and the configured access-token TTL is `${JWT_ACCESS_TOKEN_TTL_SECONDS:900}` seconds.
+- Refresh tokens are generated with `SecureRandom`, encoded for transport, persisted in the `refresh_tokens` table, and revoked or rotated on use; the configured refresh-token TTL is `${JWT_REFRESH_TOKEN_TTL_SECONDS:1209600}` seconds.
+- Register, login, and refresh routes are protected by dedicated MVC interceptors. Throttling is keyed by `HttpServletRequest.getRemoteAddr()` and enforced before the request reaches controller logic.
+- Registration is limited to `${AUTH_REGISTER_RATE_LIMIT_MAX_REQUESTS:5}` requests per `${AUTH_REGISTER_RATE_LIMIT_WINDOW_SECONDS:300}` seconds per client address.
+- Login is limited to `${AUTH_LOGIN_RATE_LIMIT_MAX_REQUESTS:10}` requests per `${AUTH_LOGIN_RATE_LIMIT_WINDOW_SECONDS:60}` seconds per client address.
+- Refresh is limited to `${AUTH_REFRESH_RATE_LIMIT_MAX_REQUESTS:10}` requests per `${AUTH_REFRESH_RATE_LIMIT_WINDOW_SECONDS:60}` seconds per client address.
+- Metrics are emitted for auth requests, successes, failures, invalid credentials, token issuance, token revocation, and rate-limited outcomes, which makes abuse patterns and auth regressions observable.
+- Secrets are expected from environment variables or local-only property imports, which keeps JWT secrets and datasource credentials out of committed defaults.
 
 ## Related Documentation
 
-For further details, reference these components:
 - `docs/knowledge/services/user-service/api.md`
 - `docs/knowledge/services/user-service/data-model.md`
 - `docs/knowledge/services/user-service/runtime.md`

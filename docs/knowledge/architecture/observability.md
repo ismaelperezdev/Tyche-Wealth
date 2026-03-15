@@ -21,6 +21,7 @@ This page documents the observability flow that is currently implemented in the 
 - Grafana uses Prometheus as its datasource and renders dashboard panels for operational inspection.
 
 ## Interaction Diagram
+
 ```mermaid
 %%{init: {
   "theme": "base",

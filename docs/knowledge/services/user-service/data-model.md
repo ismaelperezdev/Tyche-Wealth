@@ -1,97 +1,167 @@
 # User Service Data Model
 
-This page consolidates the **persistence model** for `user-service`, replacing the older split between detailed table pages, **schema notes**, and entity summaries to provide a centralized reference.
-
 ## Overview
-This section introduces the purpose of this documentation. It consolidates the persistence details for the `user-service`, including **JPA entities** and schema relationships, by presenting them in a structured manner. This simplifies navigation and reference for developers.
+
+This page consolidates the persistence model for `user-service`. It replaces the older split between table pages, schema notes, and entity summaries.
 
 ## Entity Summary
-This table offers a concise summary of the primary entities involved in the user-service data model, highlighting their roles and interconnections for quick understanding.
 
-| Entity             | Table Name    | Role Description                 | Key Relations                |
-|--------------------|---------------|----------------------------------|------------------------------|
-| **AssetEntity**    | `assets`      | Manages assets with their details and ownership; referenced by entities requiring asset handling. | Has a `currency` field, and is linked by a `portfolio_id` relation. |
-| **PortfolioEntity**| `portfolios`  | Represents investment portfolios with user-assigned settings and holdings; serves as a container for assets. | Has a `name` field for identification, and includes references to owned `assets` and linked `users`. |
-
-*Note: For precise nullability and timestamp details, refer to the actual JPA entities and Liquibase changelog files.*
+| Entity | Table | Role | Key Relations |
+| --- | --- | --- | --- |
+| `AssetEntity` | `assets` | Represents an asset position that belongs to a portfolio. | PortfolioEntity |
+| `PortfolioEntity` | `portfolios` | Groups assets and investment preferences owned by a user. | AssetEntity, UserEntity |
+| `RefreshTokenEntity` | `refresh_tokens` | Stores refresh tokens, expiry, and revocation state linked to a user. | UserEntity |
+| `UserEntity` | `users` | Stores the primary user identity and credential state. | PortfolioEntity |
 
 ## Implemented Entities
-The following sections detail each entity within the user-service persistence layer.
 
-### AssetEntity
-This entity manages asset details, including attributes for user-defined data and standard fields. It supports core functionality for asset tracking and enforcement within the service.
+### `AssetEntity` (`assets`)
 
-**#### Fields**
-- `String symbol`: Defines the asset code.
-- `AssetTypeEnum asset_type`: Enumerates the asset type for categorization.
-- `BigDecimal quantity`: Holds the amount of the asset owned.
-- `BigDecimal average_price`: Tracks the average acquisition price for cost calculations.
+- Role: Represents an asset position that belongs to a portfolio.
 
-<u>Note:</u> For full details on nullability and foreign keys, consult the JPA Entity class and related Liquibase changelogs.
+#### Fields
 
-### PortfolioEntity
-This entity models investment portfolios, capturing user-chosen parameters and asset allocations. It facilitates portfolio management features throughout the service.
+| Column | Type | Required | Meaning | Notes |
+| --- | --- | --- | --- | --- |
+| `symbol` | `String` | Yes | Ticker or symbol used to identify the asset. | core identifier |
+| `asset_type` | `AssetTypeEnum` | Yes | Classification of the asset instrument. | enum value |
+| `quantity` | `BigDecimal` | Yes | Position size currently held in the portfolio. | No special note. |
+| `average_price` | `BigDecimal` | Yes | Average acquisition price for the asset position. | No special note. |
+| `currency` | `CurrencyCodeEnum` | Yes | Currency associated with the asset valuation. | enum value, currency context |
+| `created_at` | `LocalDateTime` | Yes | Timestamp recording when the asset record was created. | timestamp |
+| `updated_at` | `LocalDateTime` | No | Timestamp recording the most recent asset update. | timestamp |
 
-**#### Fields**
-- `String name`: Provides a unique identifier for the portfolio.
-- `String description`: Optional summary explaining the portfolio's purpose.
-- `CurrencyCodeEnum base_currency`: Specifies the primary currency for value calculations.
-- `RiskProfileEnum risk_profile`: Defines the portfolio's risk tolerance level.
-- `InvestmentHorizonEnum investment_horizon`: Indicates the time frame for investments.
-- `List<AssetEntity> assets`: Collection object containing all assets within the portfolio.
+#### Relations
 
-<u>Additional:</u> Foreign-key constraints and revocation flags must be referenced in schema change reviews.
+- Many records point to `PortfolioEntity` through `portfolio_id`.
 
-### refresh_tokens
-This standalone token table ensures secure user sessions through token-based authentication. It operates independently but aligns with security requirements.
+### `PortfolioEntity` (`portfolios`)
 
-**#### Fields**
-- `String token`: Unique identifier for the session.
-- `Instant expires_at`: Timestamp marking the end of the token's validity.
-- `boolean revoked`: Flag indicating if the token has been invalidated.
-- `Instant created_at`: Record of when the token was issued.
+- Role: Groups assets and investment preferences owned by a user.
 
-<u>Important:</u> Token management behavior should be understood through application runtime documentation and database schema files.
+#### Fields
 
-### users
-This entity forms the foundation of user management, tracking account details and creation metadata. It ties into multiple functionalities via relationships.
+| Column | Type | Required | Meaning | Notes |
+| --- | --- | --- | --- | --- |
+| `name` | `String` | Yes | Short portfolio name shown to the user. | core identifier |
+| `description` | `String` | No | Optional free-text description of the portfolio. | No special note. |
+| `base_currency` | `CurrencyCodeEnum` | Yes | Reference currency used to express portfolio values. | enum value, currency context |
+| `risk_profile` | `RiskProfileEnum` | No | Risk appetite classification linked to the portfolio. | enum value |
+| `investment_horizon` | `InvestmentHorizonEnum` | No | Expected holding horizon for the portfolio strategy. | enum value |
+| `strategy_type` | `StrategyTypeEnum` | No | Strategy style associated with the portfolio. | enum value |
+| `max_risk` | `BigDecimal` | No | Optional cap on accepted portfolio risk. | No special note. |
+| `created_at` | `LocalDateTime` | Yes | Timestamp recording when the portfolio was created. | timestamp |
+| `updated_at` | `LocalDateTime` | No | Timestamp recording the most recent portfolio update. | timestamp |
 
-**#### Fields**
-- `String email`: The registered email address, serving as a primary identifier.
-- `String username`: A user-chosen handle for logging or display.
-- `String password`: The hashed or encrypted password for security.
-- `LocalDateTime created_at`: Date and time the user account was established.
-- `LocalDateTime deleted_at`: If present, indicates hard deletion via the `deleted_at` convention.
+#### Relations
 
-<vmark>Note: Null checks and soft-deletion logic are enforced through application runtime and database schema definitions.</vmark>
+- Many records point to `UserEntity` through `user_id`.
+- One record owns a collection associated with `AssetEntity`.
+
+### `RefreshTokenEntity` (`refresh_tokens`)
+
+- Role: Stores refresh tokens, expiry, and revocation state linked to a user.
+
+#### Fields
+
+| Column | Type | Required | Meaning | Notes |
+| --- | --- | --- | --- | --- |
+| `token` | `String` | Yes | Opaque refresh-token value persisted for token rotation. | core identifier |
+| `expires_at` | `Instant` | Yes | Instant after which the refresh token is no longer valid. | timestamp |
+| `revoked` | `boolean` | Yes | Flag indicating whether the refresh token can still be used. | lifecycle flag |
+| `created_at` | `Instant` | Yes | Timestamp recording when the refresh token was issued. | timestamp |
+
+#### Relations
+
+- Many records point to `UserEntity` through `user_id`.
+
+### `UserEntity` (`users`)
+
+- Role: Stores the primary user identity and credential state.
+
+#### Fields
+
+| Column | Type | Required | Meaning | Notes |
+| --- | --- | --- | --- | --- |
+| `email` | `String` | Yes | Primary email used to identify the user account. | core identifier |
+| `username` | `String` | Yes | Public-facing or login-friendly user name. | core identifier |
+| `password` | `String` | Yes | Stored password hash used during authentication. | sensitive credential data |
+| `created_at` | `LocalDateTime` | Yes | Timestamp recording when the user record was created. | timestamp |
+| `deleted_at` | `LocalDateTime` | No | Domain field used by the implemented persistence model. | timestamp |
+
+#### Relations
+
+- One record owns a collection associated with `PortfolioEntity`.
 
 ## Relationships
-The following diagram illustrates the inter-entity relationships within the user-service data model.
-```mermaid
-flowchart LR
-  classDef entity fill:#1f3d37,stroke:#73e5c6,stroke-width:2px,color:#ffcc6`
-  fill:#17312d,stroke:#ffb347,color:#ffcc6;
-  assets["<b>assets</b><br/>String symbol<br/>AssetTypeEnum asset_type<br/>BigDecimal quantity<br/>BigDecimal average_price<br/>CurrencyCodeEnum currency<br/>..."]
-  portfolios["<b>portfolios</b><br/>String name<br/>String description<br/>CurrencyCodeEnum base_currency<br/>RiskProfileEnum risk_profile<br/>InvestmentHorizonEnum investment_horizon<br/>..."]
-  refresh_tokens["<b>refresh_tokens</b><br/>String token<br/>Instant expires_at<br/>boolean revoked<br/>Instant created_at"]
 
+```mermaid
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "background": "#1c2c29",
+    "primaryColor": "#24443d",
+    "primaryTextColor": "#ffcc66",
+    "primaryBorderColor": "#73e5c6",
+    "lineColor": "#ffb347",
+    "secondaryColor": "#203934",
+    "tertiaryColor": "#294c44",
+    "mainBkg": "#24443d",
+    "secondBkg": "#203934",
+    "tertiaryBkg": "#294c44",
+    "clusterBkg": "#17312d",
+    "clusterBorder": "#57c8a8",
+    "nodeBkg": "#24443d",
+    "nodeBorder": "#73e5c6",
+    "defaultLinkColor": "#ffb347",
+    "titleColor": "#ffcc66",
+    "textColor": "#ffcc66",
+    "edgeLabelBackground": "#17312d",
+    "actorBkg": "#24443d",
+    "actorBorder": "#73e5c6",
+    "actorTextColor": "#ffcc66",
+    "actorLineColor": "#ffb347",
+    "signalColor": "#ffb347",
+    "signalTextColor": "#ffcc66",
+    "labelBoxBkgColor": "#17312d",
+    "labelBoxBorderColor": "#57c8a8",
+    "labelTextColor": "#ffcc66",
+    "loopTextColor": "#ffcc66",
+    "noteBkgColor": "#294c44",
+    "noteBorderColor": "#82e7cb",
+    "noteTextColor": "#ffcc66",
+    "activationBkgColor": "#2c5a50",
+    "activationBorderColor": "#73e5c6",
+    "sectionBkgColor": "#1b3531",
+    "altSectionBkgColor": "#22413b",
+    "gridColor": "rgba(255, 179, 71, 0.22)"
+  },
+  "themeCSS": ".messageText, .messageText tspan, .label text, .label tspan, .edgeLabel text, .edgeLabel tspan, .nodeLabel, .nodeLabel p, .nodeLabel span, .label foreignObject, .label foreignObject div, .cluster-label text, .cluster-label tspan, .actor text, .actor tspan, .loopText, .noteText, .er text, .er tspan, .er.entityLabel, .er.attributeText, .er.relationshipLabel, .er foreignObject div, .er foreignObject span, .er foreignObject td, .er foreignObject th { fill: #ffcc66 !important; color: #ffcc66 !important; } .messageLine0, .messageLine1, .flowchart-link, .edgePath path, .actor-line, .er.relationshipLine { stroke: #ffb347 !important; fill: none !important; } .arrowheadPath, marker path { stroke: #ffb347 !important; fill: #ffb347 !important; } .er rect, .er .entityBox, .er .attributeBoxEven, .er .attributeBoxOdd { fill: #24443d !important; stroke: #73e5c6 !important; } .er .relationshipLabelBox { fill: #17312d !important; stroke: #57c8a8 !important; } .er foreignObject, .er foreignObject div, .er foreignObject table { background: #24443d !important; } .er foreignObject tr:nth-child(odd), .er foreignObject tr:nth-child(odd) td { background: #24443d !important; } .er foreignObject tr:nth-child(even), .er foreignObject tr:nth-child(even) td { background: #2b4f47 !important; } .er foreignObject td, .er foreignObject th { border-color: #73e5c6 !important; }"
+}}%%
+flowchart LR
+  classDef entity fill:#1f3d37,stroke:#73e5c6,stroke-width:2px,color:#ffcc66;
+  classDef relation fill:#17312d,stroke:#ffb347,color:#ffcc66;
+  assets["<b>assets</b><br/>String symbol<br/>AssetTypeEnum asset_type<br/>BigDecimal quantity<br/>BigDecimal average_price<br/>CurrencyCodeEnum currency<br/>..."]
+  class assets entity;
+  portfolios["<b>portfolios</b><br/>String name<br/>String description<br/>CurrencyCodeEnum base_currency<br/>RiskProfileEnum risk_profile<br/>InvestmentHorizonEnum investment_horizon<br/>..."]
+  class portfolios entity;
+  refresh_tokens["<b>refresh_tokens</b><br/>String token<br/>Instant expires_at<br/>boolean revoked<br/>Instant created_at"]
+  class refresh_tokens entity;
   users["<b>users</b><br/>String email<br/>String username<br/>String password<br/>LocalDateTime created_at<br/>LocalDateTime deleted_at"]
+  class users entity;
   portfolios -->|portfolio_id| assets
   users -->|user_id| portfolios
   users -->|user_id| refresh_tokens
 ```
 
 ## Persistence and Schema Notes
-Maintain the integrity of this documentation by ensuring updates are based on JPA entities, Liquibase changelogs, and schema files. Always cross-reference with these sources before modifying this summary.
 
-- All persistence logic derives from code artifacts, not this text.
-- Review **nullability constraints**, **token revocation mechanisms**, **timestamp precision**, and **foreign-key ownership patterns** in code.
+- Treat JPA entities and schema-management files as the source of truth for persistence details.
+- Review nullability, token revocation flags, timestamps, and foreign-key ownership in code before changing this page.
+- Liquibase changelogs are present and should be checked together with entities when schema behavior changes.
 
 ## Related Documentation
-This section provides links to supplementary materials for a complete understanding:
 
 - `docs/knowledge/services/user-service/overview.md`
 - `docs/knowledge/services/user-service/runtime.md`
 - `docs/knowledge/database/overview.md`
-
-Ensure you refer to these pages for context-dependent information.

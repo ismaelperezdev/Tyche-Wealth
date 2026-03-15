@@ -148,6 +148,10 @@ Configuration files:
 
 {self._database_diagram()}
 
+## Soft-delete Strategy
+
+{self._soft_delete_strategy_notes()}
+
 {self._database_schema_coverage()}
 
 ## Security and Operational Notes
@@ -568,6 +572,16 @@ The current dashboard is organized by diagnostic intent rather than by raw metri
             notes.append("- Portfolio and asset tables are already present in persistence, even if the current HTTP surface is still centered on authentication.")
         return "\n".join(notes)
 
+    def _soft_delete_strategy_notes(self) -> str:
+        return "\n".join(
+            [
+                "- `DELETE /user/me` performs a soft delete: `UserServiceImpl.delete()` delegates to `userHelper.softDelete()`, which revokes active refresh tokens, sets `deletedAt`, and saves the user record instead of removing the row.",
+                "- Active-user lookups are filtered through repository methods such as `findByIdAndDeletedAtIsNull()`, `findByEmailAndDeletedAtIsNull()`, and `findByUsernameAndDeletedAtIsNull()` so soft-deleted users are excluded from normal service flows.",
+                "- Related data is not cascaded away by the current mappings. `PortfolioEntity.user` and `RefreshTokenEntity.user` are `@ManyToOne(optional = false)` with foreign-key constraints from `portfolios.user_id` and `refresh_tokens.user_id` to `users.id`. Soft delete preserves those rows; refresh tokens are explicitly revoked, while portfolios remain linked to the retained user row.",
+                "- No restore pathway is implemented in the current code. There is no service or repository method that clears `deletedAt`, so account recovery would require a new code path or direct data repair outside the implemented API.",
+            ]
+        )
+
     def _test_summary_table(self) -> str:
         test_root = self.service.root / "src" / "test" / "java"
         if not test_root.exists():
@@ -753,11 +767,21 @@ The current dashboard is organized by diagnostic intent rather than by raw metri
     def _endpoint_operational_note(self, endpoint: EndpointInfo) -> str:
         path = endpoint.path.lower()
         if "register" in path:
-            return "Creates persistent user state and is subject to dedicated registration rate limiting."
+            return "Persists a new active user record and is subject to dedicated registration rate limiting and uniqueness checks."
         if "login" in path:
-            return "Issues access and refresh credentials and records authentication metrics."
+            return "Validates credentials, revokes any previously active refresh tokens for the user, issues a new access token and refresh token, and records auth metrics."
         if "refresh" in path:
-            return "Validates token state, rotates refresh-token persistence, and returns refreshed credentials."
+            return "Revokes the submitted active refresh token, persists a replacement refresh token, returns a new access token, and fails with `401` when the provided refresh token is invalid, expired, or already revoked."
+        if "logout" in path:
+            return "Requires a valid refresh-token request body, revokes the submitted active refresh token, and returns `204 No Content`; it does not implement server-side access-JWT invalidation or cache cleanup."
+        if endpoint.http_method.upper() == "GET" and path.endswith("/user/me"):
+            return "Requires a valid `Authorization: Bearer <token>` header for an active non-deleted user and returns only the mapped user DTO fields."
+        if endpoint.http_method.upper() == "PATCH" and path.endswith("/user/me"):
+            return "Requires a valid bearer token for an active non-deleted user, enforces username availability checks, persists the update, and returns the updated user DTO."
+        if endpoint.http_method.upper() == "PATCH" and path.endswith("/user/me/password"):
+            return "Requires a valid bearer token for an active non-deleted user, validates the current password, updates the stored password hash, revokes active refresh tokens, and returns `204 No Content`."
+        if endpoint.http_method.upper() == "DELETE" and path.endswith("/user/me"):
+            return "Requires a valid bearer token for an active non-deleted user, revokes active refresh tokens, performs a soft delete by setting `deletedAt`, and returns `204 No Content`."
         return "Backed by code-visible controller and service flow."
 
     def _api_flow_sections(self) -> str:
@@ -1090,9 +1114,19 @@ The current dashboard is organized by diagnostic intent rather than by raw metri
         if "register" in path:
             return "Creates a new user account and returns the created user representation."
         if "login" in path:
-            return "Authenticates a user and returns an access token together with refresh-token state."
+            return "Authenticates a user and returns `tokenType`, `accessToken`, `refreshToken`, `expiresIn`, and the mapped user representation."
         if "refresh" in path:
-            return "Validates a refresh token, rotates token state, and returns refreshed credentials."
+            return "Validates the submitted refresh token, rotates refresh-token state, and returns `tokenType`, `accessToken`, `expiresIn`, and a replacement refresh token."
+        if "logout" in path:
+            return "Accepts a refresh token request body and logs the user out by revoking the submitted active refresh token."
+        if endpoint.http_method.upper() == "GET" and path.endswith("/user/me"):
+            return "Returns the authenticated active user's `id`, `email`, `username`, and `createdAt`; sensitive fields such as `password`, `deletedAt`, and related collections are omitted from the response DTO."
+        if endpoint.http_method.upper() == "PATCH" and path.endswith("/user/me"):
+            return "Updates the authenticated active user's profile fields and returns the updated `id`, `email`, `username`, and `createdAt` values from the response DTO."
+        if endpoint.http_method.upper() == "PATCH" and path.endswith("/user/me/password"):
+            return "Changes the authenticated active user's password after validating the current password and returns no response body."
+        if endpoint.http_method.upper() == "DELETE" and path.endswith("/user/me"):
+            return "Soft-deletes the authenticated active user by setting `deletedAt`, preserves the stored record, revokes active refresh tokens, and returns no response body."
         return "Exposes a code-backed service operation through the HTTP API."
 
     def _endpoint_success_status(self, endpoint: EndpointInfo) -> str:

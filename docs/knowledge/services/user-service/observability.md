@@ -16,6 +16,7 @@ This page explains the operational checks currently provided by the `user-servic
 ## Dashboard Representation
 
 The current dashboard is organized by diagnostic intent rather than by raw metric family.
+
 ```mermaid
 %%{init: {
   "theme": "base",
