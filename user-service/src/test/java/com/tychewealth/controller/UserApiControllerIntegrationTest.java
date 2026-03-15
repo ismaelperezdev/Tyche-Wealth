@@ -3,6 +3,15 @@ package com.tychewealth.controller;
 import static com.tychewealth.constants.ApiConstants.USER_ME_PASSWORD_URL;
 import static com.tychewealth.constants.ApiConstants.USER_ME_URL;
 import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
+import static com.tychewealth.constants.MetricConstants.METRIC_USER_CURRENT_PASSWORD_INVALID;
+import static com.tychewealth.constants.MetricConstants.METRIC_USER_DELETE_REQUESTS;
+import static com.tychewealth.constants.MetricConstants.METRIC_USER_DELETE_SUCCESS;
+import static com.tychewealth.constants.MetricConstants.METRIC_USER_NEW_PASSWORD_REUSED;
+import static com.tychewealth.constants.MetricConstants.METRIC_USER_NOT_FOUND;
+import static com.tychewealth.constants.MetricConstants.METRIC_USER_RETRIEVE_REQUESTS;
+import static com.tychewealth.constants.MetricConstants.METRIC_USER_RETRIEVE_SUCCESS;
+import static com.tychewealth.constants.MetricConstants.METRIC_USER_UNAUTHORIZED;
+import static com.tychewealth.constants.MetricConstants.METRIC_USER_USERNAME_CONFLICT;
 import static com.tychewealth.constants.TestConstants.TEST_EMAIL_LAURA;
 import static com.tychewealth.constants.TestConstants.TEST_OCCUPIED_USERNAME;
 import static com.tychewealth.constants.TestConstants.TEST_OTHER_EMAIL;
@@ -13,8 +22,10 @@ import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_UPDATE_USERNAME_NORMALIZED;
 import static com.tychewealth.constants.TestConstants.TEST_UPDATE_USERNAME_REQUEST;
 import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
+import static com.tychewealth.constants.ValidationConstants.NEW_PASSWORD_AND_CONFIRM_MUST_MATCH;
 import static com.tychewealth.testdata.EntityBuilder.buildRefreshToken;
 import static com.tychewealth.testdata.EntityBuilder.buildUser;
+import static com.tychewealth.testhelper.MetricsTestHelper.counterValue;
 import static com.tychewealth.testhelper.UserTestHelper.deleteRequest;
 import static com.tychewealth.testhelper.UserTestHelper.deleteRequestUnauthorized;
 import static com.tychewealth.testhelper.UserTestHelper.passwordUpdateRequestBody;
@@ -41,6 +52,7 @@ import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.helper.AuthTokenHelper;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,6 +73,7 @@ class UserApiControllerIntegrationTest {
 
   @Autowired private MockMvc mockMvc;
   @Autowired private ObjectMapper objectMapper;
+  @Autowired private MeterRegistry meterRegistry;
   @Autowired private RefreshTokenRepository refreshTokenRepository;
   @Autowired private UserRepository userRepository;
   @Autowired private AuthTokenHelper authTokenHelper;
@@ -81,6 +94,8 @@ class UserApiControllerIntegrationTest {
   void retrieveReturnsUserWhenUserExists() throws Exception {
     UserEntity saved = userRepository.save(existingUser);
     String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
+    double requestsBefore = counterValue(meterRegistry, METRIC_USER_RETRIEVE_REQUESTS);
+    double successBefore = counterValue(meterRegistry, METRIC_USER_RETRIEVE_SUCCESS);
 
     retrieveRequest(mockMvc, accessToken)
         .andExpect(status().isOk())
@@ -89,6 +104,9 @@ class UserApiControllerIntegrationTest {
         .andExpect(jsonPath("$.username").value(saved.getUsername()))
         .andExpect(jsonPath("$.createdAt").exists())
         .andExpect(jsonPath("$.password").doesNotExist());
+
+    assertEquals(requestsBefore + 1, counterValue(meterRegistry, METRIC_USER_RETRIEVE_REQUESTS));
+    assertEquals(successBefore + 1, counterValue(meterRegistry, METRIC_USER_RETRIEVE_SUCCESS));
   }
 
   @Test
@@ -138,11 +156,15 @@ class UserApiControllerIntegrationTest {
 
   @Test
   void updateReturnsUnauthorizedWhenUserIsNotAuthenticated() throws Exception {
+    double unauthorizedBefore = counterValue(meterRegistry, METRIC_USER_UNAUTHORIZED);
+
     updateRequestUnauthorized(mockMvc, objectMapper, TEST_UPDATE_USERNAME_NORMALIZED)
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
         .andExpect(jsonPath("$.description").value(ErrorDefinition.UNAUTHORIZED.getDescription()));
+
+    assertEquals(unauthorizedBefore + 1, counterValue(meterRegistry, METRIC_USER_UNAUTHORIZED));
   }
 
   @ParameterizedTest
@@ -170,6 +192,7 @@ class UserApiControllerIntegrationTest {
     saved.setDeletedAt(java.time.LocalDateTime.now());
     userRepository.save(saved);
     String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
+    double notFoundBefore = counterValue(meterRegistry, METRIC_USER_NOT_FOUND);
 
     updateRequest(mockMvc, objectMapper, accessToken, TEST_UPDATE_USERNAME_NORMALIZED)
         .andExpect(status().isNotFound())
@@ -177,6 +200,8 @@ class UserApiControllerIntegrationTest {
         .andExpect(jsonPath("$.type").value(ErrorDefinition.USER_NOT_FOUND.getType()))
         .andExpect(
             jsonPath("$.description").value(ErrorDefinition.USER_NOT_FOUND.getDescription()));
+
+    assertEquals(notFoundBefore + 1, counterValue(meterRegistry, METRIC_USER_NOT_FOUND));
   }
 
   @Test
@@ -187,6 +212,7 @@ class UserApiControllerIntegrationTest {
             TEST_OTHER_EMAIL, TEST_OCCUPIED_USERNAME, passwordEncoder.encode(TEST_PASSWORD_VALID));
     userRepository.saveAndFlush(anotherUser);
     String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
+    double conflictBefore = counterValue(meterRegistry, METRIC_USER_USERNAME_CONFLICT);
 
     updateRequest(mockMvc, objectMapper, accessToken, TEST_OCCUPIED_USERNAME)
         .andExpect(status().isConflict())
@@ -195,6 +221,8 @@ class UserApiControllerIntegrationTest {
         .andExpect(
             jsonPath("$.description")
                 .value(ErrorDefinition.USER_USERNAME_CONFLICT.getDescription()));
+
+    assertEquals(conflictBefore + 1, counterValue(meterRegistry, METRIC_USER_USERNAME_CONFLICT));
   }
 
   @Test
@@ -267,14 +295,15 @@ class UserApiControllerIntegrationTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getType()))
-        .andExpect(
-            jsonPath("$.description").value("New password and confirm new password must match"));
+        .andExpect(jsonPath("$.description").value(NEW_PASSWORD_AND_CONFIRM_MUST_MATCH));
   }
 
   @Test
   void updatePasswordReturnsUnauthorizedWhenCurrentPasswordIsInvalid() throws Exception {
     UserEntity saved = userRepository.saveAndFlush(existingUser);
     String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
+    double invalidCurrentPasswordBefore =
+        counterValue(meterRegistry, METRIC_USER_CURRENT_PASSWORD_INVALID);
 
     updatePasswordRequest(
             mockMvc,
@@ -290,6 +319,10 @@ class UserApiControllerIntegrationTest {
         .andExpect(
             jsonPath("$.description")
                 .value(ErrorDefinition.USER_CURRENT_PASSWORD_INVALID.getDescription()));
+
+    assertEquals(
+        invalidCurrentPasswordBefore + 1,
+        counterValue(meterRegistry, METRIC_USER_CURRENT_PASSWORD_INVALID));
   }
 
   @Test
@@ -316,6 +349,7 @@ class UserApiControllerIntegrationTest {
   void updatePasswordReturnsBadRequestWhenNewPasswordMatchesCurrentPassword() throws Exception {
     UserEntity saved = userRepository.saveAndFlush(existingUser);
     String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
+    double reusedBefore = counterValue(meterRegistry, METRIC_USER_NEW_PASSWORD_REUSED);
 
     updatePasswordRequest(
             mockMvc, accessToken, TEST_PASSWORD_VALID, TEST_PASSWORD_VALID, TEST_PASSWORD_VALID)
@@ -327,18 +361,24 @@ class UserApiControllerIntegrationTest {
         .andExpect(
             jsonPath("$.description")
                 .value(ErrorDefinition.USER_NEW_PASSWORD_MUST_BE_DIFFERENT.getDescription()));
+
+    assertEquals(reusedBefore + 1, counterValue(meterRegistry, METRIC_USER_NEW_PASSWORD_REUSED));
   }
 
   @Test
   void deleteSoftDeletesUserWhenUserIsAuthenticated() throws Exception {
     UserEntity saved = userRepository.save(existingUser);
     String accessToken = authTokenHelper.generateAccessToken(saved).accessToken();
+    double requestsBefore = counterValue(meterRegistry, METRIC_USER_DELETE_REQUESTS);
+    double successBefore = counterValue(meterRegistry, METRIC_USER_DELETE_SUCCESS);
 
     deleteRequest(mockMvc, accessToken).andExpect(status().isNoContent());
 
     UserEntity deletedUser = userRepository.findById(saved.getId()).orElseThrow();
     assertNotNull(deletedUser.getDeletedAt());
     assertTrue(userRepository.findByIdAndDeletedAtIsNull(saved.getId()).isEmpty());
+    assertEquals(requestsBefore + 1, counterValue(meterRegistry, METRIC_USER_DELETE_REQUESTS));
+    assertEquals(successBefore + 1, counterValue(meterRegistry, METRIC_USER_DELETE_SUCCESS));
   }
 
   @Test

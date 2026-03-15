@@ -13,6 +13,7 @@ import com.tychewealth.service.helper.user.UserHelper;
 import com.tychewealth.service.helper.user.UserValidationHelper;
 import com.tychewealth.service.impl.UserServiceImpl;
 import com.tychewealth.service.monitoring.AuthMetrics;
+import com.tychewealth.service.monitoring.UserMetrics;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
@@ -32,6 +33,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
       UserServiceImpl.class,
       AuthTokenHelper.class,
       AuthMetrics.class,
+      UserMetrics.class,
       ErrorHandler.class,
       UserMapper.class,
       AuthRefreshTokenHelper.class,

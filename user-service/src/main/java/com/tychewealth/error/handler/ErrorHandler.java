@@ -1,9 +1,14 @@
 package com.tychewealth.error.handler;
 
+import static com.tychewealth.constants.ApiConstants.USER_BASE_URL;
+
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.exception.UserException;
+import com.tychewealth.service.monitoring.UserMetrics;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,10 +20,17 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
+@AllArgsConstructor
 public class ErrorHandler {
 
+  private final UserMetrics userMetrics;
+
   @ExceptionHandler(AuthException.class)
-  public ResponseEntity<ErrorResponse> handleAuthException(AuthException ex) {
+  public ResponseEntity<ErrorResponse> handleAuthException(
+      AuthException ex, HttpServletRequest request) {
+    if (isUserRequest(request)) {
+      userMetrics.recordUnauthorized();
+    }
     return buildFromException(ex.getErrorDefinition(), ex.getHttpStatus());
   }
 
@@ -118,5 +130,11 @@ public class ErrorHandler {
       return message;
     }
     return error.getField() + ": " + message;
+  }
+
+  private boolean isUserRequest(HttpServletRequest request) {
+    return request != null
+        && request.getRequestURI() != null
+        && request.getRequestURI().startsWith(USER_BASE_URL);
   }
 }
