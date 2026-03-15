@@ -87,6 +87,7 @@ This page consolidates the persistence model for `user-service`. It replaces the
 | `username` | `String` | Yes | Public-facing or login-friendly user name. | core identifier |
 | `password` | `String` | Yes | Stored password hash used during authentication. | sensitive credential data |
 | `created_at` | `LocalDateTime` | Yes | Timestamp recording when the user record was created. | timestamp |
+| `deleted_at` | `LocalDateTime` | No | Domain field used by the implemented persistence model. | timestamp |
 
 #### Relations
 
@@ -146,7 +147,7 @@ flowchart LR
   class portfolios entity;
   refresh_tokens["<b>refresh_tokens</b><br/>String token<br/>Instant expires_at<br/>boolean revoked<br/>Instant created_at"]
   class refresh_tokens entity;
-  users["<b>users</b><br/>String email<br/>String username<br/>String password<br/>LocalDateTime created_at"]
+  users["<b>users</b><br/>String email<br/>String username<br/>String password<br/>LocalDateTime created_at<br/>LocalDateTime deleted_at"]
   class users entity;
   portfolios -->|portfolio_id| assets
   users -->|user_id| portfolios

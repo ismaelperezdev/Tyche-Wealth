@@ -11,7 +11,7 @@
 | Service name | `user-service` |
 | Spring application name | `user-service` |
 | Default local port | `8080` |
-| Detected HTTP endpoints | `3` |
+| Detected HTTP endpoints | `6` |
 | Detected persisted entities | `4` |
 | Implementation slices | `config`, `controller`, `dto`, `entity`, `helper`, `mapper`, `repository`, `service`, `web` |
 
@@ -23,7 +23,7 @@
 
 ## Implemented Scope
 
-- Detected HTTP endpoints: `3`
+- Detected HTTP endpoints: `6`
 - Detected persisted entities: `4`
 - Detected implementation slices: `config`, `controller`, `dto`, `entity`, `helper`, `mapper`, `repository`, `service`, `web`
 - The implemented surface should be read from controllers, services, helpers, repositories, entities, and configuration classes rather than from older Markdown pages.
@@ -52,4 +52,5 @@
 - `docs/knowledge/services/user-service/api.md`
 - `docs/knowledge/services/user-service/data-model.md`
 - `docs/knowledge/services/user-service/runtime.md`
+- `docs/knowledge/services/user-service/observability.md`
 - `docs/knowledge/project-context.md`

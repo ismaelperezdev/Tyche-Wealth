@@ -41,6 +41,11 @@
 <strong>System Architecture</strong>
 <p>Repository-level layering, interactions, and service boundaries.</p>
 </a>
+<a class="tyche-card tyche-card--soft" href="architecture/observability/">
+<span class="tyche-card__eyebrow">Operations</span>
+<strong>Observability Architecture</strong>
+<p>Shared Prometheus and Grafana flow, metric families, and repository config layout.</p>
+</a>
 <a class="tyche-card tyche-card--soft" href="database/overview/">
 <span class="tyche-card__eyebrow">Persistence</span>
 <strong>Database Overview</strong>
@@ -72,6 +77,11 @@
 <span class="tyche-card__eyebrow">Persistence</span>
 <strong>Data Model</strong>
 <p>Entities, relationships, schema notes, and database structure.</p>
+</a>
+<a class="tyche-card" href="services/user-service/observability/">
+<span class="tyche-card__eyebrow">Operations</span>
+<strong>Observability</strong>
+<p>Dashboard intent, metric groups, and operational checks.</p>
 </a>
 </div>
 

@@ -68,6 +68,8 @@ class BaseServiceRenderer:
             return self.render_service_data_model()
         if doc_type == "service-runtime":
             return self.render_service_runtime()
+        if doc_type == "service-observability":
+            return self.render_service_observability()
         return None
 
     def _mermaid_block(self, *lines: str) -> str:
@@ -146,6 +148,10 @@ Configuration files:
 
 {self._database_diagram()}
 
+## Soft-delete Strategy
+
+{self._soft_delete_strategy_notes()}
+
 {self._database_schema_coverage()}
 
 ## Security and Operational Notes
@@ -170,6 +176,7 @@ Configuration files:
 | `{docs_prefix}/api.md` | Implemented endpoints, validation rules, and API diagrams. |
 | `{docs_prefix}/data-model.md` | Entities, relationships, and persistence details. |
 | `{docs_prefix}/runtime.md` | Setup, runtime configuration, security, and operations. |
+| `{docs_prefix}/observability.md` | Dashboard intent, metric groups, and operational checks. |
 """
 
     def render_service_overview(self) -> str:
@@ -220,6 +227,7 @@ Configuration files:
 - `docs/knowledge/services/{self.service.name}/api.md`
 - `docs/knowledge/services/{self.service.name}/data-model.md`
 - `docs/knowledge/services/{self.service.name}/runtime.md`
+- `docs/knowledge/services/{self.service.name}/observability.md`
 - `docs/knowledge/project-context.md`
 """
 
@@ -322,6 +330,47 @@ This page consolidates local setup, runtime configuration, security, and operati
 {self._runtime_limitations()}
 """
 
+    def render_service_observability(self) -> str:
+        return f"""# {self._service_title()} Observability
+
+## Overview
+
+This page explains the operational checks currently provided by the `{self.service.name}` Grafana dashboard and how those checks map to the metrics exposed by the service.
+
+## Dashboard Summary
+
+| Topic | Current State |
+| --- | --- |
+| Service | `{self.service.name}` |
+| Dashboard file | `observability/grafana/dashboards/tyche-user-service-overview.json` |
+| Datasource | Prometheus |
+| Main scope | Auth flow, user flow, HTTP behavior, and runtime health |
+
+## Dashboard Representation
+
+The current dashboard is organized by diagnostic intent rather than by raw metric family.
+
+{self._service_observability_layout()}
+
+## What The Dashboard Checks
+
+{self._service_observability_checks()}
+
+## Metric Description Reference
+
+{self._service_observability_metric_reference()}
+
+## Metric Notes
+
+{self._service_observability_notes()}
+
+## Operational Notes
+
+- Some panels are range-based, so they can legitimately appear empty when the selected time window does not include traffic for that flow.
+- `tyche_user_unauthorized_total` is narrower than all HTTP `401` responses, which is why the dashboard also includes a dedicated `HTTP 401 by endpoint` view.
+- This page should be updated whenever the dashboard layout, Prometheus queries, or service metrics change in a way that alters what the operational view is intended to confirm.
+"""
+
     def render_database_overview(self) -> str:
         tables = self._database_entity_inventory()
         return f"""## {self.service.name}
@@ -362,6 +411,14 @@ This page consolidates local setup, runtime configuration, security, and operati
         if has_rate_limit:
             lines.append('  Api --> RateLimit["Rate Limit Interceptors"]')
         return self._mermaid_block(*lines)
+
+    def render_observability_architecture(self) -> str:
+        return self._mermaid_block(
+            "flowchart LR",
+            '  App["user-service"] --> Endpoint["/actuator/prometheus"]',
+            '  Endpoint --> Prom["Prometheus"]',
+            '  Prom --> Graf["Grafana"]',
+        )
 
     def render_system_summary(self) -> str:
         props = self.facts.application_properties
@@ -440,6 +497,81 @@ This page consolidates local setup, runtime configuration, security, and operati
         ]
         return "\n".join(parts)
 
+    def _service_observability_layout(self) -> str:
+        return self._mermaid_block(
+            "flowchart TD",
+            '  A["Top row: total app requests, successful operations, error signals, rate-limited requests"]',
+            '  B["Second row: HTTP request rate by endpoint and HTTP max latency by endpoint"]',
+            '  C["Third row: auth activity in selected range and user metrics in selected range"]',
+            '  D["Bottom row: CPU usage, heap used total, live threads, HTTP 401 by endpoint"]',
+            "  A --> B --> C --> D",
+        )
+
+    def _service_observability_checks(self) -> str:
+        return "\n".join(
+            [
+                "| Area | Metrics used | What it helps validate |",
+                "| --- | --- | --- |",
+                "| App totals | `tyche_auth_*`, `tyche_user_*` | Whether the service is receiving requests and producing successful or failed domain operations. |",
+                "| HTTP traffic | `http_server_requests_*` | Which endpoints are active and whether request volume or latency shifts by route. |",
+                "| Auth flow | `tyche_auth_*` | Login, refresh, token issue, token revoke, and auth rate-limiting behavior in the selected range. |",
+                "| User flow | `tyche_user_*` | Retrieve, update, password update, delete, and user-domain error activity in the selected range. |",
+                "| Runtime health | `jvm_*`, `jdbc_*`, `system_cpu_usage` | CPU, heap pressure, live threads, and datasource health. |",
+                '| Unauthorized responses | `http_server_requests_seconds_count{status="401"}` | Which endpoints are returning `401` responses in the selected range. |',
+            ]
+        )
+
+    def _service_observability_notes(self) -> str:
+        return "\n".join(
+            [
+                "- `tyche_auth_*` metrics are business-facing auth counters and should be used to inspect auth flow outcomes rather than raw HTTP behavior alone.",
+                "- `tyche_user_*` metrics are business-facing user counters and include domain signals such as unauthorized user access, not found, or password-related validation failures.",
+                "- The service registers explicit Micrometer descriptions for the `tyche_auth_*` and `tyche_user_*` counters, so Prometheus metadata and Grafana field inspection can explain what each business metric counts.",
+                "- Counter names are declared in code with dotted Micrometer names such as `tyche.auth.login.requests`; Prometheus exposes them in snake case with the `_total` suffix, such as `tyche_auth_login_requests_total`.",
+                "- `http_server_requests_*` metrics provide the technical HTTP view and are useful when raw response behavior needs to be correlated with domain counters.",
+                "- `jvm_*` and `jdbc_*` metrics provide runtime context and should be read as supporting health signals rather than domain outcomes.",
+            ]
+        )
+
+    def _service_observability_metric_reference(self) -> str:
+        rows = [
+            ("`tyche_auth_register_requests_total`", "Total register requests received by the auth flow."),
+            ("`tyche_auth_register_success_total`", "Successful user registrations completed by the auth flow."),
+            ("`tyche_auth_register_failure_total`", "Failed user registration attempts recorded by the auth flow."),
+            ("`tyche_auth_register_rate_limited_total`", "Register requests rejected by rate limiting."),
+            ("`tyche_auth_register_conflict_total`", "Register requests rejected because the email or username already exists."),
+            ("`tyche_auth_login_requests_total`", "Total login requests received by the auth flow."),
+            ("`tyche_auth_login_success_total`", "Successful login requests that issued fresh credentials."),
+            ("`tyche_auth_login_failure_total`", "Failed login attempts recorded by the auth flow."),
+            ("`tyche_auth_login_rate_limited_total`", "Login requests rejected by rate limiting."),
+            ("`tyche_auth_login_invalid_credentials_total`", "Login attempts rejected because the provided credentials were invalid."),
+            ("`tyche_auth_refresh_requests_total`", "Total refresh-token requests received by the auth flow."),
+            ("`tyche_auth_refresh_success_total`", "Successful refresh-token operations that returned fresh credentials."),
+            ("`tyche_auth_refresh_failure_total`", "Failed refresh-token attempts recorded by the auth flow."),
+            ("`tyche_auth_refresh_rate_limited_total`", "Refresh-token requests rejected by rate limiting."),
+            ("`tyche_auth_refresh_token_issued_total`", "Refresh tokens persisted by login or token rotation flows."),
+            ("`tyche_auth_refresh_token_revoked_total`", "Refresh tokens revoked by logout, password changes, soft delete, or token rotation."),
+            ("`tyche_user_retrieve_requests_total`", "Total authenticated user profile retrieval requests."),
+            ("`tyche_user_retrieve_success_total`", "Successful authenticated user profile retrievals."),
+            ("`tyche_user_update_requests_total`", "Total authenticated user profile update requests."),
+            ("`tyche_user_update_success_total`", "Successful authenticated user profile updates."),
+            ("`tyche_user_update_password_requests_total`", "Total authenticated password change requests."),
+            ("`tyche_user_update_password_success_total`", "Successful authenticated password changes."),
+            ("`tyche_user_delete_requests_total`", "Total authenticated account deletion requests."),
+            ("`tyche_user_delete_success_total`", "Successful authenticated account soft deletions."),
+            ("`tyche_user_unauthorized_total`", "User-area requests rejected because authentication was missing or invalid."),
+            ("`tyche_user_not_found_total`", "User-area operations that targeted a user record not found as active."),
+            ("`tyche_user_username_conflict_total`", "User update requests rejected because the requested username was already in use."),
+            ("`tyche_user_current_password_invalid_total`", "Password change requests rejected because the current password did not match."),
+            ("`tyche_user_new_password_reused_total`", "Password change requests rejected because the new password matched the current password."),
+        ]
+        lines = [
+            "| Exported metric | Description |",
+            "| --- | --- |",
+        ]
+        lines.extend(f"| {metric} | {description} |" for metric, description in rows)
+        return "\n".join(lines)
+
     def _database_snapshot_table(self) -> str:
         return "\n".join(
             [
@@ -484,6 +616,16 @@ This page consolidates local setup, runtime configuration, security, and operati
         if any(entity.table_name == "portfolios" for entity in self.facts.entities):
             notes.append("- Portfolio and asset tables are already present in persistence, even if the current HTTP surface is still centered on authentication.")
         return "\n".join(notes)
+
+    def _soft_delete_strategy_notes(self) -> str:
+        return "\n".join(
+            [
+                "- `DELETE /user/me` performs a soft delete: `UserServiceImpl.delete()` delegates to `userHelper.softDelete()`, which revokes active refresh tokens, sets `deletedAt`, and saves the user record instead of removing the row.",
+                "- Active-user lookups are filtered through repository methods such as `findByIdAndDeletedAtIsNull()`, `findByEmailAndDeletedAtIsNull()`, and `findByUsernameAndDeletedAtIsNull()` so soft-deleted users are excluded from normal service flows.",
+                "- Related data is not cascaded away by the current mappings. `PortfolioEntity.user` and `RefreshTokenEntity.user` are `@ManyToOne(optional = false)` with foreign-key constraints from `portfolios.user_id` and `refresh_tokens.user_id` to `users.id`. Soft delete preserves those rows; refresh tokens are explicitly revoked, while portfolios remain linked to the retained user row.",
+                "- No restore pathway is implemented in the current code. There is no service or repository method that clears `deletedAt`, so account recovery would require a new code path or direct data repair outside the implemented API.",
+            ]
+        )
 
     def _test_summary_table(self) -> str:
         test_root = self.service.root / "src" / "test" / "java"
@@ -670,11 +812,21 @@ This page consolidates local setup, runtime configuration, security, and operati
     def _endpoint_operational_note(self, endpoint: EndpointInfo) -> str:
         path = endpoint.path.lower()
         if "register" in path:
-            return "Creates persistent user state and is subject to dedicated registration rate limiting."
+            return "Persists a new active user record and is subject to dedicated registration rate limiting and uniqueness checks."
         if "login" in path:
-            return "Issues access and refresh credentials and records authentication metrics."
+            return "Validates credentials, revokes any previously active refresh tokens for the user, issues a new access token and refresh token, and records auth metrics."
         if "refresh" in path:
-            return "Validates token state, rotates refresh-token persistence, and returns refreshed credentials."
+            return "Revokes the submitted active refresh token, persists a replacement refresh token, returns a new access token, and fails with `401` when the provided refresh token is invalid, expired, or already revoked."
+        if "logout" in path:
+            return "Requires a valid refresh-token request body, revokes the submitted active refresh token, and returns `204 No Content`; it does not implement server-side access-JWT invalidation or cache cleanup."
+        if endpoint.http_method.upper() == "GET" and path.endswith("/user/me"):
+            return "Requires a valid `Authorization: Bearer <token>` header for an active non-deleted user and returns only the mapped user DTO fields."
+        if endpoint.http_method.upper() == "PATCH" and path.endswith("/user/me"):
+            return "Requires a valid bearer token for an active non-deleted user, enforces username availability checks, persists the update, and returns the updated user DTO."
+        if endpoint.http_method.upper() == "PATCH" and path.endswith("/user/me/password"):
+            return "Requires a valid bearer token for an active non-deleted user, validates the current password, updates the stored password hash, revokes active refresh tokens, and returns `204 No Content`."
+        if endpoint.http_method.upper() == "DELETE" and path.endswith("/user/me"):
+            return "Requires a valid bearer token for an active non-deleted user, revokes active refresh tokens, performs a soft delete by setting `deletedAt`, and returns `204 No Content`."
         return "Backed by code-visible controller and service flow."
 
     def _api_flow_sections(self) -> str:
@@ -1007,9 +1159,19 @@ This page consolidates local setup, runtime configuration, security, and operati
         if "register" in path:
             return "Creates a new user account and returns the created user representation."
         if "login" in path:
-            return "Authenticates a user and returns an access token together with refresh-token state."
+            return "Authenticates a user and returns `tokenType`, `accessToken`, `refreshToken`, `expiresIn`, and the mapped user representation."
         if "refresh" in path:
-            return "Validates a refresh token, rotates token state, and returns refreshed credentials."
+            return "Validates the submitted refresh token, rotates refresh-token state, and returns `tokenType`, `accessToken`, `expiresIn`, and a replacement refresh token."
+        if "logout" in path:
+            return "Accepts a refresh token request body and logs the user out by revoking the submitted active refresh token."
+        if endpoint.http_method.upper() == "GET" and path.endswith("/user/me"):
+            return "Returns the authenticated active user's `id`, `email`, `username`, and `createdAt`; sensitive fields such as `password`, `deletedAt`, and related collections are omitted from the response DTO."
+        if endpoint.http_method.upper() == "PATCH" and path.endswith("/user/me"):
+            return "Updates the authenticated active user's profile fields and returns the updated `id`, `email`, `username`, and `createdAt` values from the response DTO."
+        if endpoint.http_method.upper() == "PATCH" and path.endswith("/user/me/password"):
+            return "Changes the authenticated active user's password after validating the current password and returns no response body."
+        if endpoint.http_method.upper() == "DELETE" and path.endswith("/user/me"):
+            return "Soft-deletes the authenticated active user by setting `deletedAt`, preserves the stored record, revokes active refresh tokens, and returns no response body."
         return "Exposes a code-backed service operation through the HTTP API."
 
     def _endpoint_success_status(self, endpoint: EndpointInfo) -> str:
@@ -1186,6 +1348,8 @@ class DeterministicRenderer:
             return None
         if doc_path == self.catalog.docs_root / "architecture" / "system.md":
             return self._render_system_page(facts_by_service)
+        if doc_path == self.catalog.docs_root / "architecture" / "observability.md":
+            return self._render_observability_page(facts_by_service)
         if doc_path == self.catalog.docs_root / "database" / "overview.md":
             return self._render_database_page(facts_by_service)
         service = self.catalog.get_service_for_doc(doc_path)
@@ -1230,6 +1394,11 @@ class DeterministicRenderer:
                         '<strong>Data Model</strong>',
                         "<p>Entities, relationships, schema notes, and database structure.</p>",
                         "</a>",
+                        f'<a class="tyche-card" href="services/{service.name}/observability/">',
+                        '<span class="tyche-card__eyebrow">Operations</span>',
+                        '<strong>Observability</strong>',
+                        "<p>Dashboard intent, metric groups, and operational checks.</p>",
+                        "</a>",
                         "</div>",
                     ]
                 )
@@ -1247,6 +1416,11 @@ class DeterministicRenderer:
                 '<span class="tyche-card__eyebrow">Architecture</span>',
                 "<strong>System Architecture</strong>",
                 "<p>Repository-level layering, interactions, and service boundaries.</p>",
+                "</a>",
+                '<a class="tyche-card tyche-card--soft" href="architecture/observability/">',
+                '<span class="tyche-card__eyebrow">Operations</span>',
+                "<strong>Observability Architecture</strong>",
+                "<p>Shared Prometheus and Grafana flow, metric families, and repository config layout.</p>",
                 "</a>",
                 '<a class="tyche-card tyche-card--soft" href="database/overview/">',
                 '<span class="tyche-card__eyebrow">Persistence</span>',
@@ -1460,6 +1634,68 @@ class DeterministicRenderer:
                 "## Source of Truth",
                 "",
                 "- JPA entities and changelog files are the source of truth for this page.",
+                "",
+            ]
+        )
+
+    def _render_observability_page(self, facts_by_service: dict[str, ServiceFacts]) -> str:
+        renderer = None
+        if facts_by_service:
+            first_facts = facts_by_service[sorted(facts_by_service.keys())[0]]
+            renderer = self._get_service_renderer(first_facts.service, first_facts)
+        diagram = renderer.render_observability_architecture() if renderer else "No observability diagram available."
+        return "\n".join(
+            [
+                "# Observability Architecture",
+                "",
+                "## Overview",
+                "",
+                "This page documents the observability flow that is currently implemented in the repository and the role of Prometheus and Grafana in the local stack.",
+                "",
+                "## Repository Snapshot",
+                "",
+                "| Aspect | Current State |",
+                "| --- | --- |",
+                "| Metrics producer | `user-service` |",
+                "| Metrics endpoint | `/actuator/prometheus` |",
+                "| Metrics collector | Prometheus |",
+                "| Dashboard layer | Grafana |",
+                "| Grafana repository configuration | `observability/grafana/` |",
+                "",
+                "## Implemented Flow",
+                "",
+                "- `user-service` exposes Prometheus-formatted metrics through Spring Boot Actuator.",
+                "- Prometheus scrapes the exposed metrics endpoint and stores the resulting time-series locally.",
+                "- Grafana uses Prometheus as its datasource and renders dashboard panels for operational inspection.",
+                "",
+                "## Interaction Diagram",
+                "",
+                diagram,
+                "",
+                "## Configuration Layout",
+                "",
+                "| Path | Purpose |",
+                "| --- | --- |",
+                "| `observability/grafana/provisioning/datasources/prometheus.yml` | Grafana datasource provisioning for Prometheus. |",
+                "| `observability/grafana/provisioning/dashboards/dashboards.yml` | Grafana dashboard provisioning configuration. |",
+                "| `observability/grafana/dashboards/tyche-user-service-overview.json` | Initial dashboard definition for `user-service`. |",
+                "",
+                "## Metrics Families",
+                "",
+                "| Metrics family | What it covers |",
+                "| --- | --- |",
+                "| `tyche_auth_*` | Auth-domain requests, outcomes, token lifecycle, and rate-limiting signals. |",
+                "| `tyche_user_*` | User-domain requests, success outcomes, and domain-specific error signals. |",
+                "| `http_server_requests_*` | Endpoint traffic, latency, and response status observations. |",
+                "| `jvm_*` | JVM memory, threads, and runtime state. |",
+                "| `jdbc_*` | Datasource and connection-pool state. |",
+                "",
+                "Business-facing `tyche_auth_*` and `tyche_user_*` counters are registered with explicit Micrometer descriptions in the service code so their purpose is visible through exported metric metadata as well as through dashboard panel titles.",
+                "",
+                "## Notes",
+                "",
+                "- The current repository contains one implemented service, so the observability flow is presently centered on `user-service`.",
+                "- Dashboard panels are operational views over Prometheus data and should be interpreted together with the selected time range and generated traffic.",
                 "",
             ]
         )

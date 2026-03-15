@@ -44,24 +44,88 @@ public class AuthMetrics {
   private final Counter refreshTokensRevoked;
 
   public AuthMetrics(MeterRegistry meterRegistry) {
-    this.registerRequests = meterRegistry.counter(METRIC_AUTH_REGISTER_REQUESTS);
-    this.registerSuccesses = meterRegistry.counter(METRIC_AUTH_REGISTER_SUCCESS);
-    this.registerFailures = meterRegistry.counter(METRIC_AUTH_REGISTER_FAILURE);
-    this.registerRateLimited = meterRegistry.counter(METRIC_AUTH_REGISTER_RATE_LIMITED);
-    this.registerConflicts = meterRegistry.counter(METRIC_AUTH_REGISTER_CONFLICT);
+    this.registerRequests =
+        counter(
+            meterRegistry,
+            METRIC_AUTH_REGISTER_REQUESTS,
+            "Total register requests received by the auth flow.");
+    this.registerSuccesses =
+        counter(
+            meterRegistry,
+            METRIC_AUTH_REGISTER_SUCCESS,
+            "Successful user registrations completed by the auth flow.");
+    this.registerFailures =
+        counter(
+            meterRegistry,
+            METRIC_AUTH_REGISTER_FAILURE,
+            "Failed user registration attempts recorded by the auth flow.");
+    this.registerRateLimited =
+        counter(
+            meterRegistry,
+            METRIC_AUTH_REGISTER_RATE_LIMITED,
+            "Register requests rejected by rate limiting.");
+    this.registerConflicts =
+        counter(
+            meterRegistry,
+            METRIC_AUTH_REGISTER_CONFLICT,
+            "Register requests rejected because the email or username already exists.");
 
-    this.loginRequests = meterRegistry.counter(METRIC_AUTH_LOGIN_REQUESTS);
-    this.loginSuccesses = meterRegistry.counter(METRIC_AUTH_LOGIN_SUCCESS);
-    this.loginFailures = meterRegistry.counter(METRIC_AUTH_LOGIN_FAILURE);
-    this.loginRateLimited = meterRegistry.counter(METRIC_AUTH_LOGIN_RATE_LIMITED);
-    this.loginInvalidCredentials = meterRegistry.counter(METRIC_AUTH_LOGIN_INVALID_CREDENTIALS);
+    this.loginRequests =
+        counter(
+            meterRegistry,
+            METRIC_AUTH_LOGIN_REQUESTS,
+            "Total login requests received by the auth flow.");
+    this.loginSuccesses =
+        counter(
+            meterRegistry,
+            METRIC_AUTH_LOGIN_SUCCESS,
+            "Successful login requests that issued fresh credentials.");
+    this.loginFailures =
+        counter(
+            meterRegistry,
+            METRIC_AUTH_LOGIN_FAILURE,
+            "Failed login attempts recorded by the auth flow.");
+    this.loginRateLimited =
+        counter(
+            meterRegistry,
+            METRIC_AUTH_LOGIN_RATE_LIMITED,
+            "Login requests rejected by rate limiting.");
+    this.loginInvalidCredentials =
+        counter(
+            meterRegistry,
+            METRIC_AUTH_LOGIN_INVALID_CREDENTIALS,
+            "Login attempts rejected because the provided credentials were invalid.");
 
-    this.refreshRequests = meterRegistry.counter(METRIC_AUTH_REFRESH_REQUESTS);
-    this.refreshSuccesses = meterRegistry.counter(METRIC_AUTH_REFRESH_SUCCESS);
-    this.refreshFailures = meterRegistry.counter(METRIC_AUTH_REFRESH_FAILURE);
-    this.refreshRateLimited = meterRegistry.counter(METRIC_AUTH_REFRESH_RATE_LIMITED);
-    this.refreshTokensIssued = meterRegistry.counter(METRIC_AUTH_REFRESH_TOKEN_ISSUED);
-    this.refreshTokensRevoked = meterRegistry.counter(METRIC_AUTH_REFRESH_TOKEN_REVOKED);
+    this.refreshRequests =
+        counter(
+            meterRegistry,
+            METRIC_AUTH_REFRESH_REQUESTS,
+            "Total refresh-token requests received by the auth flow.");
+    this.refreshSuccesses =
+        counter(
+            meterRegistry,
+            METRIC_AUTH_REFRESH_SUCCESS,
+            "Successful refresh-token operations that returned fresh credentials.");
+    this.refreshFailures =
+        counter(
+            meterRegistry,
+            METRIC_AUTH_REFRESH_FAILURE,
+            "Failed refresh-token attempts recorded by the auth flow.");
+    this.refreshRateLimited =
+        counter(
+            meterRegistry,
+            METRIC_AUTH_REFRESH_RATE_LIMITED,
+            "Refresh-token requests rejected by rate limiting.");
+    this.refreshTokensIssued =
+        counter(
+            meterRegistry,
+            METRIC_AUTH_REFRESH_TOKEN_ISSUED,
+            "Refresh tokens persisted by login or token rotation flows.");
+    this.refreshTokensRevoked =
+        counter(
+            meterRegistry,
+            METRIC_AUTH_REFRESH_TOKEN_REVOKED,
+            "Refresh tokens revoked by logout, password changes, soft delete, or token rotation.");
   }
 
   public void recordRegisterRequest() {
@@ -130,5 +194,9 @@ public class AuthMetrics {
     if (count > 0) {
       refreshTokensRevoked.increment(count);
     }
+  }
+
+  private Counter counter(MeterRegistry meterRegistry, String name, String description) {
+    return Counter.builder(name).description(description).register(meterRegistry);
   }
 }

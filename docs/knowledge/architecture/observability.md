@@ -1,56 +1,26 @@
-# System Architecture
+# Observability Architecture
 
 ## Overview
 
-This page consolidates the backend architecture that is actually implemented today in the repository.
+This page documents the observability flow that is currently implemented in the repository and the role of Prometheus and Grafana in the local stack.
 
 ## Repository Snapshot
 
 | Aspect | Current State |
 | --- | --- |
-| Implemented services | `1` |
-| Dominant stack | Spring Boot, JPA, PostgreSQL, Liquibase |
-| Current API emphasis | Authentication-first surface in `user-service` |
-| Documentation stance | Describe implemented code, not conceptual microservices |
+| Metrics producer | `user-service` |
+| Metrics endpoint | `/actuator/prometheus` |
+| Metrics collector | Prometheus |
+| Dashboard layer | Grafana |
+| Grafana repository configuration | `observability/grafana/` |
 
-## Implemented Components
+## Implemented Flow
 
-- `user-service`
+- `user-service` exposes Prometheus-formatted metrics through Spring Boot Actuator.
+- Prometheus scrapes the exposed metrics endpoint and stores the resulting time-series locally.
+- Grafana uses Prometheus as its datasource and renders dashboard panels for operational inspection.
 
-## Service Snapshots
-
-### user-service
-
-| Aspect | Current State |
-| --- | --- |
-| Service | `user-service` |
-| Spring application name | `user-service` |
-| Default local port | `8080` |
-| HTTP endpoints detected | `6` |
-| Persisted entities detected | `4` |
-| Implementation slices | `config`, `controller`, `dto`, `entity`, `helper`, `mapper`, `repository`, `service`, `web` |
-
-## Layered Structure
-
-- Requests enter through controller interfaces and controller implementations.
-- Business orchestration lives in service and helper classes.
-- Persistence is handled through repositories, JPA entities, and schema-management files.
-- Cross-cutting concerns such as security and rate limiting are wired from configuration and web layers.
-
-## Cross-Cutting Concerns
-
-### user-service
-
-| Concern | Current State |
-| --- | --- |
-| Security | Dedicated configuration detected. |
-| Rate limiting | Interceptor-based auth rate limiting detected. |
-| Observability | Auth metrics instrumentation detected. |
-| Persistence | JPA entities and repositories are present. |
-
-## Interactions
-
-### user-service
+## Interaction Diagram
 
 ```mermaid
 %%{init: {
@@ -96,14 +66,32 @@ This page consolidates the backend architecture that is actually implemented tod
   "themeCSS": ".messageText, .messageText tspan, .label text, .label tspan, .edgeLabel text, .edgeLabel tspan, .nodeLabel, .nodeLabel p, .nodeLabel span, .label foreignObject, .label foreignObject div, .cluster-label text, .cluster-label tspan, .actor text, .actor tspan, .loopText, .noteText, .er text, .er tspan, .er.entityLabel, .er.attributeText, .er.relationshipLabel, .er foreignObject div, .er foreignObject span, .er foreignObject td, .er foreignObject th { fill: #ffcc66 !important; color: #ffcc66 !important; } .messageLine0, .messageLine1, .flowchart-link, .edgePath path, .actor-line, .er.relationshipLine { stroke: #ffb347 !important; fill: none !important; } .arrowheadPath, marker path { stroke: #ffb347 !important; fill: #ffb347 !important; } .er rect, .er .entityBox, .er .attributeBoxEven, .er .attributeBoxOdd { fill: #24443d !important; stroke: #73e5c6 !important; } .er .relationshipLabelBox { fill: #17312d !important; stroke: #57c8a8 !important; } .er foreignObject, .er foreignObject div, .er foreignObject table { background: #24443d !important; } .er foreignObject tr:nth-child(odd), .er foreignObject tr:nth-child(odd) td { background: #24443d !important; } .er foreignObject tr:nth-child(even), .er foreignObject tr:nth-child(even) td { background: #2b4f47 !important; } .er foreignObject td, .er foreignObject th { border-color: #73e5c6 !important; }"
 }}%%
 flowchart LR
-  Client[Client App] --> Api["REST API / Controllers"]
-  Api --> Service["Service Layer and Helpers"]
-  Service --> Repo["Repositories"]
-  Repo --> Db[("PostgreSQL")]
-  Api --> Security["Security Config"]
-  Api --> RateLimit["Rate Limit Interceptors"]
+  App["user-service"] --> Endpoint["/actuator/prometheus"]
+  Endpoint --> Prom["Prometheus"]
+  Prom --> Graf["Grafana"]
 ```
 
-## Evolution Notes
+## Configuration Layout
 
-- The current repository is centered on the implemented services above. Any broader microservice picture should be treated as target architecture until more concrete services and integrations appear in code.
+| Path | Purpose |
+| --- | --- |
+| `observability/grafana/provisioning/datasources/prometheus.yml` | Grafana datasource provisioning for Prometheus. |
+| `observability/grafana/provisioning/dashboards/dashboards.yml` | Grafana dashboard provisioning configuration. |
+| `observability/grafana/dashboards/tyche-user-service-overview.json` | Initial dashboard definition for `user-service`. |
+
+## Metrics Families
+
+| Metrics family | What it covers |
+| --- | --- |
+| `tyche_auth_*` | Auth-domain requests, outcomes, token lifecycle, and rate-limiting signals. |
+| `tyche_user_*` | User-domain requests, success outcomes, and domain-specific error signals. |
+| `http_server_requests_*` | Endpoint traffic, latency, and response status observations. |
+| `jvm_*` | JVM memory, threads, and runtime state. |
+| `jdbc_*` | Datasource and connection-pool state. |
+
+Business-facing `tyche_auth_*` and `tyche_user_*` counters are registered with explicit Micrometer descriptions in the service code so their purpose is visible through exported metric metadata as well as through dashboard panel titles.
+
+## Notes
+
+- The current repository contains one implemented service, so the observability flow is presently centered on `user-service`.
+- Dashboard panels are operational views over Prometheus data and should be interpreted together with the selected time range and generated traffic.

@@ -12,7 +12,9 @@ class ServiceCatalog:
         "service-api": "service-api.md.tpl",
         "service-data-model": "service-data-model.md.tpl",
         "service-runtime": "service-runtime.md.tpl",
+        "service-observability": "generic-doc.md.tpl",
         "architecture-system": "architecture-system.md.tpl",
+        "architecture-observability": "generic-doc.md.tpl",
         "database-overview": "database-overview.md.tpl",
         "docs-index": "index.md.tpl",
         "project-context": "project-context.md.tpl",
@@ -21,6 +23,7 @@ class ServiceCatalog:
 
     STATIC_DOC_TARGETS = (
         Path("docs/knowledge/architecture/system.md"),
+        Path("docs/knowledge/architecture/observability.md"),
         Path("docs/knowledge/database/overview.md"),
     )
 
@@ -72,6 +75,7 @@ class ServiceCatalog:
                     self.docs_root / "services" / service.name / "api.md",
                     self.docs_root / "services" / service.name / "data-model.md",
                     self.docs_root / "services" / service.name / "runtime.md",
+                    self.docs_root / "services" / service.name / "observability.md",
                 ]
             )
         return sorted(set(targets))
@@ -112,8 +116,12 @@ class ServiceCatalog:
             return "service-data-model"
         if relative.startswith("services/") and relative.endswith("/runtime.md"):
             return "service-runtime"
+        if relative.startswith("services/") and relative.endswith("/observability.md"):
+            return "service-observability"
         if relative == "architecture/system.md":
             return "architecture-system"
+        if relative == "architecture/observability.md":
+            return "architecture-observability"
         if relative == "database/overview.md":
             return "database-overview"
         return "generic-doc"

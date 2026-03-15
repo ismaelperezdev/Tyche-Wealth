@@ -11,7 +11,7 @@
 | Service name | `user-service` |
 | Spring application name | `user-service` |
 | Default local port | `8080` |
-| Implemented endpoints | `3` |
+| Implemented endpoints | `6` |
 | Persisted entities | `4` |
 | Implementation slices | `config`, `controller`, `dto`, `entity`, `helper`, `mapper`, `repository`, `service`, `web` |
 
@@ -119,9 +119,17 @@ flowchart LR
 
 | Method | Path | Purpose | Operational Note |
 | --- | --- | --- | --- |
-| `POST` | `/tyche-wealth/user-service/v1/auth/register` | Creates a new user account and returns the created user representation. | Creates persistent user state and is subject to dedicated registration rate limiting. |
-| `POST` | `/tyche-wealth/user-service/v1/auth/login` | Authenticates a user and returns an access token together with refresh-token state. | Issues access and refresh credentials and records authentication metrics. |
-| `POST` | `/tyche-wealth/user-service/v1/auth/refresh` | Validates a refresh token, rotates token state, and returns refreshed credentials. | Validates token state, rotates refresh-token persistence, and returns refreshed credentials. |
+| `POST` | `/tyche-wealth/user-service/v1/auth/register` | Creates a new user account and returns the created user representation. | Persists a new active user record and is subject to dedicated registration rate limiting and uniqueness checks. |
+| `POST` | `/tyche-wealth/user-service/v1/auth/login` | Authenticates a user and returns `tokenType`, `accessToken`, `refreshToken`, `expiresIn`, and the mapped user representation. | Validates credentials, revokes any previously active refresh tokens for the user, issues a new access token and refresh token, and records auth metrics. |
+| `POST` | `/tyche-wealth/user-service/v1/auth/refresh` | Validates the submitted refresh token, rotates refresh-token state, and returns `tokenType`, `accessToken`, `expiresIn`, and a replacement refresh token. | Revokes the submitted active refresh token, persists a replacement refresh token, returns a new access token, and fails with `401` when the provided refresh token is invalid, expired, or already revoked. |
+| `POST` | `/tyche-wealth/user-service/v1/auth/logout` | Accepts a refresh token request body and logs the user out by revoking the submitted active refresh token. | Requires a valid refresh-token request body, revokes the submitted active refresh token, and returns `204 No Content`; it does not implement server-side access-JWT invalidation or cache cleanup. |
+
+### `UserApi.java`
+
+| Method | Path | Purpose | Operational Note |
+| --- | --- | --- | --- |
+| `GET` | `/tyche-wealth/user-service/v1/user/me` | Returns the authenticated active user's `id`, `email`, `username`, and `createdAt`; sensitive fields such as `password`, `deletedAt`, and related collections are omitted from the response DTO. | Requires a valid `Authorization: Bearer <token>` header for an active non-deleted user and returns only the mapped user DTO fields. |
+| `DELETE` | `/tyche-wealth/user-service/v1/user/me` | Soft-deletes the authenticated active user by setting `deletedAt`, preserves the stored record, revokes active refresh tokens, and returns no response body. | Requires a valid bearer token for an active non-deleted user, revokes active refresh tokens, performs a soft delete by setting `deletedAt`, and returns `204 No Content`. |
 
 ## Data Model Summary
 
@@ -194,12 +202,19 @@ flowchart LR
   class portfolios entity;
   refresh_tokens["<b>refresh_tokens</b><br/>String token<br/>Instant expires_at<br/>boolean revoked<br/>Instant created_at"]
   class refresh_tokens entity;
-  users["<b>users</b><br/>String email<br/>String username<br/>String password<br/>LocalDateTime created_at"]
+  users["<b>users</b><br/>String email<br/>String username<br/>String password<br/>LocalDateTime created_at<br/>LocalDateTime deleted_at"]
   class users entity;
   portfolios -->|portfolio_id| assets
   users -->|user_id| portfolios
   users -->|user_id| refresh_tokens
 ```
+
+## Soft-delete Strategy
+
+- `DELETE /user/me` performs a soft delete: `UserServiceImpl.delete()` delegates to `userHelper.softDelete()`, which revokes active refresh tokens, sets `deletedAt`, and saves the user record instead of removing the row.
+- Active-user lookups are filtered through repository methods such as `findByIdAndDeletedAtIsNull()`, `findByEmailAndDeletedAtIsNull()`, and `findByUsernameAndDeletedAtIsNull()` so soft-deleted users are excluded from normal service flows.
+- Related data is not cascaded away by the current mappings. `PortfolioEntity.user` and `RefreshTokenEntity.user` are `@ManyToOne(optional = false)` with foreign-key constraints from `portfolios.user_id` and `refresh_tokens.user_id` to `users.id`. Soft delete preserves those rows; refresh tokens are explicitly revoked, while portfolios remain linked to the retained user row.
+- No restore pathway is implemented in the current code. There is no service or repository method that clears `deletedAt`, so account recovery would require a new code path or direct data repair outside the implemented API.
 
 - The ER diagram is derived from JPA entities, so it reflects object relationships that are implemented in code now.
 - Liquibase changelogs should be read together with the entities when reviewing schema evolution or rollout risk.
@@ -229,11 +244,10 @@ flowchart LR
 
 | Test Area | Current State |
 | --- | --- |
-| Integration | `1` files |
+| Integration | `2` files |
 | Repository | `4` files |
 | Mapper | `3` files |
 | Web / Interceptor | `2` files |
-| Service Helper | `1` files |
 | Application Smoke | `1` files |
 | Test resource files | `13` fixtures and auxiliary files |
 | Current line coverage | `85.62%` |
@@ -245,7 +259,6 @@ flowchart LR
 - Repository tests cover the persistence layer directly, which is useful when changing entities, queries, or Liquibase-backed assumptions.
 - Rate-limiting and web interception behavior has dedicated tests, which matters because auth throttling is part of the live contract.
 - Mapper tests exist, so DTO and entity translation logic is not left completely implicit.
-- Helper-layer tests exist for auth validation, which reduces the risk of drifting request-validation behavior.
 - Current JaCoCo totals are `85.62%` line coverage and `51.55%` branch coverage, based on the latest generated report in `target/site/jacoco/jacoco.xml`.
 - JaCoCo is wired into the Maven `verify` phase, so the service can publish a coverage report instead of relying only on raw test counts.
 - Coverage review should start from `user-service/target/site/jacoco/index.html` after a local or CI `mvn verify` run.
@@ -258,3 +271,4 @@ flowchart LR
 | `docs/knowledge/services/user-service/api.md` | Implemented endpoints, validation rules, and API diagrams. |
 | `docs/knowledge/services/user-service/data-model.md` | Entities, relationships, and persistence details. |
 | `docs/knowledge/services/user-service/runtime.md` | Setup, runtime configuration, security, and operations. |
+| `docs/knowledge/services/user-service/observability.md` | Dashboard intent, metric groups, and operational checks. |

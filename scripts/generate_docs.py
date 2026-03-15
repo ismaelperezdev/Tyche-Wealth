@@ -332,8 +332,12 @@ def get_required_sections(doc_path: Path) -> list[str]:
         return ["Overview", "Implemented Entities", "Relationships", "Persistence and Schema Notes", "Related Documentation"] if doc_type == "service-data-model" else ["Overview", "Implemented Service Schemas", "Relationships", "Constraints and Persistence Notes", "Source of Truth"]
     if doc_type == "service-runtime":
         return ["Overview", "Requirements", "Run Locally", "Local Configuration", "Security, Rate Limiting, and Observability", "Operational Notes"]
+    if doc_type == "service-observability":
+        return ["Overview", "Dashboard Summary", "Dashboard Representation", "What The Dashboard Checks", "Metric Notes", "Operational Notes"]
     if doc_type == "architecture-system":
         return ["Overview", "Implemented Components", "Layered Structure", "Interactions", "Evolution Notes"]
+    if doc_type == "architecture-observability":
+        return ["Overview", "Repository Snapshot", "Implemented Flow", "Interaction Diagram", "Configuration Layout", "Metrics Families", "Notes"]
     return ["Overview", "Implemented Scope", "Notes"]
 
 
@@ -361,6 +365,18 @@ def get_document_specific_rules(doc_path: Path) -> str:
         return """
 - Focus on concrete runtime behavior: configuration, startup, security, rate limiting, and observability.
 - Avoid vague deployment advice not backed by repository files.
+""".strip()
+    if doc_type == "service-observability":
+        return """
+- Explain the current dashboard intent and the metric groups it checks.
+- Prefer operational interpretation over raw metric inventories.
+- Describe only the Grafana and Prometheus flow that is visible in the repository and local setup.
+""".strip()
+    if doc_type == "architecture-observability":
+        return """
+- Keep this page at repository and system level.
+- Explain the shared observability flow and the repository configuration layout.
+- Do not drift into service-specific dashboard panel detail beyond what is necessary to explain the overall design.
 """.strip()
     if doc_type in {"architecture-system", "database-overview"}:
         return """

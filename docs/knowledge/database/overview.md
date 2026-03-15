@@ -89,7 +89,7 @@ flowchart LR
   class portfolios entity;
   refresh_tokens["<b>refresh_tokens</b><br/>String token<br/>Instant expires_at<br/>boolean revoked<br/>Instant created_at"]
   class refresh_tokens entity;
-  users["<b>users</b><br/>String email<br/>String username<br/>String password<br/>LocalDateTime created_at"]
+  users["<b>users</b><br/>String email<br/>String username<br/>String password<br/>LocalDateTime created_at<br/>LocalDateTime deleted_at"]
   class users entity;
   portfolios -->|portfolio_id| assets
   users -->|user_id| portfolios

@@ -26,10 +26,15 @@ from reporting import format_path_list, write_script_report
 
 DEFAULT_TARGETS = [
     CATALOG.docs_root / "architecture" / "system.md",
+    CATALOG.docs_root / "architecture" / "observability.md",
     CATALOG.docs_root / "database" / "overview.md",
     *[
-        CATALOG.docs_root / "services" / service.name / "api.md"
+        path
         for service in CATALOG.services
+        for path in [
+            CATALOG.docs_root / "services" / service.name / "api.md",
+            CATALOG.docs_root / "services" / service.name / "observability.md",
+        ]
     ],
 ]
 
@@ -114,6 +119,10 @@ def choose_insert_anchor(doc_path: Path, content: str) -> str | None:
     relative = repo_relative_posix(doc_path)
     if relative.endswith("/api.md"):
         return "## Flows and Sequence Diagrams"
+    if relative.endswith("architecture/observability.md"):
+        return "## Interaction Diagram"
+    if relative.endswith("/observability.md"):
+        return "## Dashboard Representation"
     if relative.endswith("architecture/system.md"):
         return "## Interactions"
     if relative.endswith("database/overview.md"):
