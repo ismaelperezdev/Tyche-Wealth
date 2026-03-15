@@ -79,10 +79,46 @@ flowchart TD
 | Runtime health | `jvm_*`, `jdbc_*`, `system_cpu_usage` | CPU, heap pressure, live threads, and datasource health. |
 | Unauthorized responses | `http_server_requests_seconds_count{status="401"}` | Which endpoints are returning `401` responses in the selected range. |
 
+## Metric Description Reference
+
+| Exported metric | Description |
+| --- | --- |
+| `tyche_auth_register_requests_total` | Total register requests received by the auth flow. |
+| `tyche_auth_register_success_total` | Successful user registrations completed by the auth flow. |
+| `tyche_auth_register_failure_total` | Failed user registration attempts recorded by the auth flow. |
+| `tyche_auth_register_rate_limited_total` | Register requests rejected by rate limiting. |
+| `tyche_auth_register_conflict_total` | Register requests rejected because the email or username already exists. |
+| `tyche_auth_login_requests_total` | Total login requests received by the auth flow. |
+| `tyche_auth_login_success_total` | Successful login requests that issued fresh credentials. |
+| `tyche_auth_login_failure_total` | Failed login attempts recorded by the auth flow. |
+| `tyche_auth_login_rate_limited_total` | Login requests rejected by rate limiting. |
+| `tyche_auth_login_invalid_credentials_total` | Login attempts rejected because the provided credentials were invalid. |
+| `tyche_auth_refresh_requests_total` | Total refresh-token requests received by the auth flow. |
+| `tyche_auth_refresh_success_total` | Successful refresh-token operations that returned fresh credentials. |
+| `tyche_auth_refresh_failure_total` | Failed refresh-token attempts recorded by the auth flow. |
+| `tyche_auth_refresh_rate_limited_total` | Refresh-token requests rejected by rate limiting. |
+| `tyche_auth_refresh_token_issued_total` | Refresh tokens persisted by login or token rotation flows. |
+| `tyche_auth_refresh_token_revoked_total` | Refresh tokens revoked by logout, password changes, soft delete, or token rotation. |
+| `tyche_user_retrieve_requests_total` | Total authenticated user profile retrieval requests. |
+| `tyche_user_retrieve_success_total` | Successful authenticated user profile retrievals. |
+| `tyche_user_update_requests_total` | Total authenticated user profile update requests. |
+| `tyche_user_update_success_total` | Successful authenticated user profile updates. |
+| `tyche_user_update_password_requests_total` | Total authenticated password change requests. |
+| `tyche_user_update_password_success_total` | Successful authenticated password changes. |
+| `tyche_user_delete_requests_total` | Total authenticated account deletion requests. |
+| `tyche_user_delete_success_total` | Successful authenticated account soft deletions. |
+| `tyche_user_unauthorized_total` | User-area requests rejected because authentication was missing or invalid. |
+| `tyche_user_not_found_total` | User-area operations that targeted a user record not found as active. |
+| `tyche_user_username_conflict_total` | User update requests rejected because the requested username was already in use. |
+| `tyche_user_current_password_invalid_total` | Password change requests rejected because the current password did not match. |
+| `tyche_user_new_password_reused_total` | Password change requests rejected because the new password matched the current password. |
+
 ## Metric Notes
 
 - `tyche_auth_*` metrics are business-facing auth counters and should be used to inspect auth flow outcomes rather than raw HTTP behavior alone.
 - `tyche_user_*` metrics are business-facing user counters and include domain signals such as unauthorized user access, not found, or password-related validation failures.
+- The service registers explicit Micrometer descriptions for the `tyche_auth_*` and `tyche_user_*` counters, so Prometheus metadata and Grafana field inspection can explain what each business metric counts.
+- Counter names are declared in code with dotted Micrometer names such as `tyche.auth.login.requests`; Prometheus exposes them in snake case with the `_total` suffix, such as `tyche_auth_login_requests_total`.
 - `http_server_requests_*` metrics provide the technical HTTP view and are useful when raw response behavior needs to be correlated with domain counters.
 - `jvm_*` and `jdbc_*` metrics provide runtime context and should be read as supporting health signals rather than domain outcomes.
 

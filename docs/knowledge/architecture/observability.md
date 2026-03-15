@@ -89,6 +89,8 @@ flowchart LR
 | `jvm_*` | JVM memory, threads, and runtime state. |
 | `jdbc_*` | Datasource and connection-pool state. |
 
+Business-facing `tyche_auth_*` and `tyche_user_*` counters are registered with explicit Micrometer descriptions in the service code so their purpose is visible through exported metric metadata as well as through dashboard panel titles.
+
 ## Notes
 
 - The current repository contains one implemented service, so the observability flow is presently centered on `user-service`.
