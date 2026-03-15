@@ -11,6 +11,7 @@ import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.UserService;
 import com.tychewealth.service.helper.AuthTokenHelper;
 import com.tychewealth.service.helper.user.UserHelper;
+import com.tychewealth.service.monitoring.UserMetrics;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class UserServiceImpl implements UserService {
   private final UserMapper userMapper;
   private final AuthTokenHelper authTokenHelper;
   private final UserHelper userHelper;
+  private final UserMetrics userMetrics;
 
   @Override
   public UserResponseDto retrieve(String authorizationHeader) {
@@ -64,6 +66,9 @@ public class UserServiceImpl implements UserService {
     return userRepository
         .findByIdAndDeletedAtIsNull(id)
         .orElseThrow(
-            () -> new UserException(ErrorDefinition.USER_NOT_FOUND, null, HttpStatus.NOT_FOUND));
+            () -> {
+              userMetrics.recordNotFound();
+              return new UserException(ErrorDefinition.USER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
+            });
   }
 }

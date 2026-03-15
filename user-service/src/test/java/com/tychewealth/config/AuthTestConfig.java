@@ -6,6 +6,7 @@ import com.tychewealth.service.helper.TokenValidationHelper;
 import com.tychewealth.service.helper.auth.AuthRegisterHelper;
 import com.tychewealth.service.helper.auth.AuthValidationHelper;
 import com.tychewealth.service.impl.AuthServiceImpl;
+import com.tychewealth.service.monitoring.UserMetrics;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
 
@@ -17,6 +18,7 @@ import org.springframework.context.annotation.Import;
   AuthValidationHelper.class,
   TokenValidationHelper.class,
   AuthRegisterHelper.class,
+  UserMetrics.class,
   ErrorHandler.class
 })
 public class AuthTestConfig {}

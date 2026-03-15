@@ -32,6 +32,7 @@ import static com.tychewealth.testhelper.AuthTestHelper.loginRequest;
 import static com.tychewealth.testhelper.AuthTestHelper.logout;
 import static com.tychewealth.testhelper.AuthTestHelper.refresh;
 import static com.tychewealth.testhelper.AuthTestHelper.registerRequest;
+import static com.tychewealth.testhelper.MetricsTestHelper.counterValue;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -125,8 +126,8 @@ class AuthApiControllerIntegrationTest {
 
   @Test
   void registerCreatesUserWhenRequestIsValid() throws Exception {
-    double requestsBefore = counterValue(METRIC_AUTH_REGISTER_REQUESTS);
-    double successBefore = counterValue(METRIC_AUTH_REGISTER_SUCCESS);
+    double requestsBefore = counterValue(meterRegistry, METRIC_AUTH_REGISTER_REQUESTS);
+    double successBefore = counterValue(meterRegistry, METRIC_AUTH_REGISTER_SUCCESS);
 
     registerRequest(mockMvc, objectMapper, validRequest)
         .andExpect(status().isCreated())
@@ -141,15 +142,15 @@ class AuthApiControllerIntegrationTest {
     assertNotNull(created.getId());
     assertNotEquals(validRequest.getPassword(), created.getPassword());
     assertTrue(passwordEncoder.matches(validRequest.getPassword(), created.getPassword()));
-    assertEquals(requestsBefore + 1, counterValue(METRIC_AUTH_REGISTER_REQUESTS));
-    assertEquals(successBefore + 1, counterValue(METRIC_AUTH_REGISTER_SUCCESS));
+    assertEquals(requestsBefore + 1, counterValue(meterRegistry, METRIC_AUTH_REGISTER_REQUESTS));
+    assertEquals(successBefore + 1, counterValue(meterRegistry, METRIC_AUTH_REGISTER_SUCCESS));
   }
 
   @Test
   void registerReturnsConflictWhenEmailAlreadyExists() throws Exception {
     userRepository.save(existingEmailUser);
-    double failureBefore = counterValue(METRIC_AUTH_REGISTER_FAILURE);
-    double conflictBefore = counterValue(METRIC_AUTH_REGISTER_CONFLICT);
+    double failureBefore = counterValue(meterRegistry, METRIC_AUTH_REGISTER_FAILURE);
+    double conflictBefore = counterValue(meterRegistry, METRIC_AUTH_REGISTER_CONFLICT);
 
     registerRequest(mockMvc, objectMapper, conflictByEmailRequest)
         .andExpect(status().isConflict())
@@ -159,8 +160,8 @@ class AuthApiControllerIntegrationTest {
             jsonPath("$.description")
                 .value(ErrorDefinition.AUTH_REGISTRATION_CONFLICT.getDescription()));
 
-    assertEquals(failureBefore + 1, counterValue(METRIC_AUTH_REGISTER_FAILURE));
-    assertEquals(conflictBefore + 1, counterValue(METRIC_AUTH_REGISTER_CONFLICT));
+    assertEquals(failureBefore + 1, counterValue(meterRegistry, METRIC_AUTH_REGISTER_FAILURE));
+    assertEquals(conflictBefore + 1, counterValue(meterRegistry, METRIC_AUTH_REGISTER_CONFLICT));
   }
 
   @Test
@@ -179,8 +180,8 @@ class AuthApiControllerIntegrationTest {
   @Test
   void registerReturnsTooManyRequestsWhenRateLimitIsExceeded() throws Exception {
     RegisterRequestDto invalidRegisterRequest = new RegisterRequestDto("", "", "short");
-    double requestsBefore = counterValue(METRIC_AUTH_REGISTER_REQUESTS);
-    double rateLimitedBefore = counterValue(METRIC_AUTH_REGISTER_RATE_LIMITED);
+    double requestsBefore = counterValue(meterRegistry, METRIC_AUTH_REGISTER_REQUESTS);
+    double rateLimitedBefore = counterValue(meterRegistry, METRIC_AUTH_REGISTER_RATE_LIMITED);
 
     registerRequest(mockMvc, objectMapper, invalidRegisterRequest)
         .andExpect(status().isBadRequest());
@@ -194,8 +195,9 @@ class AuthApiControllerIntegrationTest {
         .andExpect(jsonPath("$.type").value(ErrorDefinition.RATE_LIMITED.getType()))
         .andExpect(jsonPath("$.description").value(ErrorDefinition.RATE_LIMITED.getDescription()));
 
-    assertEquals(requestsBefore + 3, counterValue(METRIC_AUTH_REGISTER_REQUESTS));
-    assertEquals(rateLimitedBefore + 1, counterValue(METRIC_AUTH_REGISTER_RATE_LIMITED));
+    assertEquals(requestsBefore + 3, counterValue(meterRegistry, METRIC_AUTH_REGISTER_REQUESTS));
+    assertEquals(
+        rateLimitedBefore + 1, counterValue(meterRegistry, METRIC_AUTH_REGISTER_RATE_LIMITED));
   }
 
   @ParameterizedTest
@@ -212,8 +214,8 @@ class AuthApiControllerIntegrationTest {
   @Test
   void loginReturnsTokenAndUserWhenCredentialsAreValid() throws Exception {
     userRepository.save(existingLoginUser);
-    double requestsBefore = counterValue(METRIC_AUTH_LOGIN_REQUESTS);
-    double successBefore = counterValue(METRIC_AUTH_LOGIN_SUCCESS);
+    double requestsBefore = counterValue(meterRegistry, METRIC_AUTH_LOGIN_REQUESTS);
+    double successBefore = counterValue(meterRegistry, METRIC_AUTH_LOGIN_SUCCESS);
 
     loginRequest(mockMvc, objectMapper, validLoginRequest)
         .andExpect(status().isOk())
@@ -226,15 +228,16 @@ class AuthApiControllerIntegrationTest {
         .andExpect(jsonPath("$.user.username").value(validRequest.getUsername()))
         .andExpect(jsonPath("$.user.password").doesNotExist());
 
-    assertEquals(requestsBefore + 1, counterValue(METRIC_AUTH_LOGIN_REQUESTS));
-    assertEquals(successBefore + 1, counterValue(METRIC_AUTH_LOGIN_SUCCESS));
+    assertEquals(requestsBefore + 1, counterValue(meterRegistry, METRIC_AUTH_LOGIN_REQUESTS));
+    assertEquals(successBefore + 1, counterValue(meterRegistry, METRIC_AUTH_LOGIN_SUCCESS));
   }
 
   @Test
   void loginReturnsUnauthorizedWhenCredentialsAreInvalid() throws Exception {
     userRepository.save(existingLoginUser);
-    double failureBefore = counterValue(METRIC_AUTH_LOGIN_FAILURE);
-    double invalidCredentialsBefore = counterValue(METRIC_AUTH_LOGIN_INVALID_CREDENTIALS);
+    double failureBefore = counterValue(meterRegistry, METRIC_AUTH_LOGIN_FAILURE);
+    double invalidCredentialsBefore =
+        counterValue(meterRegistry, METRIC_AUTH_LOGIN_INVALID_CREDENTIALS);
 
     LoginRequestDto invalidLoginRequest =
         new LoginRequestDto(validRequest.getEmail(), TEST_PASSWORD_INVALID);
@@ -249,8 +252,10 @@ class AuthApiControllerIntegrationTest {
             jsonPath("$.description")
                 .value(ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS.getDescription()));
 
-    assertEquals(failureBefore + 1, counterValue(METRIC_AUTH_LOGIN_FAILURE));
-    assertEquals(invalidCredentialsBefore + 1, counterValue(METRIC_AUTH_LOGIN_INVALID_CREDENTIALS));
+    assertEquals(failureBefore + 1, counterValue(meterRegistry, METRIC_AUTH_LOGIN_FAILURE));
+    assertEquals(
+        invalidCredentialsBefore + 1,
+        counterValue(meterRegistry, METRIC_AUTH_LOGIN_INVALID_CREDENTIALS));
   }
 
   @Test
@@ -272,8 +277,8 @@ class AuthApiControllerIntegrationTest {
   @Test
   void loginReturnsTooManyRequestsWhenRateLimitIsExceeded() throws Exception {
     userRepository.save(existingLoginUser);
-    double requestsBefore = counterValue(METRIC_AUTH_LOGIN_REQUESTS);
-    double rateLimitedBefore = counterValue(METRIC_AUTH_LOGIN_RATE_LIMITED);
+    double requestsBefore = counterValue(meterRegistry, METRIC_AUTH_LOGIN_REQUESTS);
+    double rateLimitedBefore = counterValue(meterRegistry, METRIC_AUTH_LOGIN_RATE_LIMITED);
 
     LoginRequestDto invalidLoginRequest =
         new LoginRequestDto(validRequest.getEmail(), TEST_PASSWORD_INVALID);
@@ -288,8 +293,9 @@ class AuthApiControllerIntegrationTest {
         .andExpect(jsonPath("$.type").value(ErrorDefinition.RATE_LIMITED.getType()))
         .andExpect(jsonPath("$.description").value(ErrorDefinition.RATE_LIMITED.getDescription()));
 
-    assertEquals(requestsBefore + 3, counterValue(METRIC_AUTH_LOGIN_REQUESTS));
-    assertEquals(rateLimitedBefore + 1, counterValue(METRIC_AUTH_LOGIN_RATE_LIMITED));
+    assertEquals(requestsBefore + 3, counterValue(meterRegistry, METRIC_AUTH_LOGIN_REQUESTS));
+    assertEquals(
+        rateLimitedBefore + 1, counterValue(meterRegistry, METRIC_AUTH_LOGIN_RATE_LIMITED));
   }
 
   @Test
@@ -425,23 +431,23 @@ class AuthApiControllerIntegrationTest {
     refreshTokenRepository.save(
         buildRefreshToken(previousTokenValue, user, Instant.now().plusSeconds(3600), false));
 
-    double requestsBefore = counterValue(METRIC_AUTH_REFRESH_REQUESTS);
-    double successBefore = counterValue(METRIC_AUTH_REFRESH_SUCCESS);
-    double issuedBefore = counterValue(METRIC_AUTH_REFRESH_TOKEN_ISSUED);
-    double revokedBefore = counterValue(METRIC_AUTH_REFRESH_TOKEN_REVOKED);
+    double requestsBefore = counterValue(meterRegistry, METRIC_AUTH_REFRESH_REQUESTS);
+    double successBefore = counterValue(meterRegistry, METRIC_AUTH_REFRESH_SUCCESS);
+    double issuedBefore = counterValue(meterRegistry, METRIC_AUTH_REFRESH_TOKEN_ISSUED);
+    double revokedBefore = counterValue(meterRegistry, METRIC_AUTH_REFRESH_TOKEN_REVOKED);
 
     refresh(mockMvc, objectMapper, previousTokenValue).andExpect(status().isOk());
 
-    assertEquals(requestsBefore + 1, counterValue(METRIC_AUTH_REFRESH_REQUESTS));
-    assertEquals(successBefore + 1, counterValue(METRIC_AUTH_REFRESH_SUCCESS));
-    assertEquals(issuedBefore + 1, counterValue(METRIC_AUTH_REFRESH_TOKEN_ISSUED));
-    assertEquals(revokedBefore + 1, counterValue(METRIC_AUTH_REFRESH_TOKEN_REVOKED));
+    assertEquals(requestsBefore + 1, counterValue(meterRegistry, METRIC_AUTH_REFRESH_REQUESTS));
+    assertEquals(successBefore + 1, counterValue(meterRegistry, METRIC_AUTH_REFRESH_SUCCESS));
+    assertEquals(issuedBefore + 1, counterValue(meterRegistry, METRIC_AUTH_REFRESH_TOKEN_ISSUED));
+    assertEquals(revokedBefore + 1, counterValue(meterRegistry, METRIC_AUTH_REFRESH_TOKEN_REVOKED));
   }
 
   @Test
   void refreshReturnsTooManyRequestsWhenRateLimitIsExceeded() throws Exception {
-    double requestsBefore = counterValue(METRIC_AUTH_REFRESH_REQUESTS);
-    double rateLimitedBefore = counterValue(METRIC_AUTH_REFRESH_RATE_LIMITED);
+    double requestsBefore = counterValue(meterRegistry, METRIC_AUTH_REFRESH_REQUESTS);
+    double rateLimitedBefore = counterValue(meterRegistry, METRIC_AUTH_REFRESH_RATE_LIMITED);
 
     refresh(mockMvc, objectMapper, TEST_REFRESH_TOKEN_MISSING).andExpect(status().isUnauthorized());
 
@@ -453,8 +459,9 @@ class AuthApiControllerIntegrationTest {
         .andExpect(jsonPath("$.type").value(ErrorDefinition.RATE_LIMITED.getType()))
         .andExpect(jsonPath("$.description").value(ErrorDefinition.RATE_LIMITED.getDescription()));
 
-    assertEquals(requestsBefore + 3, counterValue(METRIC_AUTH_REFRESH_REQUESTS));
-    assertEquals(rateLimitedBefore + 1, counterValue(METRIC_AUTH_REFRESH_RATE_LIMITED));
+    assertEquals(requestsBefore + 3, counterValue(meterRegistry, METRIC_AUTH_REFRESH_REQUESTS));
+    assertEquals(
+        rateLimitedBefore + 1, counterValue(meterRegistry, METRIC_AUTH_REFRESH_RATE_LIMITED));
   }
 
   @Test
@@ -487,10 +494,5 @@ class AuthApiControllerIntegrationTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getType()));
-  }
-
-  private double counterValue(String counterName) {
-    var counter = meterRegistry.find(counterName).counter();
-    return counter == null ? 0 : counter.count();
   }
 }
