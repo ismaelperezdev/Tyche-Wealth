@@ -8,7 +8,7 @@ This page consolidates the implemented HTTP surface for `user-service`. It repla
 
 | Aspect | Value |
 | --- | --- |
-| Base path families | `/tyche-wealth/user-service/v1/auth`, `/tyche-wealth/user-service/v1/user` |
+| Base path families | `/tyche-wealth/user-service/v1/auth`, `/tyche-wealth/user-service/v1/user`, `/tyche-wealth/user-service/v1/user/me` |
 | Source of truth | `*Api.java` contracts plus DTOs, service helpers, and centralized error handling |
 | Detected APIs | `AuthApi.java`, `UserApi.java` |
 
@@ -28,6 +28,8 @@ This page consolidates the implemented HTTP surface for `user-service`. It repla
 | Method | Path | Purpose | Operational Note |
 | --- | --- | --- | --- |
 | `GET` | `/tyche-wealth/user-service/v1/user/me` | Returns the authenticated active user's `id`, `email`, `username`, and `createdAt`; sensitive fields such as `password`, `deletedAt`, and related collections are omitted from the response DTO. | Requires a valid `Authorization: Bearer <token>` header for an active non-deleted user and returns only the mapped user DTO fields. |
+| `PATCH` | `/tyche-wealth/user-service/v1/user/me` | Updates the authenticated active user's profile fields and returns the updated `id`, `email`, `username`, and `createdAt` values from the response DTO. | Requires a valid bearer token for an active non-deleted user, enforces username availability checks, persists the update, and returns the updated user DTO. |
+| `PATCH` | `/tyche-wealth/user-service/v1/user/me/password` | Changes the authenticated active user's password after validating the current password and returns no response body. | Requires a valid bearer token for an active non-deleted user, validates the current password, updates the stored password hash, revokes active refresh tokens, and returns `204 No Content`. |
 | `DELETE` | `/tyche-wealth/user-service/v1/user/me` | Soft-deletes the authenticated active user by setting `deletedAt`, preserves the stored record, revokes active refresh tokens, and returns no response body. | Requires a valid bearer token for an active non-deleted user, revokes active refresh tokens, performs a soft delete by setting `deletedAt`, and returns `204 No Content`. |
 
 ## Implemented Endpoints
@@ -159,7 +161,7 @@ Accepts a refresh token request body and logs the user out by revoking the submi
 
 | Contract Item | Value |
 | --- | --- |
-| Success status | `200 OK` |
+| Success status | `204 No Content` |
 | Source API | `AuthApi.java` |
 | Request DTO | `RefreshTokenRequestDto` |
 | Response DTO | `Void` |
@@ -217,6 +219,76 @@ Returns the authenticated active user's `id`, `email`, `username`, and `createdA
 
 ---
 
+### `PATCH /tyche-wealth/user-service/v1/user/me`
+
+#### Purpose
+
+Updates the authenticated active user's profile fields and returns the updated `id`, `email`, `username`, and `createdAt` values from the response DTO.
+
+#### Contract
+
+| Contract Item | Value |
+| --- | --- |
+| Success status | `200 OK` |
+| Source API | `UserApi.java` |
+| Request DTO | `UserUpdateRequestDto` |
+| Response DTO | `UserResponseDto` |
+
+#### Validation Snapshot
+
+| Input | Rules |
+| --- | --- |
+| `username` | Must not be blank.; Length must be between 3 and 30 characters.; Value is normalized before downstream validation and persistence checks. |
+
+#### Runtime Constraints
+
+- Validation failures are aggregated by the centralized `ErrorHandler` instead of being returned ad hoc from each controller method.
+
+#### Error Behavior
+
+| Status | When it happens |
+| --- | --- |
+| `400 Bad Request` | DTO validation fails, request JSON is malformed, or an auth-specific password format rule rejects the payload. |
+| Error payload shape | Centralized through `ErrorHandler`, which maps validation, auth, rate-limit, and generic failures to the API response contract. |
+
+---
+
+### `PATCH /tyche-wealth/user-service/v1/user/me/password`
+
+#### Purpose
+
+Changes the authenticated active user's password after validating the current password and returns no response body.
+
+#### Contract
+
+| Contract Item | Value |
+| --- | --- |
+| Success status | `204 No Content` |
+| Source API | `UserApi.java` |
+| Request DTO | `UserPasswordUpdateRequestDto` |
+| Response DTO | `Void` |
+
+#### Validation Snapshot
+
+| Input | Rules |
+| --- | --- |
+| `currentPassword` | Must not be blank.; Length must be at least 8 characters. |
+| `newPassword` | Must not be blank.; Length must be at least 8 characters.; Must match the configured format policy. |
+| `confirmNewPassword` | Must not be blank. |
+
+#### Runtime Constraints
+
+- Validation failures are aggregated by the centralized `ErrorHandler` instead of being returned ad hoc from each controller method.
+
+#### Error Behavior
+
+| Status | When it happens |
+| --- | --- |
+| `400 Bad Request` | DTO validation fails, request JSON is malformed, or an auth-specific password format rule rejects the payload. |
+| Error payload shape | Centralized through `ErrorHandler`, which maps validation, auth, rate-limit, and generic failures to the API response contract. |
+
+---
+
 ### `DELETE /tyche-wealth/user-service/v1/user/me`
 
 #### Purpose
@@ -227,7 +299,7 @@ Soft-deletes the authenticated active user by setting `deletedAt`, preserves the
 
 | Contract Item | Value |
 | --- | --- |
-| Success status | `200 OK` |
+| Success status | `204 No Content` |
 | Source API | `UserApi.java` |
 | Request DTO | `N/A` |
 | Response DTO | `Void` |

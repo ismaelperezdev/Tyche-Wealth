@@ -11,7 +11,7 @@
 | Service name | `user-service` |
 | Spring application name | `user-service` |
 | Default local port | `8080` |
-| Implemented endpoints | `6` |
+| Implemented endpoints | `8` |
 | Persisted entities | `4` |
 | Implementation slices | `config`, `controller`, `dto`, `entity`, `helper`, `mapper`, `repository`, `service`, `web` |
 
@@ -129,6 +129,8 @@ flowchart LR
 | Method | Path | Purpose | Operational Note |
 | --- | --- | --- | --- |
 | `GET` | `/tyche-wealth/user-service/v1/user/me` | Returns the authenticated active user's `id`, `email`, `username`, and `createdAt`; sensitive fields such as `password`, `deletedAt`, and related collections are omitted from the response DTO. | Requires a valid `Authorization: Bearer <token>` header for an active non-deleted user and returns only the mapped user DTO fields. |
+| `PATCH` | `/tyche-wealth/user-service/v1/user/me` | Updates the authenticated active user's profile fields and returns the updated `id`, `email`, `username`, and `createdAt` values from the response DTO. | Requires a valid bearer token for an active non-deleted user, enforces username availability checks, persists the update, and returns the updated user DTO. |
+| `PATCH` | `/tyche-wealth/user-service/v1/user/me/password` | Changes the authenticated active user's password after validating the current password and returns no response body. | Requires a valid bearer token for an active non-deleted user, validates the current password, updates the stored password hash, revokes active refresh tokens, and returns `204 No Content`. |
 | `DELETE` | `/tyche-wealth/user-service/v1/user/me` | Soft-deletes the authenticated active user by setting `deletedAt`, preserves the stored record, revokes active refresh tokens, and returns no response body. | Requires a valid bearer token for an active non-deleted user, revokes active refresh tokens, performs a soft delete by setting `deletedAt`, and returns `204 No Content`. |
 
 ## Data Model Summary

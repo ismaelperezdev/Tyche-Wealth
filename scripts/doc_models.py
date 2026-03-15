@@ -64,6 +64,12 @@ class DtoContract:
 
 
 @dataclass(frozen=True)
+class MetricInfo:
+    name: str
+    description: str
+
+
+@dataclass(frozen=True)
 class ServiceFacts:
     service: ServiceDefinition
     application_properties: dict[str, str]
@@ -71,3 +77,4 @@ class ServiceFacts:
     endpoints: list[EndpointInfo]
     entities: list[EntityInfo]
     dto_contracts: dict[str, DtoContract]
+    metrics: list[MetricInfo]
