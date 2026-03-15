@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from doc_models import DtoContract, DtoFieldConstraint, EndpointInfo, EntityField, EntityInfo, EntityRelation, ServiceDefinition, ServiceFacts
+from doc_models import DtoContract, DtoFieldConstraint, EndpointInfo, EntityField, EntityInfo, EntityRelation, MetricInfo, ServiceDefinition, ServiceFacts
 
 
 class ServiceFactsExtractor:
@@ -28,14 +28,22 @@ class ServiceFactsExtractor:
         return sorted(set(files))
 
     def build_service_facts(self, service: ServiceDefinition) -> ServiceFacts:
+        java_constants = self._extract_service_constants(service)
         return ServiceFacts(
             service=service,
             application_properties=self._read_properties(service.root / "src" / "main" / "resources" / "application.properties"),
-            java_constants=self._extract_java_constants(next(service.root.rglob("ApiConstants.java"), None)),
-            endpoints=self._extract_endpoints(service),
+            java_constants=java_constants,
+            endpoints=self._extract_endpoints(service, java_constants),
             entities=self._extract_entities(service),
             dto_contracts=self._extract_dto_contracts(service),
+            metrics=self._extract_metrics(service, java_constants),
         )
+
+    def _extract_service_constants(self, service: ServiceDefinition) -> dict[str, str]:
+        constants: dict[str, str] = {}
+        for path in sorted(service.root.rglob("*Constants.java")):
+            constants.update(self._extract_java_constants(path))
+        return constants
 
     def _read_text(self, path: Path | None) -> str:
         if not path or not path.exists():
@@ -62,9 +70,8 @@ class ServiceFactsExtractor:
             constants[name] = "".join(parts)
         return constants
 
-    def _extract_endpoints(self, service: ServiceDefinition) -> list[EndpointInfo]:
+    def _extract_endpoints(self, service: ServiceDefinition, constants: dict[str, str]) -> list[EndpointInfo]:
         endpoints: list[EndpointInfo] = []
-        constants = self._extract_java_constants(next(service.root.rglob("ApiConstants.java"), None))
         for api_path in sorted(service.root.rglob("*Api.java")):
             content = self._read_text(api_path)
             request_mapping_match = re.search(r'@RequestMapping\(value\s*=\s*(.+?)\)', content)
@@ -74,7 +81,7 @@ class ServiceFactsExtractor:
             base_path = "".join(part.strip().strip('"') for part in base_expr.split("+"))
 
             pattern = re.compile(
-                r'@(?P<verb>Post|Get|Put|Delete)Mapping\(value\s*=\s*"(?P<path>[^"]+)"[^)]*\)\s+ResponseEntity<(?P<response>\w+)>\s+'
+                r'@(?P<verb>Post|Get|Put|Patch|Delete)Mapping\(value\s*=\s*"(?P<path>[^"]+)"[^)]*\)\s+ResponseEntity<(?P<response>\w+)>\s+'
                 r'(?P<method>\w+)\((?P<params>.*?)\);',
                 re.MULTILINE | re.DOTALL,
             )
@@ -91,6 +98,29 @@ class ServiceFactsExtractor:
                     )
                 )
         return endpoints
+
+    def _extract_metrics(self, service: ServiceDefinition, constants: dict[str, str]) -> list[MetricInfo]:
+        metrics: list[MetricInfo] = []
+        seen: set[str] = set()
+        pattern = re.compile(
+            r'counter\s*\(\s*meterRegistry\s*,\s*(?P<constant>\w+)\s*,\s*"(?P<description>[^"]+)"\s*\)',
+            re.MULTILINE,
+        )
+        for path in sorted(service.root.rglob("*Metrics.java")):
+            content = self._read_text(path)
+            for match in pattern.finditer(content):
+                constant_name = match.group("constant")
+                metric_name = constants.get(constant_name)
+                if not metric_name or metric_name in seen:
+                    continue
+                seen.add(metric_name)
+                metrics.append(
+                    MetricInfo(
+                        name=metric_name,
+                        description=match.group("description").strip(),
+                    )
+                )
+        return metrics
 
     def _extract_entities(self, service: ServiceDefinition) -> list[EntityInfo]:
         entities: list[EntityInfo] = []

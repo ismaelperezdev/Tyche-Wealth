@@ -26,7 +26,7 @@ This page consolidates the backend architecture that is actually implemented tod
 | Service | `user-service` |
 | Spring application name | `user-service` |
 | Default local port | `8080` |
-| HTTP endpoints detected | `6` |
+| HTTP endpoints detected | `8` |
 | Persisted entities detected | `4` |
 | Implementation slices | `config`, `controller`, `dto`, `entity`, `helper`, `mapper`, `repository`, `service`, `web` |
 
