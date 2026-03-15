@@ -49,6 +49,7 @@ nav:
   - Project Context: project-context.md
   - Architecture:
       - System Architecture: architecture/system.md
+      - Observability Architecture: architecture/observability.md
   - Database:
       - Overview: database/overview.md
   - Services:
@@ -58,6 +59,7 @@ nav:
           - API: services/user-service/api.md
           - Data Model: services/user-service/data-model.md
           - Runtime: services/user-service/runtime.md
+          - Observability: services/user-service/observability.md
   - Reports:
       - Overview: reports/index.md
       - Feature Branches: reports/feature/index.md

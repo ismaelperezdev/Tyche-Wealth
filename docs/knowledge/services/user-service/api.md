@@ -8,9 +8,9 @@ This page consolidates the implemented HTTP surface for `user-service`. It repla
 
 | Aspect | Value |
 | --- | --- |
-| Base path families | `/tyche-wealth/user-service/v1/auth` |
+| Base path families | `/tyche-wealth/user-service/v1/auth`, `/tyche-wealth/user-service/v1/user` |
 | Source of truth | `*Api.java` contracts plus DTOs, service helpers, and centralized error handling |
-| Detected APIs | `AuthApi.java` |
+| Detected APIs | `AuthApi.java`, `UserApi.java` |
 
 ## Endpoint Summary
 
@@ -21,6 +21,14 @@ This page consolidates the implemented HTTP surface for `user-service`. It repla
 | `POST` | `/tyche-wealth/user-service/v1/auth/register` | Creates a new user account and returns the created user representation. | Creates persistent user state and is subject to dedicated registration rate limiting. |
 | `POST` | `/tyche-wealth/user-service/v1/auth/login` | Authenticates a user and returns an access token together with refresh-token state. | Issues access and refresh credentials and records authentication metrics. |
 | `POST` | `/tyche-wealth/user-service/v1/auth/refresh` | Validates a refresh token, rotates token state, and returns refreshed credentials. | Validates token state, rotates refresh-token persistence, and returns refreshed credentials. |
+| `POST` | `/tyche-wealth/user-service/v1/auth/logout` | Exposes a code-backed service operation through the HTTP API. | Backed by code-visible controller and service flow. |
+
+### `UserApi.java`
+
+| Method | Path | Purpose | Operational Note |
+| --- | --- | --- | --- |
+| `GET` | `/tyche-wealth/user-service/v1/user/me` | Exposes a code-backed service operation through the HTTP API. | Backed by code-visible controller and service flow. |
+| `DELETE` | `/tyche-wealth/user-service/v1/user/me` | Exposes a code-backed service operation through the HTTP API. | Backed by code-visible controller and service flow. |
 
 ## Implemented Endpoints
 
@@ -43,10 +51,9 @@ Creates a new user account and returns the created user representation.
 
 | Input | Rules |
 | --- | --- |
-| `email` | Email cannot be blank; Email format is invalid; Email must be at most 254 characters; Value is normalized before downstream validation and persistence checks. |
-| `username` | Username cannot be blank; Username must be between 3 and 30 characters; Value is normalized before downstream validation and persistence checks. |
-| `password` | Password cannot be blank; Password must be at least 8 characters; Password must include uppercase, lowercase, number and symbol |
-| Cross-field checks | Password must be at most 72 bytes when UTF-8 encoded |
+| `email` | Must not be blank.; Must be a valid email address.; Length must be at most 254 characters.; Value is normalized before downstream validation and persistence checks. |
+| `username` | Must not be blank.; Length must be between 3 and 30 characters.; Value is normalized before downstream validation and persistence checks. |
+| `password` | Must not be blank.; Length must be at least 8 characters.; Must match the configured format policy. |
 
 #### Runtime Constraints
 
@@ -84,9 +91,8 @@ Authenticates a user and returns an access token together with refresh-token sta
 
 | Input | Rules |
 | --- | --- |
-| `email` | Email cannot be blank; Email format is invalid; Email must be at most 254 characters; Value is normalized before downstream validation and persistence checks. |
-| `password` | Password cannot be blank; Password must be at least 8 characters; Password must include uppercase, lowercase, number and symbol |
-| Cross-field checks | Password must be at most 72 bytes when UTF-8 encoded |
+| `email` | Must not be blank.; Must be a valid email address.; Length must be at most 254 characters.; Value is normalized before downstream validation and persistence checks. |
+| `password` | Must not be blank.; Length must be at least 8 characters.; Must match the configured format policy. |
 
 #### Runtime Constraints
 
@@ -124,7 +130,7 @@ Validates a refresh token, rotates token state, and returns refreshed credential
 
 | Input | Rules |
 | --- | --- |
-| `refreshToken` | Refresh token cannot be blank |
+| `refreshToken` | Must not be blank. |
 
 #### Runtime Constraints
 
@@ -141,10 +147,111 @@ Validates a refresh token, rotates token state, and returns refreshed credential
 | `429 Too Many Requests` | The endpoint-specific rate-limit interceptor blocks the request because the active window has been exceeded. |
 | Error payload shape | Centralized through `ErrorHandler`, which maps validation, auth, rate-limit, and generic failures to the API response contract. |
 
+---
+
+### `POST /tyche-wealth/user-service/v1/auth/logout`
+
+#### Purpose
+
+Exposes a code-backed service operation through the HTTP API.
+
+#### Contract
+
+| Contract Item | Value |
+| --- | --- |
+| Success status | `200 OK` |
+| Source API | `AuthApi.java` |
+| Request DTO | `RefreshTokenRequestDto` |
+| Response DTO | `Void` |
+
+#### Validation Snapshot
+
+| Input | Rules |
+| --- | --- |
+| `refreshToken` | Must not be blank. |
+
+#### Runtime Constraints
+
+- Validation failures are aggregated by the centralized `ErrorHandler` instead of being returned ad hoc from each controller method.
+
+#### Error Behavior
+
+| Status | When it happens |
+| --- | --- |
+| `400 Bad Request` | DTO validation fails, request JSON is malformed, or an auth-specific password format rule rejects the payload. |
+| Error payload shape | Centralized through `ErrorHandler`, which maps validation, auth, rate-limit, and generic failures to the API response contract. |
+
+---
+
+### `GET /tyche-wealth/user-service/v1/user/me`
+
+#### Purpose
+
+Exposes a code-backed service operation through the HTTP API.
+
+#### Contract
+
+| Contract Item | Value |
+| --- | --- |
+| Success status | `200 OK` |
+| Source API | `UserApi.java` |
+| Request DTO | `N/A` |
+| Response DTO | `UserResponseDto` |
+
+#### Validation Snapshot
+
+| Input | Rules |
+| --- | --- |
+| Request body | No request DTO is associated with this endpoint. |
+
+#### Runtime Constraints
+
+- Validation failures are aggregated by the centralized `ErrorHandler` instead of being returned ad hoc from each controller method.
+
+#### Error Behavior
+
+| Status | When it happens |
+| --- | --- |
+| `400 Bad Request` | DTO validation fails, request JSON is malformed, or an auth-specific password format rule rejects the payload. |
+| Error payload shape | Centralized through `ErrorHandler`, which maps validation, auth, rate-limit, and generic failures to the API response contract. |
+
+---
+
+### `DELETE /tyche-wealth/user-service/v1/user/me`
+
+#### Purpose
+
+Exposes a code-backed service operation through the HTTP API.
+
+#### Contract
+
+| Contract Item | Value |
+| --- | --- |
+| Success status | `200 OK` |
+| Source API | `UserApi.java` |
+| Request DTO | `N/A` |
+| Response DTO | `Void` |
+
+#### Validation Snapshot
+
+| Input | Rules |
+| --- | --- |
+| Request body | No request DTO is associated with this endpoint. |
+
+#### Runtime Constraints
+
+- Validation failures are aggregated by the centralized `ErrorHandler` instead of being returned ad hoc from each controller method.
+
+#### Error Behavior
+
+| Status | When it happens |
+| --- | --- |
+| `400 Bad Request` | DTO validation fails, request JSON is malformed, or an auth-specific password format rule rejects the payload. |
+| Error payload shape | Centralized through `ErrorHandler`, which maps validation, auth, rate-limit, and generic failures to the API response contract. |
+
 ## Flows and Sequence Diagrams
 
 ### Register Flow
-
 ```mermaid
 %%{init: {
   "theme": "base",
@@ -197,7 +304,6 @@ flowchart LR
 ```
 
 ### Login Sequence
-
 ```mermaid
 %%{init: {
   "theme": "base",
@@ -264,7 +370,6 @@ sequenceDiagram
 ```
 
 ### Refresh Sequence
-
 ```mermaid
 %%{init: {
   "theme": "base",
@@ -334,7 +439,6 @@ sequenceDiagram
 ```
 
 ### Refresh Token Lifecycle
-
 ```mermaid
 %%{init: {
   "theme": "base",

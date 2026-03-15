@@ -68,6 +68,8 @@ class BaseServiceRenderer:
             return self.render_service_data_model()
         if doc_type == "service-runtime":
             return self.render_service_runtime()
+        if doc_type == "service-observability":
+            return self.render_service_observability()
         return None
 
     def _mermaid_block(self, *lines: str) -> str:
@@ -170,6 +172,7 @@ Configuration files:
 | `{docs_prefix}/api.md` | Implemented endpoints, validation rules, and API diagrams. |
 | `{docs_prefix}/data-model.md` | Entities, relationships, and persistence details. |
 | `{docs_prefix}/runtime.md` | Setup, runtime configuration, security, and operations. |
+| `{docs_prefix}/observability.md` | Dashboard intent, metric groups, and operational checks. |
 """
 
     def render_service_overview(self) -> str:
@@ -220,6 +223,7 @@ Configuration files:
 - `docs/knowledge/services/{self.service.name}/api.md`
 - `docs/knowledge/services/{self.service.name}/data-model.md`
 - `docs/knowledge/services/{self.service.name}/runtime.md`
+- `docs/knowledge/services/{self.service.name}/observability.md`
 - `docs/knowledge/project-context.md`
 """
 
@@ -322,6 +326,43 @@ This page consolidates local setup, runtime configuration, security, and operati
 {self._runtime_limitations()}
 """
 
+    def render_service_observability(self) -> str:
+        return f"""# {self._service_title()} Observability
+
+## Overview
+
+This page explains the operational checks currently provided by the `{self.service.name}` Grafana dashboard and how those checks map to the metrics exposed by the service.
+
+## Dashboard Summary
+
+| Topic | Current State |
+| --- | --- |
+| Service | `{self.service.name}` |
+| Dashboard file | `observability/grafana/dashboards/tyche-user-service-overview.json` |
+| Datasource | Prometheus |
+| Main scope | Auth flow, user flow, HTTP behavior, and runtime health |
+
+## Dashboard Representation
+
+The current dashboard is organized by diagnostic intent rather than by raw metric family.
+
+{self._service_observability_layout()}
+
+## What The Dashboard Checks
+
+{self._service_observability_checks()}
+
+## Metric Notes
+
+{self._service_observability_notes()}
+
+## Operational Notes
+
+- Some panels are range-based, so they can legitimately appear empty when the selected time window does not include traffic for that flow.
+- `tyche_user_unauthorized_total` is narrower than all HTTP `401` responses, which is why the dashboard also includes a dedicated `HTTP 401 by endpoint` view.
+- This page should be updated whenever the dashboard layout, Prometheus queries, or service metrics change in a way that alters what the operational view is intended to confirm.
+"""
+
     def render_database_overview(self) -> str:
         tables = self._database_entity_inventory()
         return f"""## {self.service.name}
@@ -362,6 +403,14 @@ This page consolidates local setup, runtime configuration, security, and operati
         if has_rate_limit:
             lines.append('  Api --> RateLimit["Rate Limit Interceptors"]')
         return self._mermaid_block(*lines)
+
+    def render_observability_architecture(self) -> str:
+        return self._mermaid_block(
+            "flowchart LR",
+            '  App["user-service"] --> Endpoint["/actuator/prometheus"]',
+            '  Endpoint --> Prom["Prometheus"]',
+            '  Prom --> Graf["Grafana"]',
+        )
 
     def render_system_summary(self) -> str:
         props = self.facts.application_properties
@@ -439,6 +488,40 @@ This page consolidates local setup, runtime configuration, security, and operati
             "- Configuration and web classes provide security, rate limiting, and request interception support.",
         ]
         return "\n".join(parts)
+
+    def _service_observability_layout(self) -> str:
+        return self._mermaid_block(
+            "flowchart TD",
+            '  A["Top row: total app requests, successful operations, error signals, rate-limited requests"]',
+            '  B["Second row: HTTP request rate by endpoint and HTTP max latency by endpoint"]',
+            '  C["Third row: auth activity in selected range and user metrics in selected range"]',
+            '  D["Bottom row: CPU usage, heap used total, live threads, HTTP 401 by endpoint"]',
+            "  A --> B --> C --> D",
+        )
+
+    def _service_observability_checks(self) -> str:
+        return "\n".join(
+            [
+                "| Area | Metrics used | What it helps validate |",
+                "| --- | --- | --- |",
+                "| App totals | `tyche_auth_*`, `tyche_user_*` | Whether the service is receiving requests and producing successful or failed domain operations. |",
+                "| HTTP traffic | `http_server_requests_*` | Which endpoints are active and whether request volume or latency shifts by route. |",
+                "| Auth flow | `tyche_auth_*` | Login, refresh, token issue, token revoke, and auth rate-limiting behavior in the selected range. |",
+                "| User flow | `tyche_user_*` | Retrieve, update, password update, delete, and user-domain error activity in the selected range. |",
+                "| Runtime health | `jvm_*`, `jdbc_*`, `system_cpu_usage` | CPU, heap pressure, live threads, and datasource health. |",
+                '| Unauthorized responses | `http_server_requests_seconds_count{status="401"}` | Which endpoints are returning `401` responses in the selected range. |',
+            ]
+        )
+
+    def _service_observability_notes(self) -> str:
+        return "\n".join(
+            [
+                "- `tyche_auth_*` metrics are business-facing auth counters and should be used to inspect auth flow outcomes rather than raw HTTP behavior alone.",
+                "- `tyche_user_*` metrics are business-facing user counters and include domain signals such as unauthorized user access, not found, or password-related validation failures.",
+                "- `http_server_requests_*` metrics provide the technical HTTP view and are useful when raw response behavior needs to be correlated with domain counters.",
+                "- `jvm_*` and `jdbc_*` metrics provide runtime context and should be read as supporting health signals rather than domain outcomes.",
+            ]
+        )
 
     def _database_snapshot_table(self) -> str:
         return "\n".join(
@@ -1186,6 +1269,8 @@ class DeterministicRenderer:
             return None
         if doc_path == self.catalog.docs_root / "architecture" / "system.md":
             return self._render_system_page(facts_by_service)
+        if doc_path == self.catalog.docs_root / "architecture" / "observability.md":
+            return self._render_observability_page(facts_by_service)
         if doc_path == self.catalog.docs_root / "database" / "overview.md":
             return self._render_database_page(facts_by_service)
         service = self.catalog.get_service_for_doc(doc_path)
@@ -1230,6 +1315,11 @@ class DeterministicRenderer:
                         '<strong>Data Model</strong>',
                         "<p>Entities, relationships, schema notes, and database structure.</p>",
                         "</a>",
+                        f'<a class="tyche-card" href="services/{service.name}/observability/">',
+                        '<span class="tyche-card__eyebrow">Operations</span>',
+                        '<strong>Observability</strong>',
+                        "<p>Dashboard intent, metric groups, and operational checks.</p>",
+                        "</a>",
                         "</div>",
                     ]
                 )
@@ -1247,6 +1337,11 @@ class DeterministicRenderer:
                 '<span class="tyche-card__eyebrow">Architecture</span>',
                 "<strong>System Architecture</strong>",
                 "<p>Repository-level layering, interactions, and service boundaries.</p>",
+                "</a>",
+                '<a class="tyche-card tyche-card--soft" href="architecture/observability/">',
+                '<span class="tyche-card__eyebrow">Operations</span>',
+                "<strong>Observability Architecture</strong>",
+                "<p>Shared Prometheus and Grafana flow, metric families, and repository config layout.</p>",
                 "</a>",
                 '<a class="tyche-card tyche-card--soft" href="database/overview/">',
                 '<span class="tyche-card__eyebrow">Persistence</span>',
@@ -1460,6 +1555,66 @@ class DeterministicRenderer:
                 "## Source of Truth",
                 "",
                 "- JPA entities and changelog files are the source of truth for this page.",
+                "",
+            ]
+        )
+
+    def _render_observability_page(self, facts_by_service: dict[str, ServiceFacts]) -> str:
+        renderer = None
+        if facts_by_service:
+            first_facts = facts_by_service[sorted(facts_by_service.keys())[0]]
+            renderer = self._get_service_renderer(first_facts.service, first_facts)
+        diagram = renderer.render_observability_architecture() if renderer else "No observability diagram available."
+        return "\n".join(
+            [
+                "# Observability Architecture",
+                "",
+                "## Overview",
+                "",
+                "This page documents the observability flow that is currently implemented in the repository and the role of Prometheus and Grafana in the local stack.",
+                "",
+                "## Repository Snapshot",
+                "",
+                "| Aspect | Current State |",
+                "| --- | --- |",
+                "| Metrics producer | `user-service` |",
+                "| Metrics endpoint | `/actuator/prometheus` |",
+                "| Metrics collector | Prometheus |",
+                "| Dashboard layer | Grafana |",
+                "| Grafana repository configuration | `observability/grafana/` |",
+                "",
+                "## Implemented Flow",
+                "",
+                "- `user-service` exposes Prometheus-formatted metrics through Spring Boot Actuator.",
+                "- Prometheus scrapes the exposed metrics endpoint and stores the resulting time-series locally.",
+                "- Grafana uses Prometheus as its datasource and renders dashboard panels for operational inspection.",
+                "",
+                "## Interaction Diagram",
+                "",
+                diagram,
+                "",
+                "## Configuration Layout",
+                "",
+                "| Path | Purpose |",
+                "| --- | --- |",
+                "| `observability/grafana/provisioning/datasources/prometheus.yml` | Grafana datasource provisioning for Prometheus. |",
+                "| `observability/grafana/provisioning/dashboards/dashboards.yml` | Grafana dashboard provisioning configuration. |",
+                "| `observability/grafana/dashboards/tyche-user-service-overview.json` | Initial dashboard definition for `user-service`. |",
+                "",
+                "## Metrics Families",
+                "",
+                "| Metrics family | What it covers |",
+                "| --- | --- |",
+                "| `tyche_auth_*` | Auth-domain requests, outcomes, token lifecycle, and rate-limiting signals. |",
+                "| `tyche_user_*` | User-domain requests, success outcomes, and domain-specific error signals. |",
+                "| `http_server_requests_*` | Endpoint traffic, latency, and response status observations. |",
+                "| `jvm_*` | JVM memory, threads, and runtime state. |",
+                "| `jdbc_*` | Datasource and connection-pool state. |",
+                "",
+                "## Notes",
+                "",
+                "- The current repository contains one implemented service, so the observability flow is presently centered on `user-service`.",
+                "- Dashboard panels are operational views over Prometheus data and should be interpreted together with the selected time range and generated traffic.",
                 "",
             ]
         )

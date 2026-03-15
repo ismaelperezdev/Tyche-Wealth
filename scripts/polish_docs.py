@@ -21,6 +21,7 @@ from reporting import format_path_list, write_script_report
 
 DEFAULT_DOCS = [
     CATALOG.docs_root / "architecture" / "system.md",
+    CATALOG.docs_root / "architecture" / "observability.md",
     CATALOG.docs_root / "database" / "overview.md",
     *[
         path
@@ -30,6 +31,7 @@ DEFAULT_DOCS = [
             CATALOG.docs_root / "services" / service.name / "api.md",
             CATALOG.docs_root / "services" / service.name / "data-model.md",
             CATALOG.docs_root / "services" / service.name / "runtime.md",
+            CATALOG.docs_root / "services" / service.name / "observability.md",
         ]
     ],
 ]
