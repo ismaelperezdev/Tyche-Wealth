@@ -9,7 +9,6 @@ import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.mapper.user.UserMapper;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.UserService;
-import com.tychewealth.service.helper.AuthTokenHelper;
 import com.tychewealth.service.helper.user.UserHelper;
 import com.tychewealth.service.monitoring.UserMetrics;
 import lombok.AllArgsConstructor;
@@ -23,41 +22,34 @@ public class UserServiceImpl implements UserService {
 
   private final UserRepository userRepository;
   private final UserMapper userMapper;
-  private final AuthTokenHelper authTokenHelper;
   private final UserHelper userHelper;
   private final UserMetrics userMetrics;
 
   @Override
-  public UserResponseDto retrieve(String authorizationHeader) {
-    Long id = authTokenHelper.extractUserId(authorizationHeader);
-
-    return userMapper.toDto(findActiveUser(id));
+  public UserResponseDto retrieve(Long userId) {
+    return userMapper.toDto(findActiveUser(userId));
   }
 
   @Override
   @Transactional
-  public UserResponseDto update(String authorizationHeader, UserUpdateRequestDto updateRequest) {
-    Long id = authTokenHelper.extractUserId(authorizationHeader);
-    UserEntity user = findActiveUser(id);
+  public UserResponseDto update(Long userId, UserUpdateRequestDto updateRequest) {
+    UserEntity user = findActiveUser(userId);
 
     return userMapper.toDto(userHelper.update(user, updateRequest));
   }
 
   @Override
   @Transactional
-  public Long updatePassword(
-      String authorizationHeader, UserPasswordUpdateRequestDto updatePasswordRequest) {
-    Long id = authTokenHelper.extractUserId(authorizationHeader);
-    UserEntity user = findActiveUser(id);
+  public Long updatePassword(Long userId, UserPasswordUpdateRequestDto updatePasswordRequest) {
+    UserEntity user = findActiveUser(userId);
 
     return userHelper.updatePassword(user, updatePasswordRequest);
   }
 
   @Override
   @Transactional
-  public Long delete(String authorizationHeader) {
-    Long id = authTokenHelper.extractUserId(authorizationHeader);
-    UserEntity user = findActiveUser(id);
+  public Long delete(Long userId) {
+    UserEntity user = findActiveUser(userId);
 
     return userHelper.softDelete(user);
   }

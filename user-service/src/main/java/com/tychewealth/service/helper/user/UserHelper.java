@@ -5,7 +5,7 @@ import com.tychewealth.dto.user.request.UserUpdateRequestDto;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.mapper.user.UserMapper;
 import com.tychewealth.repository.UserRepository;
-import com.tychewealth.service.helper.AuthRefreshTokenHelper;
+import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
