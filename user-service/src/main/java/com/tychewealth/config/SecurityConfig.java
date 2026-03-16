@@ -6,6 +6,8 @@ import com.tychewealth.error.handler.ErrorResponse;
 import com.tychewealth.service.monitoring.UserMetrics;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -13,7 +15,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -23,6 +24,9 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Slf4j
 @Configuration
@@ -34,10 +38,11 @@ public class SecurityConfig {
       JwtAuthenticationFilter jwtAuthenticationFilter,
       AuthenticationEntryPoint authenticationEntryPoint,
       AccessDeniedHandler accessDeniedHandler,
+      CorsConfigurationSource corsConfigurationSource,
       @Value("${app.security.docs-public:false}") boolean docsPublic)
       throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
-        .cors(Customizer.withDefaults())
+        .cors(cors -> cors.configurationSource(corsConfigurationSource))
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .exceptionHandling(
@@ -98,6 +103,20 @@ public class SecurityConfig {
     return new BCryptPasswordEncoder();
   }
 
+  @Bean
+  public CorsConfigurationSource corsConfigurationSource(
+      @Value("${app.security.cors.allowed-origins:http://localhost:3000}") String allowedOrigins) {
+    CorsConfiguration configuration = new CorsConfiguration();
+    configuration.setAllowedOrigins(parseAllowedOrigins(allowedOrigins));
+    configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
+    configuration.setAllowedHeaders(List.of("*"));
+    configuration.setAllowCredentials(true);
+
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", configuration);
+    return source;
+  }
+
   private void writeErrorResponse(
       HttpServletResponse response,
       ObjectMapper objectMapper,
@@ -117,5 +136,12 @@ public class SecurityConfig {
 
   private boolean isUserRequest(String requestUri) {
     return requestUri != null && requestUri.startsWith("/tyche-wealth/user-service/v1/user");
+  }
+
+  private List<String> parseAllowedOrigins(String allowedOrigins) {
+    return Arrays.stream(allowedOrigins.split(","))
+        .map(String::trim)
+        .filter(origin -> !origin.isBlank())
+        .toList();
   }
 }
