@@ -17,6 +17,8 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 
 COPY --from=build /app/target/*.jar app.jar
+RUN useradd --system --create-home --uid 10001 appuser
+USER 10001:10001
 
 EXPOSE 8080
 
