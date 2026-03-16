@@ -78,6 +78,26 @@ flowchart LR
 | `observability/grafana/provisioning/datasources/prometheus.yml` | Grafana datasource provisioning for Prometheus. |
 | `observability/grafana/provisioning/dashboards/dashboards.yml` | Grafana dashboard provisioning configuration. |
 | `observability/grafana/dashboards/tyche-user-service-overview.json` | Initial dashboard definition for `user-service`. |
+| `docker-compose.yml` | Local container stack wiring for `user-service`, Prometheus, and Grafana. |
+| `docker/prometheus/entrypoint.sh` | Runtime generation of Prometheus config from local-only secrets. |
+| `docker/grafana/entrypoint.sh` | Runtime injection of Grafana admin credentials from local-only secrets. |
+
+## Docker Stack
+
+| Aspect | Current State |
+| --- | --- |
+| Compose file | `docker-compose.yml` |
+| `user-service` containerized | Yes |
+| `prometheus` containerized | Yes |
+| `grafana` containerized | Yes |
+| `postgres` profile | `db` profile (optional local container) |
+| Local bind for app | `127.0.0.1:${USER_SERVICE_PORT:-8080}:8080` |
+| Local bind for Prometheus | `127.0.0.1:${PROMETHEUS_PORT:-9090}:9090` |
+| Local bind for Grafana | `127.0.0.1:${GRAFANA_PORT:-3001}:3000` |
+
+- The local stack is intended for workstation use and publishes the app, Prometheus, and Grafana only on loopback (`127.0.0.1`).
+- Prometheus and Grafana bootstrap local-only credentials through entrypoint scripts instead of storing resolved secrets in committed container environment values.
+- `user-service` currently connects to the host PostgreSQL instance for the main local workflow, while the Compose `postgres` service is retained as an optional profile-backed container.
 
 ## Metrics Families
 
