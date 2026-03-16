@@ -38,8 +38,6 @@
 ## Security and Operational Notes
 
 - Password handling is centralized in `SecurityConfig` through a `BCryptPasswordEncoder`, so raw credentials are not persisted directly from controller input.
-- Access tokens are signed as JWTs with `HS256`; the signing secret is injected from `app.auth.jwt.secret`, and the configured access-token TTL is `${JWT_ACCESS_TOKEN_TTL_SECONDS:900}` seconds.
-- Refresh tokens are generated with `SecureRandom`, encoded for transport, persisted in the `refresh_tokens` table, and revoked or rotated on use; the configured refresh-token TTL is `${JWT_REFRESH_TOKEN_TTL_SECONDS:1209600}` seconds.
 - Register, login, and refresh routes are protected by dedicated MVC interceptors. Throttling is keyed by `HttpServletRequest.getRemoteAddr()` and enforced before the request reaches controller logic.
 - Registration is limited to `${AUTH_REGISTER_RATE_LIMIT_MAX_REQUESTS:5}` requests per `${AUTH_REGISTER_RATE_LIMIT_WINDOW_SECONDS:300}` seconds per client address.
 - Login is limited to `${AUTH_LOGIN_RATE_LIMIT_MAX_REQUESTS:10}` requests per `${AUTH_LOGIN_RATE_LIMIT_WINDOW_SECONDS:60}` seconds per client address.

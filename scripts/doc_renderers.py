@@ -1668,6 +1668,7 @@ class DeterministicRenderer:
             first_facts = facts_by_service[sorted(facts_by_service.keys())[0]]
             renderer = self._get_service_renderer(first_facts.service, first_facts)
         diagram = renderer.render_observability_architecture() if renderer else "No observability diagram available."
+        docker_section = self._render_docker_observability_section()
         return "\n".join(
             [
                 "# Observability Architecture",
@@ -1703,6 +1704,13 @@ class DeterministicRenderer:
                 "| `observability/grafana/provisioning/datasources/prometheus.yml` | Grafana datasource provisioning for Prometheus. |",
                 "| `observability/grafana/provisioning/dashboards/dashboards.yml` | Grafana dashboard provisioning configuration. |",
                 "| `observability/grafana/dashboards/tyche-user-service-overview.json` | Initial dashboard definition for `user-service`. |",
+                "| `docker-compose.yml` | Local container stack wiring for `user-service`, Prometheus, and Grafana. |",
+                "| `docker/prometheus/entrypoint.sh` | Runtime generation of Prometheus config from local-only secrets. |",
+                "| `docker/grafana/entrypoint.sh` | Runtime injection of Grafana admin credentials from local-only secrets. |",
+                "",
+                "## Docker Stack",
+                "",
+                docker_section,
                 "",
                 "## Metrics Families",
                 "",
@@ -1723,3 +1731,41 @@ class DeterministicRenderer:
                 "",
             ]
         )
+
+    def _render_docker_observability_section(self) -> str:
+        compose_path = self.catalog.repo_root / "docker-compose.yml"
+        if not compose_path.exists():
+            return "No `docker-compose.yml` file was detected in the repository root."
+
+        compose_text = compose_path.read_text(encoding="utf-8")
+
+        def has_service(name: str) -> bool:
+            return f"  {name}:" in compose_text or f"\n{name}:" in compose_text
+
+        def published_port(default_port: str) -> str:
+            marker = f'127.0.0.1:${{{default_port}'
+            for line in compose_text.splitlines():
+                if marker in line:
+                    return line.strip().strip('-').strip().strip('"')
+            return "not detected"
+
+        lines = [
+            "| Aspect | Current State |",
+            "| --- | --- |",
+            f"| Compose file | `docker-compose.yml` |",
+            f"| `user-service` containerized | {'Yes' if has_service('user-service') else 'No'} |",
+            f"| `prometheus` containerized | {'Yes' if has_service('prometheus') else 'No'} |",
+            f"| `grafana` containerized | {'Yes' if has_service('grafana') else 'No'} |",
+            f"| `postgres` profile | `db` profile (optional local container) |" if 'profiles:' in compose_text and 'db' in compose_text else "| `postgres` profile | always-on or not detected |",
+            f"| Local bind for app | `{published_port('USER_SERVICE_PORT:-8080')}` |",
+            f"| Local bind for Prometheus | `{published_port('PROMETHEUS_PORT:-9090')}` |",
+            f"| Local bind for Grafana | `{published_port('GRAFANA_PORT:-3001')}` |",
+        ]
+
+        notes = [
+            "- The local stack is intended for workstation use and publishes the app, Prometheus, and Grafana only on loopback (`127.0.0.1`).",
+            "- Prometheus and Grafana bootstrap local-only credentials through entrypoint scripts instead of storing resolved secrets in committed container environment values.",
+            "- `user-service` currently connects to the host PostgreSQL instance for the main local workflow, while the Compose `postgres` service is retained as an optional profile-backed container.",
+        ]
+
+        return "\n".join(lines + ["", *notes])

@@ -226,8 +226,6 @@ flowchart LR
 ## Security and Operational Notes
 
 - Password handling is centralized in `SecurityConfig` through a `BCryptPasswordEncoder`, so raw credentials are not persisted directly from controller input.
-- Access tokens are signed as JWTs with `HS256`; the signing secret is injected from `app.auth.jwt.secret`, and the configured access-token TTL is `${JWT_ACCESS_TOKEN_TTL_SECONDS:900}` seconds.
-- Refresh tokens are generated with `SecureRandom`, encoded for transport, persisted in the `refresh_tokens` table, and revoked or rotated on use; the configured refresh-token TTL is `${JWT_REFRESH_TOKEN_TTL_SECONDS:1209600}` seconds.
 - Register, login, and refresh routes are protected by dedicated MVC interceptors. Throttling is keyed by `HttpServletRequest.getRemoteAddr()` and enforced before the request reaches controller logic.
 - Registration is limited to `${AUTH_REGISTER_RATE_LIMIT_MAX_REQUESTS:5}` requests per `${AUTH_REGISTER_RATE_LIMIT_WINDOW_SECONDS:300}` seconds per client address.
 - Login is limited to `${AUTH_LOGIN_RATE_LIMIT_MAX_REQUESTS:10}` requests per `${AUTH_LOGIN_RATE_LIMIT_WINDOW_SECONDS:60}` seconds per client address.
@@ -252,8 +250,6 @@ flowchart LR
 | Web / Interceptor | `2` files |
 | Application Smoke | `1` files |
 | Test resource files | `13` fixtures and auxiliary files |
-| Current line coverage | `85.62%` |
-| Current branch coverage | `51.55%` |
 | Coverage instrumentation | JaCoCo Maven plugin is configured in the service build lifecycle. |
 | Coverage report | HTML report is generated at `user-service/target/site/jacoco/index.html` after `mvn verify`. |
 
@@ -261,9 +257,9 @@ flowchart LR
 - Repository tests cover the persistence layer directly, which is useful when changing entities, queries, or Liquibase-backed assumptions.
 - Rate-limiting and web interception behavior has dedicated tests, which matters because auth throttling is part of the live contract.
 - Mapper tests exist, so DTO and entity translation logic is not left completely implicit.
-- Current JaCoCo totals are `85.62%` line coverage and `51.55%` branch coverage, based on the latest generated report in `target/site/jacoco/jacoco.xml`.
 - JaCoCo is wired into the Maven `verify` phase, so the service can publish a coverage report instead of relying only on raw test counts.
 - Coverage review should start from `user-service/target/site/jacoco/index.html` after a local or CI `mvn verify` run.
+- No current coverage percentage is shown because `target/site/jacoco/jacoco.xml` is not present yet for this service.
 
 ## Documentation Links
 

@@ -12,14 +12,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
@@ -33,6 +39,22 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
   @Bean
+  @Order(1)
+  public SecurityFilterChain prometheusSecurityFilterChain(
+      HttpSecurity http, AccessDeniedHandler accessDeniedHandler) throws Exception {
+    http.securityMatcher("/actuator/prometheus")
+        .csrf(AbstractHttpConfigurer::disable)
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(authorize -> authorize.anyRequest().hasRole("PROMETHEUS"))
+        .httpBasic(Customizer.withDefaults())
+        .exceptionHandling(exceptions -> exceptions.accessDeniedHandler(accessDeniedHandler));
+
+    return http.build();
+  }
+
+  @Bean
+  @Order(2)
   public SecurityFilterChain securityFilterChain(
       HttpSecurity http,
       JwtAuthenticationFilter jwtAuthenticationFilter,
@@ -70,6 +92,19 @@ public class SecurityConfig {
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
+  }
+
+  @Bean
+  public UserDetailsService prometheusUserDetailsService(
+      @Value("${app.security.prometheus.username}") String prometheusUsername,
+      @Value("${app.security.prometheus.password}") String prometheusPassword,
+      PasswordEncoder passwordEncoder) {
+    UserDetails prometheusUser =
+        User.withUsername(prometheusUsername)
+            .password(passwordEncoder.encode(prometheusPassword))
+            .roles("PROMETHEUS")
+            .build();
+    return new InMemoryUserDetailsManager(prometheusUser);
   }
 
   @Bean
