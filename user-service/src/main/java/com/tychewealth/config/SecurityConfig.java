@@ -106,11 +106,14 @@ public class SecurityConfig {
   @Bean
   public CorsConfigurationSource corsConfigurationSource(
       @Value("${app.security.cors.allowed-origins:http://localhost:3000}") String allowedOrigins) {
+    List<String> parsedAllowedOrigins = parseAllowedOrigins(allowedOrigins);
+
     CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOrigins(parseAllowedOrigins(allowedOrigins));
+    configuration.setAllowedOrigins(parsedAllowedOrigins);
     configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
     configuration.setAllowedHeaders(List.of("*"));
     configuration.setAllowCredentials(true);
+    configuration.validateAllowCredentials();
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", configuration);
@@ -139,9 +142,26 @@ public class SecurityConfig {
   }
 
   private List<String> parseAllowedOrigins(String allowedOrigins) {
-    return Arrays.stream(allowedOrigins.split(","))
-        .map(String::trim)
-        .filter(origin -> !origin.isBlank())
-        .toList();
+    if (allowedOrigins == null || allowedOrigins.isBlank()) {
+      throw new IllegalStateException("app.security.cors.allowed-origins must not be empty");
+    }
+
+    List<String> origins =
+        Arrays.stream(allowedOrigins.split(","))
+            .map(String::trim)
+            .filter(origin -> !origin.isBlank())
+            .toList();
+
+    if (origins.isEmpty()) {
+      throw new IllegalStateException(
+          "app.security.cors.allowed-origins must contain at least one valid origin");
+    }
+
+    if (origins.stream().anyMatch("*"::equals)) {
+      throw new IllegalStateException(
+          "Wildcard CORS origin '*' is not allowed when allowCredentials is enabled");
+    }
+
+    return origins;
   }
 }
