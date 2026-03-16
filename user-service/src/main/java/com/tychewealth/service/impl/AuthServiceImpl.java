@@ -15,12 +15,12 @@ import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.service.AuthService;
-import com.tychewealth.service.helper.AuthRefreshTokenHelper;
-import com.tychewealth.service.helper.AuthTokenHelper;
-import com.tychewealth.service.helper.TokenValidationHelper;
 import com.tychewealth.service.helper.auth.AuthLoginHelper;
 import com.tychewealth.service.helper.auth.AuthRegisterHelper;
 import com.tychewealth.service.helper.auth.AuthValidationHelper;
+import com.tychewealth.service.helper.token.AccessTokenHelper;
+import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
+import com.tychewealth.service.helper.token.TokenValidationHelper;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.AuthTokenPayload;
 import java.time.Instant;
@@ -42,7 +42,7 @@ public class AuthServiceImpl implements AuthService {
   private final AuthRegisterHelper authRegisterHelper;
   private final AuthLoginHelper authLoginHelper;
   private final AuthRefreshTokenHelper authRefreshTokenHelper;
-  private final AuthTokenHelper authTokenHelper;
+  private final AccessTokenHelper accessTokenHelper;
   private final TokenValidationHelper tokenValidationHelper;
   private final AuthMetrics authMetrics;
 
@@ -85,7 +85,7 @@ public class AuthServiceImpl implements AuthService {
         authRefreshTokenHelper.validateRefreshToken(refreshTokenRequestDto.getRefreshToken());
 
     UserEntity user = currentRefreshToken.getUser();
-    AuthTokenPayload accessTokenPayload = authTokenHelper.generateAccessToken(user);
+    AuthTokenPayload accessTokenPayload = accessTokenHelper.generateAccessToken(user);
 
     String newRefreshToken = authRefreshTokenHelper.generateRefreshToken();
     Instant newRefreshTokenExpiration = authRefreshTokenHelper.calculateRefreshTokenExpiration();

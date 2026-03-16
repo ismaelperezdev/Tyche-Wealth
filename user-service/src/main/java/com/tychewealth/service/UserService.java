@@ -6,12 +6,11 @@ import com.tychewealth.dto.user.request.UserUpdateRequestDto;
 
 public interface UserService {
 
-  UserResponseDto retrieve(String authorizationHeader);
+  UserResponseDto retrieve(Long userId);
 
-  UserResponseDto update(String authorizationHeader, UserUpdateRequestDto updateRequest);
+  UserResponseDto update(Long userId, UserUpdateRequestDto updateRequest);
 
-  Long updatePassword(
-      String authorizationHeader, UserPasswordUpdateRequestDto updatePasswordRequest);
+  Long updatePassword(Long userId, UserPasswordUpdateRequestDto updatePasswordRequest);
 
-  Long delete(String authorizationHeader);
+  Long delete(Long userId);
 }

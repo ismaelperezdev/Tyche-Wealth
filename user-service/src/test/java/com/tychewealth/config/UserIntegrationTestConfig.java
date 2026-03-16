@@ -4,45 +4,51 @@ import com.tychewealth.controller.impl.UserApiController;
 import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.handler.ErrorHandler;
-import com.tychewealth.mapper.user.UserMapper;
+import com.tychewealth.mapper.user.UserMapperImpl;
 import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.UserRepository;
-import com.tychewealth.service.helper.AuthRefreshTokenHelper;
-import com.tychewealth.service.helper.AuthTokenHelper;
+import com.tychewealth.service.helper.token.AccessTokenHelper;
+import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
+import com.tychewealth.service.helper.token.TokenValidationHelper;
 import com.tychewealth.service.helper.user.UserHelper;
 import com.tychewealth.service.helper.user.UserValidationHelper;
 import com.tychewealth.service.impl.UserServiceImpl;
-import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.monitoring.UserMetrics;
+import org.mockito.Mockito;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
 import org.springframework.boot.test.util.TestPropertyValues;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootConfiguration
-@EnableAutoConfiguration
-@Import(IntegrationTestConfig.class)
-@ComponentScan(
-    basePackageClasses = {
-      UserApiController.class,
-      UserServiceImpl.class,
-      AuthTokenHelper.class,
-      AuthMetrics.class,
-      UserMetrics.class,
-      ErrorHandler.class,
-      UserMapper.class,
-      AuthRefreshTokenHelper.class,
-      UserHelper.class,
-      UserValidationHelper.class
-    })
+@EnableAutoConfiguration(exclude = UserDetailsServiceAutoConfiguration.class)
+@Import({
+  IntegrationTestConfig.class,
+  UserApiController.class,
+  UserServiceImpl.class,
+  AccessTokenHelper.class,
+  TokenValidationHelper.class,
+  AuthRefreshTokenHelper.class,
+  UserMetrics.class,
+  ErrorHandler.class,
+  UserMapperImpl.class,
+  UserHelper.class,
+  UserValidationHelper.class
+})
 @EnableJpaRepositories(basePackageClasses = {UserRepository.class, RefreshTokenRepository.class})
 @EntityScan(basePackageClasses = {UserEntity.class, RefreshTokenEntity.class})
 public class UserIntegrationTestConfig {
+
+  @Bean
+  public com.tychewealth.service.monitoring.AuthMetrics authMetrics() {
+    return Mockito.mock(com.tychewealth.service.monitoring.AuthMetrics.class);
+  }
 
   public static class Initializer
       implements ApplicationContextInitializer<ConfigurableApplicationContext> {

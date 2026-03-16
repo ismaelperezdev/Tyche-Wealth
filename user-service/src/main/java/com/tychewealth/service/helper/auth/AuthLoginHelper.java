@@ -5,8 +5,8 @@ import com.tychewealth.dto.auth.LoginResponseDto;
 import com.tychewealth.dto.user.UserResponseDto;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.mapper.user.UserMapper;
-import com.tychewealth.service.helper.AuthRefreshTokenHelper;
-import com.tychewealth.service.helper.AuthTokenHelper;
+import com.tychewealth.service.helper.token.AccessTokenHelper;
+import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.AuthTokenPayload;
 import java.time.Instant;
@@ -19,14 +19,14 @@ import org.springframework.stereotype.Component;
 @AllArgsConstructor
 public class AuthLoginHelper {
 
-  private final AuthTokenHelper authTokenHelper;
+  private final AccessTokenHelper accessTokenHelper;
   private final AuthRefreshTokenHelper refreshTokenHelper;
   private final UserMapper userMapper;
   private final AuthMetrics authMetrics;
 
   public LoginResponseDto login(UserEntity user) {
     UserResponseDto response = userMapper.toDto(user);
-    AuthTokenPayload tokenPayload = authTokenHelper.generateAccessToken(user);
+    AuthTokenPayload tokenPayload = accessTokenHelper.generateAccessToken(user);
     refreshTokenHelper.revokeActiveTokensByUserId(user.getId());
     String refreshToken = refreshTokenHelper.generateRefreshToken();
     Instant refreshTokenExpiresAt = refreshTokenHelper.calculateRefreshTokenExpiration();
