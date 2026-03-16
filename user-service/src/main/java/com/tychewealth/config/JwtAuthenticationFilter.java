@@ -13,6 +13,7 @@ import java.util.Collections;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -33,16 +34,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       return;
     }
 
-    if (SecurityContextHolder.getContext().getAuthentication() != null) {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication != null && authentication.isAuthenticated()) {
       filterChain.doFilter(request, response);
       return;
     }
 
     try {
       Long userId = tokenValidationHelper.validateAndExtractUserId(authorizationHeader);
-      UsernamePasswordAuthenticationToken authentication =
+      UsernamePasswordAuthenticationToken authenticatedUser =
           new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
-      SecurityContextHolder.getContext().setAuthentication(authentication);
+      SecurityContextHolder.getContext().setAuthentication(authenticatedUser);
       filterChain.doFilter(request, response);
     } catch (AuthException ex) {
       SecurityContextHolder.clearContext();
