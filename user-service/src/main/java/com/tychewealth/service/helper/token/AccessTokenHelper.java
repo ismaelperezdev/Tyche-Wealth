@@ -10,7 +10,9 @@ import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.service.token.AuthTokenPayload;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
@@ -64,17 +66,24 @@ public class AccessTokenHelper {
 
   public Long extractUserId(String token) {
     try {
-      String subject =
-          Jwts.parser()
-              .verifyWith(signingKey)
-              .build()
-              .parseSignedClaims(token)
-              .getPayload()
-              .getSubject();
-      return Long.valueOf(subject);
+      return Long.valueOf(parseClaims(token).getSubject());
     } catch (JwtException | IllegalArgumentException ex) {
       log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_ACCESS_TOKEN_MESSAGE);
       throw new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);
     }
+  }
+
+  public Instant extractExpiration(String token) {
+    try {
+      return parseClaims(token).getExpiration().toInstant();
+    } catch (JwtException | IllegalArgumentException ex) {
+      log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_ACCESS_TOKEN_MESSAGE);
+      throw new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);
+    }
+  }
+
+  private Claims parseClaims(String token) {
+    JwtParser jwtParser = Jwts.parser().verifyWith(signingKey).build();
+    return jwtParser.parseSignedClaims(token).getPayload();
   }
 }

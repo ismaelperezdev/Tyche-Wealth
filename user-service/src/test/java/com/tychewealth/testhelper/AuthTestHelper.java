@@ -4,6 +4,7 @@ import static com.tychewealth.constants.ApiConstants.AUTH_LOGIN_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_LOGOUT_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_REFRESH_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_REGISTER_URL;
+import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -58,10 +59,22 @@ public final class AuthTestHelper {
 
   public static ResultActions logout(
       MockMvc mockMvc, ObjectMapper objectMapper, String refreshToken) throws Exception {
-    return mockMvc.perform(
+    return logout(mockMvc, objectMapper, null, refreshToken);
+  }
+
+  public static ResultActions logout(
+      MockMvc mockMvc, ObjectMapper objectMapper, String accessToken, String refreshToken)
+      throws Exception {
+    var requestBuilder =
         post(AUTH_LOGOUT_URL)
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(new RefreshTokenRequestDto(refreshToken))));
+            .content(objectMapper.writeValueAsString(new RefreshTokenRequestDto(refreshToken)));
+
+    if (accessToken != null && !accessToken.isBlank()) {
+      requestBuilder.header(AUTHORIZATION_HEADER, "Bearer " + accessToken);
+    }
+
+    return mockMvc.perform(requestBuilder);
   }
 
   public static String buildLongEmail() {

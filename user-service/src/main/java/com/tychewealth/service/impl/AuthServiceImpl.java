@@ -16,6 +16,7 @@ import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.service.AuthService;
 import com.tychewealth.service.helper.auth.AuthLoginHelper;
+import com.tychewealth.service.helper.auth.AuthLogoutHelper;
 import com.tychewealth.service.helper.auth.AuthRegisterHelper;
 import com.tychewealth.service.helper.auth.AuthValidationHelper;
 import com.tychewealth.service.helper.token.AccessTokenHelper;
@@ -41,6 +42,7 @@ public class AuthServiceImpl implements AuthService {
   private final AuthValidationHelper authValidationHelper;
   private final AuthRegisterHelper authRegisterHelper;
   private final AuthLoginHelper authLoginHelper;
+  private final AuthLogoutHelper authLogoutHelper;
   private final AuthRefreshTokenHelper authRefreshTokenHelper;
   private final AccessTokenHelper accessTokenHelper;
   private final TokenValidationHelper tokenValidationHelper;
@@ -101,10 +103,11 @@ public class AuthServiceImpl implements AuthService {
 
   @Override
   @Transactional
-  public void logout(RefreshTokenRequestDto refreshTokenRequestDto) {
+  public void logout(String authorizationHeader, RefreshTokenRequestDto refreshTokenRequestDto) {
     tokenValidationHelper.validateRefreshTokenRequest(refreshTokenRequestDto);
     RefreshTokenEntity refreshToken =
         authRefreshTokenHelper.validateRefreshToken(refreshTokenRequestDto.getRefreshToken());
+    authLogoutHelper.revokeAccessTokenIfPresent(authorizationHeader);
 
     log.info(
         LogConstants.REQUEST_SUCCESS + LogConstants.USER_ID,

@@ -42,6 +42,25 @@ services:
     networks:
       - tyche-network
 
+  redis:
+    image: redis:8-alpine
+    container_name: tyche-redis
+    profiles:
+      - cache
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - tyche-network
+
   prometheus:
     image: prom/prometheus:latest
     container_name: tyche-prometheus
@@ -85,3 +104,4 @@ networks:
 volumes:
   grafana-data:
   postgres-data:
+  redis-data:
