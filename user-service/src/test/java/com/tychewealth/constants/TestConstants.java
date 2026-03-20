@@ -14,6 +14,10 @@ public final class TestConstants {
   public static final String TEST_PASSWORD_TOO_SHORT = "short1!";
   public static final String TEST_PASSWORD_LOWERCASE_ONLY = "alllowercase1!";
   public static final String TEST_PASSWORD_CONFIRM_MISMATCH = "Mismatch456!";
+  public static final String TEST_FIELD_CURRENT_PASSWORD = "currentPassword";
+  public static final String TEST_FIELD_NEW_PASSWORD = "newPassword";
+  public static final String TEST_FIELD_CONFIRM_NEW_PASSWORD = "confirmNewPassword";
+  public static final String TEST_FIELD_USERNAME = "username";
 
   public static final String TEST_UPDATE_USERNAME_REQUEST = "AfterUpdate";
   public static final String TEST_UPDATE_USERNAME_NORMALIZED = "afterupdate";

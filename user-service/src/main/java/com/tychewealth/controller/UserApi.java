@@ -3,6 +3,7 @@ package com.tychewealth.controller;
 import static com.tychewealth.constants.ApiConstants.REQUEST_CONSUMES;
 import static com.tychewealth.constants.ApiConstants.REQUEST_PRODUCES;
 import static com.tychewealth.constants.ApiConstants.USER_BASE_URL;
+import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 
 import com.tychewealth.dto.user.UserResponseDto;
 import com.tychewealth.dto.user.request.UserPasswordUpdateRequestDto;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @RequestMapping(value = USER_BASE_URL)
@@ -31,8 +33,11 @@ public interface UserApi {
   @PatchMapping(value = "/me/password", consumes = REQUEST_CONSUMES)
   ResponseEntity<Void> updatePassword(
       @AuthenticationPrincipal Long userId,
+      @RequestHeader(value = AUTHORIZATION_HEADER, required = false) String authorizationHeader,
       @Valid @RequestBody UserPasswordUpdateRequestDto updatePasswordRequest);
 
   @DeleteMapping(value = "/me")
-  ResponseEntity<Void> delete(@AuthenticationPrincipal Long userId);
+  ResponseEntity<Void> delete(
+      @AuthenticationPrincipal Long userId,
+      @RequestHeader(value = AUTHORIZATION_HEADER, required = false) String authorizationHeader);
 }

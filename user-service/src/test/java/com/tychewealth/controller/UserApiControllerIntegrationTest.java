@@ -3,6 +3,7 @@ package com.tychewealth.controller;
 import static com.tychewealth.constants.ApiConstants.USER_ME_PASSWORD_URL;
 import static com.tychewealth.constants.ApiConstants.USER_ME_URL;
 import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
+import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER_PREFIX;
 import static com.tychewealth.constants.MetricConstants.METRIC_USER_CURRENT_PASSWORD_INVALID;
 import static com.tychewealth.constants.MetricConstants.METRIC_USER_DELETE_REQUESTS;
 import static com.tychewealth.constants.MetricConstants.METRIC_USER_DELETE_SUCCESS;
@@ -178,7 +179,7 @@ class UserApiControllerIntegrationTest {
     mockMvc
         .perform(
             patch(USER_ME_URL)
-                .header("Authorization", "Bearer " + accessToken)
+                .header(AUTHORIZATION_HEADER, TOKEN_TYPE_BEARER_PREFIX + accessToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
         .andExpect(status().isBadRequest())
@@ -271,7 +272,7 @@ class UserApiControllerIntegrationTest {
     mockMvc
         .perform(
             patch(USER_ME_PASSWORD_URL)
-                .header("Authorization", "Bearer " + accessToken)
+                .header(AUTHORIZATION_HEADER, TOKEN_TYPE_BEARER_PREFIX + accessToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
         .andExpect(status().isBadRequest())
@@ -288,7 +289,7 @@ class UserApiControllerIntegrationTest {
     mockMvc
         .perform(
             patch(USER_ME_PASSWORD_URL)
-                .header("Authorization", "Bearer " + accessToken)
+                .header(AUTHORIZATION_HEADER, TOKEN_TYPE_BEARER_PREFIX + accessToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     passwordUpdateRequestBody(

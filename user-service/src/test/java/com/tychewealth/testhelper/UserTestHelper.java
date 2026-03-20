@@ -4,6 +4,10 @@ import static com.tychewealth.constants.ApiConstants.USER_ME_PASSWORD_URL;
 import static com.tychewealth.constants.ApiConstants.USER_ME_URL;
 import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER_PREFIX;
+import static com.tychewealth.constants.TestConstants.TEST_FIELD_CONFIRM_NEW_PASSWORD;
+import static com.tychewealth.constants.TestConstants.TEST_FIELD_CURRENT_PASSWORD;
+import static com.tychewealth.constants.TestConstants.TEST_FIELD_NEW_PASSWORD;
+import static com.tychewealth.constants.TestConstants.TEST_FIELD_USERNAME;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -42,7 +46,7 @@ public final class UserTestHelper {
         patch(USER_ME_URL)
             .header(AUTHORIZATION_HEADER, authorizationHeader(accessToken))
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(Map.of("username", username))));
+            .content(objectMapper.writeValueAsString(Map.of(TEST_FIELD_USERNAME, username))));
   }
 
   public static ResultActions updateRequestUnauthorized(
@@ -50,7 +54,7 @@ public final class UserTestHelper {
     return mockMvc.perform(
         patch(USER_ME_URL)
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(Map.of("username", username))));
+            .content(objectMapper.writeValueAsString(Map.of(TEST_FIELD_USERNAME, username))));
   }
 
   public static ResultActions updatePasswordRequest(
@@ -90,9 +94,9 @@ public final class UserTestHelper {
     try {
       return OBJECT_MAPPER.writeValueAsString(
           Map.of(
-              "currentPassword", currentPassword,
-              "newPassword", newPassword,
-              "confirmNewPassword", confirmNewPassword));
+              TEST_FIELD_CURRENT_PASSWORD, currentPassword,
+              TEST_FIELD_NEW_PASSWORD, newPassword,
+              TEST_FIELD_CONFIRM_NEW_PASSWORD, confirmNewPassword));
     } catch (JsonProcessingException ex) {
       throw new IllegalStateException("Failed to serialize password update request body", ex);
     }
@@ -100,7 +104,7 @@ public final class UserTestHelper {
 
   public static String updateRequestBody(String username) {
     try {
-      return OBJECT_MAPPER.writeValueAsString(Map.of("username", username));
+      return OBJECT_MAPPER.writeValueAsString(Map.of(TEST_FIELD_USERNAME, username));
     } catch (JsonProcessingException ex) {
       throw new IllegalStateException("Failed to serialize update request body", ex);
     }

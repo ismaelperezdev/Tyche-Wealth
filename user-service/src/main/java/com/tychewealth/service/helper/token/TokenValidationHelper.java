@@ -1,9 +1,8 @@
 package com.tychewealth.service.helper.token;
 
-import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER_PREFIX;
 import static com.tychewealth.constants.LogConstants.ACCESS_TOKEN_ACTION;
 import static com.tychewealth.constants.LogConstants.AUTH;
-import static com.tychewealth.constants.LogConstants.INVALID_AUTHORIZATION_HEADER_MESSAGE;
+import static com.tychewealth.constants.LogConstants.INVALID_ACCESS_TOKEN_MESSAGE;
 import static com.tychewealth.constants.LogConstants.INVALID_REFRESH_TOKEN_MESSAGE;
 import static com.tychewealth.constants.LogConstants.REFRESH_TOKEN_ACTION;
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
@@ -24,23 +23,22 @@ import org.springframework.util.StringUtils;
 public class TokenValidationHelper {
 
   private final AccessTokenHelper accessTokenHelper;
+  private final TokenStateHelper tokenStateHelper;
   private final AuthMetrics authMetrics;
 
   public Long validateAndExtractUserId(String authorizationHeader) {
-    if (authorizationHeader == null
-        || !authorizationHeader.regionMatches(
-            true, 0, TOKEN_TYPE_BEARER_PREFIX, 0, TOKEN_TYPE_BEARER_PREFIX.length())) {
-      log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_AUTHORIZATION_HEADER_MESSAGE);
-      throw new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);
-    }
-
-    String token = authorizationHeader.substring(TOKEN_TYPE_BEARER_PREFIX.length()).trim();
-    if (token.isEmpty()) {
-      log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_AUTHORIZATION_HEADER_MESSAGE);
+    String token = extractBearerToken(authorizationHeader);
+    String tokenId = accessTokenHelper.extractTokenId(token);
+    if (tokenStateHelper.isAccessTokenRevoked(tokenId)) {
+      log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_ACCESS_TOKEN_MESSAGE);
       throw new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);
     }
 
     return accessTokenHelper.extractUserId(token);
+  }
+
+  public String extractBearerToken(String authorizationHeader) {
+    return tokenStateHelper.extractBearerToken(authorizationHeader);
   }
 
   public void validateRefreshTokenRequest(RefreshTokenRequestDto refreshTokenRequestDto) {
