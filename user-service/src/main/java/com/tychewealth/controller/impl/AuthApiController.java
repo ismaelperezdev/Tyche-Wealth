@@ -39,10 +39,7 @@ public class AuthApiController implements AuthApi {
         LogContextFactory.mask(register.getEmail()));
 
     UserResponseDto response = authService.register(register);
-    return ResponseEntity.status(HttpStatus.CREATED)
-        .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
-        .header(HttpHeaders.PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE)
-        .body(response);
+    return withNoStoreHeaders(ResponseEntity.status(HttpStatus.CREATED)).body(response);
   }
 
   @Override
@@ -54,10 +51,7 @@ public class AuthApiController implements AuthApi {
         LogContextFactory.mask(login.getEmail()));
 
     LoginResponseDto response = authService.login(login);
-    return ResponseEntity.status(HttpStatus.OK)
-        .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
-        .header(HttpHeaders.PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE)
-        .body(response);
+    return withNoStoreHeaders(ResponseEntity.status(HttpStatus.OK)).body(response);
   }
 
   @Override
@@ -66,10 +60,7 @@ public class AuthApiController implements AuthApi {
     log.info(LogConstants.REQUEST_START, LogConstants.AUTH, LogConstants.REFRESH_TOKEN_ACTION);
 
     RefreshTokenResponseDto response = authService.refresh(refreshTokenRequestDto);
-    return ResponseEntity.status(HttpStatus.OK)
-        .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
-        .header(HttpHeaders.PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE)
-        .body(response);
+    return withNoStoreHeaders(ResponseEntity.status(HttpStatus.OK)).body(response);
   }
 
   @Override
@@ -82,5 +73,11 @@ public class AuthApiController implements AuthApi {
         .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
         .header(HttpHeaders.PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE)
         .build();
+  }
+
+  private ResponseEntity.BodyBuilder withNoStoreHeaders(ResponseEntity.BodyBuilder builder) {
+    return builder
+        .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
+        .header(HttpHeaders.PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE);
   }
 }

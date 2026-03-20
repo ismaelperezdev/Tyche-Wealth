@@ -350,29 +350,20 @@ class AuthApiControllerIntegrationTest {
 
     RefreshTokenResponseDto refreshResponse =
         objectMapper.readValue(responseBody, RefreshTokenResponseDto.class);
+    RefreshTokenEntity newRefreshToken =
+        refreshTokenRepository
+            .findByToken(sha256Hex(refreshResponse.getRefreshToken(), TEST_REFRESH_TOKEN_PEPPER))
+            .orElseThrow();
 
     assertNotEquals(previousTokenValue, refreshResponse.getRefreshToken());
-    assertTrue(
-        refreshTokenRepository
-            .findByToken(sha256Hex(refreshResponse.getRefreshToken(), TEST_REFRESH_TOKEN_PEPPER))
-            .isPresent());
-    assertFalse(
-        refreshTokenRepository
-            .findByToken(sha256Hex(refreshResponse.getRefreshToken(), TEST_REFRESH_TOKEN_PEPPER))
-            .orElseThrow()
-            .isRevoked());
+    assertNotNull(newRefreshToken);
+    assertFalse(newRefreshToken.isRevoked());
     assertTrue(
         refreshTokenRepository
             .findByToken(sha256Hex(previousTokenValue, TEST_REFRESH_TOKEN_PEPPER))
             .orElseThrow()
             .isRevoked());
-    assertEquals(
-        previousToken.getUser().getId(),
-        refreshTokenRepository
-            .findByToken(sha256Hex(refreshResponse.getRefreshToken(), TEST_REFRESH_TOKEN_PEPPER))
-            .orElseThrow()
-            .getUser()
-            .getId());
+    assertEquals(previousToken.getUser().getId(), newRefreshToken.getUser().getId());
   }
 
   @Test

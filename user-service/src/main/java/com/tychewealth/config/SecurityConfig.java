@@ -2,7 +2,6 @@ package com.tychewealth.config;
 
 import static com.tychewealth.constants.SecurityConstants.ACTUATOR_PROMETHEUS_PATH;
 import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
-import static com.tychewealth.constants.SecurityConstants.HSTS_MAX_AGE_SECONDS;
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,6 +46,12 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 public class SecurityConfig {
 
+  @Value("${app.security.hsts.include-sub-domains:true}")
+  private boolean hstsIncludeSubDomains;
+
+  @Value("${app.security.hsts.max-age-seconds:31536000}")
+  private long hstsMaxAgeSeconds;
+
   @Bean
   @Order(1)
   public SecurityFilterChain prometheusSecurityFilterChain(
@@ -63,7 +68,9 @@ public class SecurityConfig {
                             referrerPolicy.policy(
                                 ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
                     .httpStrictTransportSecurity(
-                        hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(HSTS_MAX_AGE_SECONDS)))
+                        hsts ->
+                            hsts.includeSubDomains(hstsIncludeSubDomains)
+                                .maxAgeInSeconds(hstsMaxAgeSeconds)))
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(authorize -> authorize.anyRequest().hasRole("PROMETHEUS"))
@@ -95,7 +102,9 @@ public class SecurityConfig {
                             referrerPolicy.policy(
                                 ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
                     .httpStrictTransportSecurity(
-                        hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(HSTS_MAX_AGE_SECONDS)))
+                        hsts ->
+                            hsts.includeSubDomains(hstsIncludeSubDomains)
+                                .maxAgeInSeconds(hstsMaxAgeSeconds)))
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .exceptionHandling(
