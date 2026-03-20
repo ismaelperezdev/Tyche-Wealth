@@ -2,6 +2,7 @@ package com.tychewealth.controller.impl;
 
 import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
+import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 
 import com.tychewealth.constants.LogConstants;
 import com.tychewealth.controller.UserApi;
@@ -19,6 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -72,11 +74,13 @@ public class UserApiController implements UserApi {
   @Override
   public ResponseEntity<Void> updatePassword(
       @AuthenticationPrincipal Long userId,
+      @RequestHeader(value = AUTHORIZATION_HEADER, required = false) String authorizationHeader,
       @Valid @RequestBody UserPasswordUpdateRequestDto updatePasswordRequest) {
     userMetrics.recordUpdatePasswordRequest();
     log.info(LogConstants.REQUEST_START, LogConstants.USER, LogConstants.UPDATE_PASSWORD_ACTION);
 
-    Long updatedUserId = userService.updatePassword(userId, updatePasswordRequest);
+    Long updatedUserId =
+        userService.updatePassword(userId, authorizationHeader, updatePasswordRequest);
     userMetrics.recordUpdatePasswordSuccess();
 
     log.info(
@@ -92,11 +96,13 @@ public class UserApiController implements UserApi {
   }
 
   @Override
-  public ResponseEntity<Void> delete(@AuthenticationPrincipal Long userId) {
+  public ResponseEntity<Void> delete(
+      @AuthenticationPrincipal Long userId,
+      @RequestHeader(value = AUTHORIZATION_HEADER, required = false) String authorizationHeader) {
     userMetrics.recordDeleteRequest();
     log.info(LogConstants.REQUEST_START, LogConstants.USER, LogConstants.DELETE_ACTION);
 
-    Long deletedUserId = userService.delete(userId);
+    Long deletedUserId = userService.delete(userId, authorizationHeader);
     userMetrics.recordDeleteSuccess();
 
     log.info(

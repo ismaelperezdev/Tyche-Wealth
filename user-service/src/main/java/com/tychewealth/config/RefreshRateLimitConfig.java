@@ -6,6 +6,7 @@ import static com.tychewealth.constants.ApiConstants.AUTH_REGISTER_URL;
 
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.service.monitoring.AuthMetrics;
+import com.tychewealth.service.ratelimit.RateLimitStore;
 import com.tychewealth.web.AuthRateLimitInterceptor;
 import com.tychewealth.web.RefreshRateLimitInterceptor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -17,33 +18,47 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 @EnableConfigurationProperties(AuthRateLimitProperties.class)
 public class RefreshRateLimitConfig implements WebMvcConfigurer {
+  private static final String LOGIN_NAMESPACE = "rate-limit:auth:login";
+  private static final String REGISTER_NAMESPACE = "rate-limit:auth:register";
+  private static final String REFRESH_NAMESPACE = "rate-limit:auth:refresh";
 
   private final RefreshRateLimitInterceptor refreshRateLimitInterceptor;
   private final AuthRateLimitInterceptor loginRateLimitInterceptor;
   private final AuthRateLimitInterceptor registerRateLimitInterceptor;
 
-  public RefreshRateLimitConfig(AuthRateLimitProperties properties, AuthMetrics authMetrics) {
+  public RefreshRateLimitConfig(
+      AuthRateLimitProperties properties, AuthMetrics authMetrics, RateLimitStore rateLimitStore) {
     AuthRateLimitProperties.RateLimit login = properties.getLoginRateLimit();
     AuthRateLimitProperties.RateLimit register = properties.getRegisterRateLimit();
     AuthRateLimitProperties.RateLimit refresh = properties.getRefreshRateLimit();
 
     this.loginRateLimitInterceptor =
         new AuthRateLimitInterceptor(
+            LOGIN_NAMESPACE,
             login.getMaxRequests(),
             login.getWindowSeconds(),
             ErrorDefinition.RATE_LIMITED.getDescription(),
             ignored -> authMetrics.recordLoginRequest(),
-            ignored -> authMetrics.recordLoginRateLimited());
+            ignored -> authMetrics.recordLoginRateLimited(),
+            ignored -> authMetrics.recordLoginRateLimitStoreUnavailable(),
+            rateLimitStore);
     this.registerRateLimitInterceptor =
         new AuthRateLimitInterceptor(
+            REGISTER_NAMESPACE,
             register.getMaxRequests(),
             register.getWindowSeconds(),
             ErrorDefinition.RATE_LIMITED.getDescription(),
             ignored -> authMetrics.recordRegisterRequest(),
-            ignored -> authMetrics.recordRegisterRateLimited());
+            ignored -> authMetrics.recordRegisterRateLimited(),
+            ignored -> authMetrics.recordRegisterRateLimitStoreUnavailable(),
+            rateLimitStore);
     this.refreshRateLimitInterceptor =
         new RefreshRateLimitInterceptor(
-            refresh.getMaxRequests(), refresh.getWindowSeconds(), authMetrics);
+            REFRESH_NAMESPACE,
+            refresh.getMaxRequests(),
+            refresh.getWindowSeconds(),
+            authMetrics,
+            rateLimitStore);
   }
 
   @Bean

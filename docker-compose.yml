@@ -9,6 +9,11 @@ services:
       - ./application-local.properties:/app/application-local.properties:ro
     environment:
       DB_URL: ${DB_URL:-jdbc:postgresql://host.docker.internal:5432/tyche_wealth_user}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - tyche-network
 
@@ -39,6 +44,25 @@ services:
       - ./docker/postgres/entrypoint.sh:/etc/postgres/entrypoint.sh:ro
       - ./application-local.properties:/run/config/application-local.properties:ro
       - postgres-data:/var/lib/postgresql/data
+    networks:
+      - tyche-network
+
+  redis:
+    image: redis:8-alpine
+    container_name: tyche-redis
+    profiles:
+      - cache
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
     networks:
       - tyche-network
 
@@ -85,3 +109,4 @@ networks:
 volumes:
   grafana-data:
   postgres-data:
+  redis-data:

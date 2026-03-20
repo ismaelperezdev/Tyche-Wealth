@@ -18,6 +18,11 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity
 
   @Transactional
   @Modifying(clearAutomatically = true, flushAutomatically = true)
+  @Query("delete from RefreshTokenEntity rt where rt.token = :token")
+  int deleteByToken(@Param("token") String token);
+
+  @Transactional
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query(
       """
       update RefreshTokenEntity rt

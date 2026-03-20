@@ -1,14 +1,10 @@
 package com.tychewealth.testhelper;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.Ticker;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.util.Deque;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -29,25 +25,8 @@ public final class RateLimitWebTestHelper {
     return new MockHttpServletResponse();
   }
 
-  public static Cache<String, Deque<Long>> buildCache(
-      long expireAfterAccessSeconds, Ticker ticker) {
-    return Caffeine.newBuilder()
-        .expireAfterAccess(Duration.ofSeconds(expireAfterAccessSeconds))
-        .ticker(ticker)
-        .build();
-  }
-
-  public static final class MutableTicker implements Ticker {
-    private long nanos;
-
-    @Override
-    public long read() {
-      return nanos;
-    }
-
-    public void advance(Duration duration) {
-      nanos += duration.toNanos();
-    }
+  public static InMemoryRateLimitStore buildStore(MutableClock clock) {
+    return new InMemoryRateLimitStore(clock);
   }
 
   public static final class MutableClock extends Clock {
