@@ -1,5 +1,9 @@
 package com.tychewealth.config;
 
+import static com.tychewealth.constants.TestConstants.TEST_PROMETHEUS_PASSWORD;
+import static com.tychewealth.constants.TestConstants.TEST_PROMETHEUS_USERNAME;
+import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
+
 import com.tychewealth.controller.impl.AuthApiController;
 import com.tychewealth.controller.impl.UserApiController;
 import com.tychewealth.entity.RefreshTokenEntity;
@@ -64,6 +68,9 @@ public class SecurityIntegrationTestConfig {
       TestPropertyValues.of(
               "spring.liquibase.change-log=classpath:db.changelog/changelog-master.xml",
               "app.auth.jwt.secret=4AYI7d6GOEvFEcCJZkDA0hGFqI6SuF5RAsxAjqzTmaM=",
+              "app.auth.jwt.refresh-token-pepper=" + TEST_REFRESH_TOKEN_PEPPER,
+              "app.security.prometheus.username=" + TEST_PROMETHEUS_USERNAME,
+              "PROMETHEUS_PASSWORD=" + TEST_PROMETHEUS_PASSWORD,
               "app.auth.register-rate-limit.max-requests=2",
               "app.auth.register-rate-limit.window-seconds=300",
               "app.auth.login-rate-limit.max-requests=2",

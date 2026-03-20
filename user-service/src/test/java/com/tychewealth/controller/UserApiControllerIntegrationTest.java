@@ -19,6 +19,7 @@ import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_CONFIRM_MISM
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_INVALID;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_NEW_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
+import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
 import static com.tychewealth.constants.TestConstants.TEST_UPDATE_USERNAME_NORMALIZED;
 import static com.tychewealth.constants.TestConstants.TEST_UPDATE_USERNAME_REQUEST;
 import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
@@ -244,7 +245,10 @@ class UserApiControllerIntegrationTest {
     UserEntity updatedUser = userRepository.findById(saved.getId()).orElseThrow();
     assertTrue(passwordEncoder.matches(TEST_PASSWORD_NEW_VALID, updatedUser.getPassword()));
     assertTrue(
-        refreshTokenRepository.findByToken(sha256Hex(refreshTokenValue)).orElseThrow().isRevoked());
+        refreshTokenRepository
+            .findByToken(sha256Hex(refreshTokenValue, TEST_REFRESH_TOKEN_PEPPER))
+            .orElseThrow()
+            .isRevoked());
   }
 
   @Test

@@ -23,4 +23,8 @@ public final class Utils {
       throw new IllegalStateException("SHA-256 algorithm not available", ex);
     }
   }
+
+  public static String sha256Hex(String value, String pepper) {
+    return sha256Hex(value + pepper);
+  }
 }

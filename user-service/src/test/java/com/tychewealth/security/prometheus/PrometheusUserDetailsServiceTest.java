@@ -1,4 +1,4 @@
-package com.tychewealth.security;
+package com.tychewealth.security.prometheus;
 
 import static com.tychewealth.constants.TestConstants.TEST_MISSING_USERNAME;
 import static com.tychewealth.constants.TestConstants.TEST_PROMETHEUS_CREDENTIALS_ERROR;

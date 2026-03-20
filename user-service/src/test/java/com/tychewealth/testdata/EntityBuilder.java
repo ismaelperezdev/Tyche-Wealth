@@ -1,5 +1,7 @@
 package com.tychewealth.testdata;
 
+import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
+
 import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.entity.RefreshTokenEntity;
@@ -47,7 +49,7 @@ public final class EntityBuilder {
   public static RefreshTokenEntity buildRefreshToken(
       String token, UserEntity user, Instant expiresAt, boolean revoked) {
     RefreshTokenEntity refreshToken = new RefreshTokenEntity();
-    refreshToken.setToken(Utils.sha256Hex(token));
+    refreshToken.setToken(Utils.sha256Hex(token, TEST_REFRESH_TOKEN_PEPPER));
     refreshToken.setUser(user);
     refreshToken.setExpiresAt(expiresAt);
     refreshToken.setRevoked(revoked);

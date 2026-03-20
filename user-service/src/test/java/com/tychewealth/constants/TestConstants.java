@@ -25,6 +25,7 @@ public final class TestConstants {
   public static final String TEST_REFRESH_TOKEN_REVOKED = "revoked-refresh-token";
   public static final String TEST_REFRESH_TOKEN_EXPIRED = "expired-refresh-token";
   public static final String TEST_REFRESH_TOKEN_METRICS = "metrics-refresh-token";
+  public static final String TEST_REFRESH_TOKEN_PEPPER = "test-refresh-token-pepper";
 
   public static final String TEST_PROMETHEUS_USERNAME = "prometheus";
   public static final String TEST_PROMETHEUS_PASSWORD = "secret";

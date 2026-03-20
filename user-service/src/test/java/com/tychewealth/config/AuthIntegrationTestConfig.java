@@ -1,5 +1,7 @@
 package com.tychewealth.config;
 
+import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
+
 import com.tychewealth.controller.impl.AuthApiController;
 import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
@@ -56,6 +58,7 @@ public class AuthIntegrationTestConfig {
       TestPropertyValues.of(
               "spring.liquibase.change-log=classpath:db.changelog/changelog-master.xml",
               "app.auth.jwt.secret=4AYI7d6GOEvFEcCJZkDA0hGFqI6SuF5RAsxAjqzTmaM=",
+              "app.auth.jwt.refresh-token-pepper=" + TEST_REFRESH_TOKEN_PEPPER,
               "app.auth.register-rate-limit.max-requests=2",
               "app.auth.register-rate-limit.window-seconds=300",
               "app.auth.login-rate-limit.max-requests=2",

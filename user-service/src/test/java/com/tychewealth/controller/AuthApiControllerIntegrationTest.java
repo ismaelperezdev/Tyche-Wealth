@@ -24,6 +24,7 @@ import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_EXISTIN
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_EXPIRED;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_METRICS;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_MISSING;
+import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_REVOKED;
 import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
 import static com.tychewealth.testdata.EntityBuilder.buildRefreshToken;
@@ -353,22 +354,22 @@ class AuthApiControllerIntegrationTest {
     assertNotEquals(previousTokenValue, refreshResponse.getRefreshToken());
     assertTrue(
         refreshTokenRepository
-            .findByToken(sha256Hex(refreshResponse.getRefreshToken()))
+            .findByToken(sha256Hex(refreshResponse.getRefreshToken(), TEST_REFRESH_TOKEN_PEPPER))
             .isPresent());
     assertFalse(
         refreshTokenRepository
-            .findByToken(sha256Hex(refreshResponse.getRefreshToken()))
+            .findByToken(sha256Hex(refreshResponse.getRefreshToken(), TEST_REFRESH_TOKEN_PEPPER))
             .orElseThrow()
             .isRevoked());
     assertTrue(
         refreshTokenRepository
-            .findByToken(sha256Hex(previousTokenValue))
+            .findByToken(sha256Hex(previousTokenValue, TEST_REFRESH_TOKEN_PEPPER))
             .orElseThrow()
             .isRevoked());
     assertEquals(
         previousToken.getUser().getId(),
         refreshTokenRepository
-            .findByToken(sha256Hex(refreshResponse.getRefreshToken()))
+            .findByToken(sha256Hex(refreshResponse.getRefreshToken(), TEST_REFRESH_TOKEN_PEPPER))
             .orElseThrow()
             .getUser()
             .getId());
@@ -483,7 +484,7 @@ class AuthApiControllerIntegrationTest {
 
     assertTrue(
         refreshTokenRepository
-            .findByToken(sha256Hex(TEST_REFRESH_TOKEN_EXISTING))
+            .findByToken(sha256Hex(TEST_REFRESH_TOKEN_EXISTING, TEST_REFRESH_TOKEN_PEPPER))
             .orElseThrow()
             .isRevoked());
   }

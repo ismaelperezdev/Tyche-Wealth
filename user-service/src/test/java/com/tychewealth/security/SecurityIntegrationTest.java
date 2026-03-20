@@ -5,7 +5,6 @@ import static com.tychewealth.constants.ApiConstants.USER_ME_PASSWORD_URL;
 import static com.tychewealth.constants.ApiConstants.USER_ME_URL;
 import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER_PREFIX;
-import static com.tychewealth.constants.SecurityConstants.ACTUATOR_PROMETHEUS_PATH;
 import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
 import static com.tychewealth.constants.SecurityConstants.HEADER_VALUE_DENY;
 import static com.tychewealth.constants.SecurityConstants.HEADER_VALUE_NOSNIFF;
@@ -20,9 +19,11 @@ import static com.tychewealth.constants.TestConstants.TEST_HEADER_X_CONTENT_TYPE
 import static com.tychewealth.constants.TestConstants.TEST_HEADER_X_FRAME_OPTIONS;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_NEW_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
+import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
 import static com.tychewealth.constants.TestConstants.TEST_TAMPERED_TOKEN_SUFFIX;
 import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
 import static com.tychewealth.testhelper.AuthTestHelper.login;
+import static com.tychewealth.testhelper.AuthTestHelper.logout;
 import static com.tychewealth.testhelper.AuthTestHelper.refresh;
 import static com.tychewealth.testhelper.UserTestHelper.passwordUpdateRequestBody;
 import static com.tychewealth.utils.Utils.sha256Hex;
@@ -49,6 +50,7 @@ import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.helper.token.AccessTokenHelper;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -135,7 +137,9 @@ class SecurityIntegrationTest {
     assertEquals(1, storedTokens.size());
     assertNotNull(response.getRefreshToken());
     assertNotEquals(response.getRefreshToken(), storedTokens.getFirst().getToken());
-    assertEquals(sha256Hex(response.getRefreshToken()), storedTokens.getFirst().getToken());
+    assertEquals(
+        sha256Hex(response.getRefreshToken(), TEST_REFRESH_TOKEN_PEPPER),
+        storedTokens.getFirst().getToken());
   }
 
   @Test
@@ -157,6 +161,20 @@ class SecurityIntegrationTest {
   }
 
   @Test
+  void validationErrorResponseReturnsNoStoreHeaders() throws Exception {
+    mockMvc
+        .perform(
+            post(AUTH_LOGIN_URL)
+                .secure(true)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new LoginRequestDto("", ""))))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getCode()))
+        .andExpect(header().string(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(HttpHeaders.PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE));
+  }
+
+  @Test
   void invalidAuthorizationSchemeIsRejectedOnProtectedEndpoint() throws Exception {
     mockMvc
         .perform(get(USER_ME_URL).header(AUTHORIZATION_HEADER, TEST_ATTACKER_BASIC_TOKEN))
@@ -175,6 +193,16 @@ class SecurityIntegrationTest {
     mockMvc
         .perform(
             get(USER_ME_URL).header(AUTHORIZATION_HEADER, TOKEN_TYPE_BEARER_PREFIX + tamperedToken))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
+        .andExpect(jsonPath("$.description").value(ErrorDefinition.UNAUTHORIZED.getDescription()));
+  }
+
+  @Test
+  void malformedJwtIsRejectedOnProtectedEndpoint() throws Exception {
+    mockMvc
+        .perform(
+            get(USER_ME_URL).header(AUTHORIZATION_HEADER, TOKEN_TYPE_BEARER_PREFIX + "not-a-jwt"))
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
         .andExpect(jsonPath("$.description").value(ErrorDefinition.UNAUTHORIZED.getDescription()));
@@ -203,10 +231,52 @@ class SecurityIntegrationTest {
   }
 
   @Test
-  void prometheusEndpointRejectsAnonymousAccess() throws Exception {
+  void loggedOutRefreshTokenCannotBeReused() throws Exception {
+    LoginResponseDto loginResponse = login(mockMvc, objectMapper, validLoginRequest);
+
+    logout(mockMvc, objectMapper, loginResponse.getRefreshToken())
+        .andExpect(status().isNoContent());
+
+    refresh(mockMvc, objectMapper, loginResponse.getRefreshToken())
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID.getCode()));
+  }
+
+  @Test
+  void updatePasswordInvalidatesExistingRefreshTokenForAttacker() throws Exception {
+    LoginResponseDto loginResponse = login(mockMvc, objectMapper, validLoginRequest);
+
     mockMvc
-        .perform(get(ACTUATOR_PROMETHEUS_PATH).secure(true))
-        .andExpect(status().isUnauthorized());
+        .perform(
+            patch(USER_ME_PASSWORD_URL)
+                .secure(true)
+                .header(
+                    AUTHORIZATION_HEADER, TOKEN_TYPE_BEARER_PREFIX + loginResponse.getAccessToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    passwordUpdateRequestBody(
+                        TEST_PASSWORD_VALID, TEST_PASSWORD_NEW_VALID, TEST_PASSWORD_NEW_VALID)))
+        .andExpect(status().isNoContent());
+
+    refresh(mockMvc, objectMapper, loginResponse.getRefreshToken())
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID.getCode()));
+  }
+
+  @Test
+  void softDeletedUserCannotKeepUsingExistingAccessToken() throws Exception {
+    UserEntity savedUser =
+        userRepository.findByEmailIncludingDeleted(TEST_EMAIL_LAURA).orElseThrow();
+    String accessToken = accessTokenHelper.generateAccessToken(savedUser).accessToken();
+
+    savedUser.setDeletedAt(LocalDateTime.now());
+    userRepository.save(savedUser);
+
+    mockMvc
+        .perform(
+            get(USER_ME_URL).header(AUTHORIZATION_HEADER, TOKEN_TYPE_BEARER_PREFIX + accessToken))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.USER_NOT_FOUND.getCode()));
   }
 
   @Test
