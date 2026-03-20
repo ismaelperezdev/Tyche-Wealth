@@ -6,14 +6,20 @@ public final class MetricConstants {
   public static final String METRIC_AUTH_REGISTER_SUCCESS = "tyche.auth.register.success";
   public static final String METRIC_AUTH_REGISTER_FAILURE = "tyche.auth.register.failure";
   public static final String METRIC_AUTH_REGISTER_RATE_LIMITED = "tyche.auth.register.rate_limited";
+  public static final String METRIC_AUTH_REGISTER_RATE_LIMIT_STORE_UNAVAILABLE =
+      "tyche.auth.register.rate_limit_store.unavailable";
   public static final String METRIC_AUTH_REGISTER_CONFLICT = "tyche.auth.register.conflict";
 
   public static final String METRIC_AUTH_LOGIN_REQUESTS = "tyche.auth.login.requests";
   public static final String METRIC_AUTH_LOGIN_SUCCESS = "tyche.auth.login.success";
   public static final String METRIC_AUTH_LOGIN_FAILURE = "tyche.auth.login.failure";
   public static final String METRIC_AUTH_LOGIN_RATE_LIMITED = "tyche.auth.login.rate_limited";
+  public static final String METRIC_AUTH_LOGIN_RATE_LIMIT_STORE_UNAVAILABLE =
+      "tyche.auth.login.rate_limit_store.unavailable";
   public static final String METRIC_AUTH_LOGIN_INVALID_CREDENTIALS =
       "tyche.auth.login.invalid_credentials";
+  public static final String METRIC_AUTH_TOKEN_STATE_UNAVAILABLE =
+      "tyche.auth.token_state.unavailable";
 
   public static final String METRIC_AUTH_REFRESH_REQUESTS = "tyche.auth.refresh.requests";
   public static final String METRIC_AUTH_REFRESH_SUCCESS = "tyche.auth.refresh.success";

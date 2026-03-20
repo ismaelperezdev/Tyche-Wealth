@@ -12,6 +12,7 @@ import com.tychewealth.service.helper.auth.AuthRegisterHelper;
 import com.tychewealth.service.helper.auth.AuthValidationHelper;
 import com.tychewealth.service.helper.token.AccessTokenHelper;
 import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
+import com.tychewealth.service.helper.token.TokenStateHelper;
 import com.tychewealth.service.helper.token.TokenValidationHelper;
 import com.tychewealth.service.impl.AuthServiceImpl;
 import com.tychewealth.service.monitoring.AuthMetrics;
@@ -37,6 +38,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
   AuthRegisterHelper.class,
   AuthLoginHelper.class,
   AccessTokenHelper.class,
+  TokenStateHelper.class,
   TokenValidationHelper.class,
   AuthRefreshTokenHelper.class,
   AuthMetrics.class,

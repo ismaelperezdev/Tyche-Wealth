@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @RequestMapping(value = URL_FOLDER_V1 + "/auth")
@@ -32,5 +33,7 @@ public interface AuthApi {
       @Valid @RequestBody RefreshTokenRequestDto refreshTokenRequestDto);
 
   @PostMapping(value = "/logout", consumes = REQUEST_CONSUMES)
-  ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequestDto refreshTokenRequestDto);
+  ResponseEntity<Void> logout(
+      @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+      @Valid @RequestBody RefreshTokenRequestDto refreshTokenRequestDto);
 }

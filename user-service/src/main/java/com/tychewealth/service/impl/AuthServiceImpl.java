@@ -20,10 +20,10 @@ import com.tychewealth.service.helper.auth.AuthRegisterHelper;
 import com.tychewealth.service.helper.auth.AuthValidationHelper;
 import com.tychewealth.service.helper.token.AccessTokenHelper;
 import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
+import com.tychewealth.service.helper.token.TokenStateHelper;
 import com.tychewealth.service.helper.token.TokenValidationHelper;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.AuthTokenPayload;
-import java.time.Instant;
 import java.util.Locale;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +41,7 @@ public class AuthServiceImpl implements AuthService {
   private final AuthValidationHelper authValidationHelper;
   private final AuthRegisterHelper authRegisterHelper;
   private final AuthLoginHelper authLoginHelper;
+  private final TokenStateHelper tokenStateHelper;
   private final AuthRefreshTokenHelper authRefreshTokenHelper;
   private final AccessTokenHelper accessTokenHelper;
   private final TokenValidationHelper tokenValidationHelper;
@@ -87,24 +88,32 @@ public class AuthServiceImpl implements AuthService {
     UserEntity user = currentRefreshToken.getUser();
     AuthTokenPayload accessTokenPayload = accessTokenHelper.generateAccessToken(user);
 
-    String newRefreshToken = authRefreshTokenHelper.generateRefreshToken();
-    Instant newRefreshTokenExpiration = authRefreshTokenHelper.calculateRefreshTokenExpiration();
-    authRefreshTokenHelper.saveToken(user, newRefreshToken, newRefreshTokenExpiration);
+    tokenStateHelper.unlinkRefreshToken(refreshTokenRequestDto.getRefreshToken());
+    AuthRefreshTokenHelper.LinkedRefreshToken newRefreshToken =
+        authRefreshTokenHelper.saveToken(
+            user, accessTokenPayload.jti(), LogConstants.REFRESH_TOKEN_ACTION);
     authMetrics.recordRefreshSuccess();
 
     return new RefreshTokenResponseDto(
         accessTokenPayload.tokenType(),
         accessTokenPayload.accessToken(),
         accessTokenPayload.expiresIn(),
-        newRefreshToken);
+        newRefreshToken.token());
   }
 
   @Override
   @Transactional
-  public void logout(RefreshTokenRequestDto refreshTokenRequestDto) {
+  public void logout(String authorizationHeader, RefreshTokenRequestDto refreshTokenRequestDto) {
     tokenValidationHelper.validateRefreshTokenRequest(refreshTokenRequestDto);
+    String refreshTokenValue = refreshTokenRequestDto.getRefreshToken();
     RefreshTokenEntity refreshToken =
-        authRefreshTokenHelper.validateRefreshToken(refreshTokenRequestDto.getRefreshToken());
+        authRefreshTokenHelper.validateRefreshToken(refreshTokenValue);
+    tokenStateHelper.revokeAccessTokenIfPresent(authorizationHeader);
+    tokenStateHelper
+        .findAccessTokenJtiByRefreshToken(refreshTokenValue)
+        .ifPresent(
+            tokenId -> tokenStateHelper.revokeAccessToken(tokenId, refreshToken.getExpiresAt()));
+    tokenStateHelper.unlinkRefreshToken(refreshTokenValue);
 
     log.info(
         LogConstants.REQUEST_SUCCESS + LogConstants.USER_ID,

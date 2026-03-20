@@ -1,15 +1,20 @@
 package com.tychewealth.service.helper.user;
 
+import com.tychewealth.constants.LogConstants;
+import com.tychewealth.dto.user.request.UserPasswordUpdateRequestDto;
+import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.exception.UserException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.monitoring.UserMetrics;
 import com.tychewealth.utils.Utils;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @AllArgsConstructor
 public class UserValidationHelper {
@@ -25,6 +30,11 @@ public class UserValidationHelper {
         .filter(user -> !user.getId().equals(currentUserId))
         .ifPresent(
             user -> {
+              log.warn(
+                  LogConstants.REQUEST_CONFLICT,
+                  LogConstants.USER,
+                  LogConstants.UPDATE_ACTION,
+                  "username conflict");
               userMetrics.recordUsernameConflict();
               throw new UserException(
                   ErrorDefinition.USER_USERNAME_CONFLICT, null, HttpStatus.CONFLICT);
@@ -33,6 +43,11 @@ public class UserValidationHelper {
 
   public void validateCurrentPassword(String rawPassword, String encodedPassword) {
     if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
+      log.warn(
+          LogConstants.REQUEST_CONFLICT,
+          LogConstants.USER,
+          LogConstants.UPDATE_PASSWORD_ACTION,
+          "invalid current password");
       userMetrics.recordCurrentPasswordInvalid();
       throw new UserException(
           ErrorDefinition.USER_CURRENT_PASSWORD_INVALID, null, HttpStatus.UNAUTHORIZED);
@@ -41,9 +56,20 @@ public class UserValidationHelper {
 
   public void validateNewPasswordIsDifferent(String newRawPassword, String encodedPassword) {
     if (passwordEncoder.matches(newRawPassword, encodedPassword)) {
+      log.warn(
+          LogConstants.REQUEST_CONFLICT,
+          LogConstants.USER,
+          LogConstants.UPDATE_PASSWORD_ACTION,
+          "new password reused");
       userMetrics.recordNewPasswordReused();
       throw new UserException(
           ErrorDefinition.USER_NEW_PASSWORD_MUST_BE_DIFFERENT, null, HttpStatus.BAD_REQUEST);
     }
+  }
+
+  public void validatePasswordUpdate(
+      UserPasswordUpdateRequestDto updatePasswordRequest, UserEntity user) {
+    validateCurrentPassword(updatePasswordRequest.getCurrentPassword(), user.getPassword());
+    validateNewPasswordIsDifferent(updatePasswordRequest.getNewPassword(), user.getPassword());
   }
 }

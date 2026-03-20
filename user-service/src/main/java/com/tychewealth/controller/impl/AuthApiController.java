@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -61,10 +62,11 @@ public class AuthApiController implements AuthApi {
 
   @Override
   public ResponseEntity<Void> logout(
+      @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
       @Valid @RequestBody RefreshTokenRequestDto refreshTokenRequestDto) {
     log.info(LogConstants.REQUEST_START, LogConstants.AUTH, LogConstants.LOGOUT_ACTION);
 
-    authService.logout(refreshTokenRequestDto);
+    authService.logout(authorizationHeader, refreshTokenRequestDto);
     return ResponseEntity.noContent().build();
   }
 }

@@ -13,6 +13,7 @@ public final class AuthConstants {
   public static final String TOKEN_TYPE_BEARER = "Bearer";
   public static final String TOKEN_TYPE_BEARER_PREFIX = TOKEN_TYPE_BEARER + " ";
   public static final int REFRESH_TOKEN_BYTE_LENGTH = 32;
+  public static final int TOKEN_LINK_MAX_ATTEMPTS = 2;
 
   private AuthConstants() {}
 }
