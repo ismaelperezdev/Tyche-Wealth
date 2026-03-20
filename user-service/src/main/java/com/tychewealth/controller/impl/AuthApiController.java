@@ -1,5 +1,6 @@
 package com.tychewealth.controller.impl;
 
+import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
 
@@ -66,11 +67,11 @@ public class AuthApiController implements AuthApi {
 
   @Override
   public ResponseEntity<Void> logout(
-      @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+      @RequestHeader(value = AUTHORIZATION_HEADER, required = false) String authorizationHeader,
       @Valid @RequestBody RefreshTokenRequestDto refreshTokenRequestDto) {
     log.info(LogConstants.REQUEST_START, LogConstants.AUTH, LogConstants.LOGOUT_ACTION);
 
-    authService.logout(refreshTokenRequestDto);
+    authService.logout(authorizationHeader, refreshTokenRequestDto);
     return ResponseEntity.noContent()
         .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
         .header(HttpHeaders.PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE)
