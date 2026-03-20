@@ -24,7 +24,6 @@ import com.tychewealth.service.helper.token.TokenStateHelper;
 import com.tychewealth.service.helper.token.TokenValidationHelper;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.AuthTokenPayload;
-import java.time.Instant;
 import java.util.Locale;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -89,19 +88,17 @@ public class AuthServiceImpl implements AuthService {
     UserEntity user = currentRefreshToken.getUser();
     AuthTokenPayload accessTokenPayload = accessTokenHelper.generateAccessToken(user);
 
-    String newRefreshToken = authRefreshTokenHelper.generateRefreshToken();
-    Instant newRefreshTokenExpiration = authRefreshTokenHelper.calculateRefreshTokenExpiration();
-    authRefreshTokenHelper.saveToken(user, newRefreshToken, newRefreshTokenExpiration);
     tokenStateHelper.unlinkRefreshToken(refreshTokenRequestDto.getRefreshToken());
-    tokenStateHelper.linkRefreshTokenToAccessToken(
-        newRefreshToken, accessTokenPayload.jti(), newRefreshTokenExpiration);
+    AuthRefreshTokenHelper.LinkedRefreshToken newRefreshToken =
+        authRefreshTokenHelper.saveToken(
+            user, accessTokenPayload.jti(), LogConstants.REFRESH_TOKEN_ACTION);
     authMetrics.recordRefreshSuccess();
 
     return new RefreshTokenResponseDto(
         accessTokenPayload.tokenType(),
         accessTokenPayload.accessToken(),
         accessTokenPayload.expiresIn(),
-        newRefreshToken);
+        newRefreshToken.token());
   }
 
   @Override

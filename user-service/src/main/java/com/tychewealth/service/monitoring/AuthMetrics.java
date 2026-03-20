@@ -16,6 +16,7 @@ import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_FAI
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_RATE_LIMITED;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_REQUESTS;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_SUCCESS;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_TOKEN_STATE_UNAVAILABLE;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -35,6 +36,7 @@ public class AuthMetrics {
   private final Counter loginFailures;
   private final Counter loginRateLimited;
   private final Counter loginInvalidCredentials;
+  private final Counter tokenStateUnavailable;
 
   private final Counter refreshRequests;
   private final Counter refreshSuccesses;
@@ -95,6 +97,11 @@ public class AuthMetrics {
             meterRegistry,
             METRIC_AUTH_LOGIN_INVALID_CREDENTIALS,
             "Login attempts rejected because the provided credentials were invalid.");
+    this.tokenStateUnavailable =
+        counter(
+            meterRegistry,
+            METRIC_AUTH_TOKEN_STATE_UNAVAILABLE,
+            "Token-state checks that could not reach Redis and therefore failed closed.");
 
     this.refreshRequests =
         counter(
@@ -166,6 +173,10 @@ public class AuthMetrics {
 
   public void recordLoginInvalidCredentials() {
     loginInvalidCredentials.increment();
+  }
+
+  public void recordTokenStateUnavailable() {
+    tokenStateUnavailable.increment();
   }
 
   public void recordRefreshRequest() {

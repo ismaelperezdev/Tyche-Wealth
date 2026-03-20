@@ -5,10 +5,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Duration;
 import java.util.function.Consumer;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+@Slf4j
 public class AuthRateLimitInterceptor implements HandlerInterceptor {
 
   private final int maxRequests;
@@ -50,8 +52,23 @@ public class AuthRateLimitInterceptor implements HandlerInterceptor {
     }
 
     String clientKey = resolveClientKey(request);
-    long requestCount =
-        rateLimitStore.increment(namespace, clientKey, Duration.ofMillis(windowMillis));
+    long requestCount;
+    try {
+      requestCount =
+          rateLimitStore.increment(namespace, clientKey, Duration.ofMillis(windowMillis));
+    } catch (RuntimeException ex) {
+      if (rateLimitedMetricRecorder != null) {
+        rateLimitedMetricRecorder.accept(request.getRequestURI());
+      }
+      log.error(
+          "Rate limit store unavailable for uri={} namespace={} rejectionMessage={}",
+          request.getRequestURI(),
+          namespace,
+          rejectionMessage,
+          ex);
+      throw new ResponseStatusException(
+          HttpStatus.SERVICE_UNAVAILABLE, "Rate limit service unavailable");
+    }
     if (requestCount > maxRequests) {
       if (rateLimitedMetricRecorder != null) {
         rateLimitedMetricRecorder.accept(request.getRequestURI());

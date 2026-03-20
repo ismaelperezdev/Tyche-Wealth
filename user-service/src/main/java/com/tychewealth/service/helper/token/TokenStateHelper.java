@@ -8,6 +8,7 @@ import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
+import com.tychewealth.service.monitoring.AuthMetrics;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -33,6 +34,7 @@ public class TokenStateHelper {
 
   private final RedisTemplate<String, String> redisTemplate;
   private final AccessTokenHelper accessTokenHelper;
+  private final AuthMetrics authMetrics;
 
   public void revokeAccessTokenIfPresent(String authorizationHeader) {
     if (authorizationHeader == null || authorizationHeader.isBlank()) {
@@ -55,7 +57,19 @@ public class TokenStateHelper {
   }
 
   public boolean isAccessTokenRevoked(String tokenId) {
-    return Boolean.TRUE.equals(redisTemplate.hasKey(buildAccessTokenRevocationKey(tokenId)));
+    try {
+      return Boolean.TRUE.equals(redisTemplate.hasKey(buildAccessTokenRevocationKey(tokenId)));
+    } catch (RuntimeException ex) {
+      authMetrics.recordTokenStateUnavailable();
+      log.error(
+          REQUEST_CONFLICT + " tokenId={}",
+          AUTH,
+          ACCESS_TOKEN_ACTION,
+          "redis unavailable while checking access-token revocation; failing closed",
+          tokenId,
+          ex);
+      return true;
+    }
   }
 
   public void linkRefreshTokenToAccessToken(

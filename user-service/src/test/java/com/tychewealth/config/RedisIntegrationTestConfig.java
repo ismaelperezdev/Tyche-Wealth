@@ -1,5 +1,8 @@
 package com.tychewealth.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tychewealth.controller.impl.AuthApiController;
 import com.tychewealth.controller.impl.UserApiController;
 import com.tychewealth.entity.RefreshTokenEntity;
@@ -21,6 +24,8 @@ import com.tychewealth.service.impl.AuthServiceImpl;
 import com.tychewealth.service.impl.UserServiceImpl;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.monitoring.UserMetrics;
+import com.tychewealth.service.ratelimit.RateLimitStore;
+import com.tychewealth.service.ratelimit.RedisRateLimitStore;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
@@ -28,13 +33,17 @@ import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServic
 import org.springframework.boot.test.util.TestPropertyValues;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.data.redis.core.RedisTemplate;
 
 @SpringBootConfiguration
 @EnableAutoConfiguration(exclude = UserDetailsServiceAutoConfiguration.class)
 @Import({
-  IntegrationTestConfig.class,
+  SecurityTestConfig.class,
+  TestDatabaseConfig.class,
   RefreshRateLimitConfig.class,
   AuthApiController.class,
   UserApiController.class,
@@ -57,6 +66,21 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableJpaRepositories(basePackageClasses = {UserRepository.class, RefreshTokenRepository.class})
 @EntityScan(basePackageClasses = {UserEntity.class, RefreshTokenEntity.class})
 public class RedisIntegrationTestConfig {
+
+  @Bean
+  @Primary
+  public ObjectMapper objectMapper() {
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.registerModule(new JavaTimeModule());
+    objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    return objectMapper;
+  }
+
+  @Bean
+  @Primary
+  public RateLimitStore rateLimitStore(RedisTemplate<String, String> redisTemplate) {
+    return new RedisRateLimitStore(redisTemplate);
+  }
 
   public static class Initializer
       implements ApplicationContextInitializer<ConfigurableApplicationContext> {

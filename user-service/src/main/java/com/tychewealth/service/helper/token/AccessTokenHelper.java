@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 @Component
@@ -87,7 +88,13 @@ public class AccessTokenHelper {
 
   public String extractTokenId(String token) {
     try {
-      return parseClaims(token).getId();
+      String tokenId = parseClaims(token).getId();
+
+      if (!StringUtils.hasText(tokenId)) {
+        throw new IllegalArgumentException("Access token is missing jti");
+      }
+      return tokenId;
+
     } catch (JwtException | IllegalArgumentException ex) {
       log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_ACCESS_TOKEN_MESSAGE);
       throw new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);

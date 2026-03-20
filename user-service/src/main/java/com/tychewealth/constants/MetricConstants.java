@@ -14,6 +14,8 @@ public final class MetricConstants {
   public static final String METRIC_AUTH_LOGIN_RATE_LIMITED = "tyche.auth.login.rate_limited";
   public static final String METRIC_AUTH_LOGIN_INVALID_CREDENTIALS =
       "tyche.auth.login.invalid_credentials";
+  public static final String METRIC_AUTH_TOKEN_STATE_UNAVAILABLE =
+      "tyche.auth.token_state.unavailable";
 
   public static final String METRIC_AUTH_REFRESH_REQUESTS = "tyche.auth.refresh.requests";
   public static final String METRIC_AUTH_REFRESH_SUCCESS = "tyche.auth.refresh.success";

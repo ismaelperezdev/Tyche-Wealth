@@ -7,10 +7,8 @@ import com.tychewealth.entity.UserEntity;
 import com.tychewealth.mapper.user.UserMapper;
 import com.tychewealth.service.helper.token.AccessTokenHelper;
 import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
-import com.tychewealth.service.helper.token.TokenStateHelper;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.AuthTokenPayload;
-import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -22,7 +20,6 @@ public class AuthLoginHelper {
 
   private final AccessTokenHelper accessTokenHelper;
   private final AuthRefreshTokenHelper refreshTokenHelper;
-  private final TokenStateHelper tokenStateHelper;
   private final UserMapper userMapper;
   private final AuthMetrics authMetrics;
 
@@ -30,11 +27,8 @@ public class AuthLoginHelper {
     UserResponseDto response = userMapper.toDto(user);
     AuthTokenPayload tokenPayload = accessTokenHelper.generateAccessToken(user);
     refreshTokenHelper.revokeActiveTokensByUserId(user.getId());
-    String refreshToken = refreshTokenHelper.generateRefreshToken();
-    Instant refreshTokenExpiresAt = refreshTokenHelper.calculateRefreshTokenExpiration();
-    refreshTokenHelper.saveToken(user, refreshToken, refreshTokenExpiresAt);
-    tokenStateHelper.linkRefreshTokenToAccessToken(
-        refreshToken, tokenPayload.jti(), refreshTokenExpiresAt);
+    AuthRefreshTokenHelper.LinkedRefreshToken refreshToken =
+        refreshTokenHelper.saveToken(user, tokenPayload.jti(), LogConstants.LOGIN_ACTION);
     authMetrics.recordLoginSuccess();
 
     log.info(
@@ -46,7 +40,7 @@ public class AuthLoginHelper {
     return new LoginResponseDto(
         tokenPayload.tokenType(),
         tokenPayload.accessToken(),
-        refreshToken,
+        refreshToken.token(),
         tokenPayload.expiresIn(),
         response);
   }

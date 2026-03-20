@@ -12,6 +12,8 @@ import com.tychewealth.service.helper.user.UserValidationHelper;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 @AllArgsConstructor
@@ -43,7 +45,7 @@ public class UserServiceImpl implements UserService {
       Long userId, String authorizationHeader, UserPasswordUpdateRequestDto updatePasswordRequest) {
     UserEntity user = userHelper.findActiveUser(userId);
     userValidationHelper.validatePasswordUpdate(updatePasswordRequest, user);
-    tokenStateHelper.revokeAccessTokenIfPresent(authorizationHeader);
+    revokeAccessTokenAfterCommit(authorizationHeader);
 
     return userHelper.updatePassword(user, updatePasswordRequest);
   }
@@ -52,8 +54,23 @@ public class UserServiceImpl implements UserService {
   @Transactional
   public Long delete(Long userId, String authorizationHeader) {
     UserEntity user = userHelper.findActiveUser(userId);
-    tokenStateHelper.revokeAccessTokenIfPresent(authorizationHeader);
+    revokeAccessTokenAfterCommit(authorizationHeader);
 
     return userHelper.softDelete(user);
+  }
+
+  private void revokeAccessTokenAfterCommit(String authorizationHeader) {
+    if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+      tokenStateHelper.revokeAccessTokenIfPresent(authorizationHeader);
+      return;
+    }
+
+    TransactionSynchronizationManager.registerSynchronization(
+        new TransactionSynchronization() {
+          @Override
+          public void afterCommit() {
+            tokenStateHelper.revokeAccessTokenIfPresent(authorizationHeader);
+          }
+        });
   }
 }
