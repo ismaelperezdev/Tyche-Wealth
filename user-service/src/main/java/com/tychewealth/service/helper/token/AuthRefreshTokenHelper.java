@@ -5,6 +5,7 @@ import static com.tychewealth.constants.LogConstants.AUTH;
 import static com.tychewealth.constants.LogConstants.INVALID_REFRESH_TOKEN_MESSAGE;
 import static com.tychewealth.constants.LogConstants.REFRESH_TOKEN_ACTION;
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
+import static com.tychewealth.utils.Utils.sha256Hex;
 
 import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
@@ -48,7 +49,7 @@ public class AuthRefreshTokenHelper {
     RefreshTokenEntity refreshToken = new RefreshTokenEntity();
 
     refreshToken.setUser(user);
-    refreshToken.setToken(token);
+    refreshToken.setToken(sha256Hex(token));
     refreshToken.setExpiresAt(expiresAt);
     refreshToken.setRevoked(false);
 
@@ -65,7 +66,7 @@ public class AuthRefreshTokenHelper {
 
   @Transactional
   public RefreshTokenEntity validateRefreshToken(String token) {
-    int revokedCount = refreshTokenRepository.revokeTokenIfActive(token, Instant.now());
+    int revokedCount = refreshTokenRepository.revokeTokenIfActive(sha256Hex(token), Instant.now());
     authMetrics.recordTokensRevoked(revokedCount);
 
     if (revokedCount == 0) {
@@ -76,7 +77,7 @@ public class AuthRefreshTokenHelper {
   }
 
   public Optional<RefreshTokenEntity> findByToken(String token) {
-    return refreshTokenRepository.findByToken(token);
+    return refreshTokenRepository.findByToken(sha256Hex(token));
   }
 
   private void throwInvalidRefreshToken() {

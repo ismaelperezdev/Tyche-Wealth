@@ -1,5 +1,8 @@
 package com.tychewealth.controller.impl;
 
+import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
+import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
+
 import com.tychewealth.constants.LogConstants;
 import com.tychewealth.controller.UserApi;
 import com.tychewealth.dto.user.UserResponseDto;
@@ -11,6 +14,7 @@ import com.tychewealth.utils.LogContextFactory;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -81,7 +85,10 @@ public class UserApiController implements UserApi {
         LogConstants.UPDATE_PASSWORD_ACTION,
         updatedUserId);
 
-    return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    return ResponseEntity.status(HttpStatus.NO_CONTENT)
+        .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
+        .header(HttpHeaders.PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE)
+        .build();
   }
 
   @Override

@@ -1,5 +1,10 @@
 package com.tychewealth.config;
 
+import static com.tychewealth.constants.SecurityConstants.ACTUATOR_PROMETHEUS_PATH;
+import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
+import static com.tychewealth.constants.SecurityConstants.HSTS_MAX_AGE_SECONDS;
+import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.error.handler.ErrorResponse;
@@ -13,12 +18,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -30,6 +37,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.util.StringUtils;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -43,8 +51,19 @@ public class SecurityConfig {
   @Order(1)
   public SecurityFilterChain prometheusSecurityFilterChain(
       HttpSecurity http, AccessDeniedHandler accessDeniedHandler) throws Exception {
-    http.securityMatcher("/actuator/prometheus")
+    http.securityMatcher(ACTUATOR_PROMETHEUS_PATH)
         .csrf(AbstractHttpConfigurer::disable)
+        .headers(
+            headers ->
+                headers
+                    .contentTypeOptions(Customizer.withDefaults())
+                    .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
+                    .referrerPolicy(
+                        referrerPolicy ->
+                            referrerPolicy.policy(
+                                ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+                    .httpStrictTransportSecurity(
+                        hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(HSTS_MAX_AGE_SECONDS)))
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(authorize -> authorize.anyRequest().hasRole("PROMETHEUS"))
@@ -66,6 +85,17 @@ public class SecurityConfig {
       throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
         .cors(cors -> cors.configurationSource(corsConfigurationSource))
+        .headers(
+            headers ->
+                headers
+                    .contentTypeOptions(Customizer.withDefaults())
+                    .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
+                    .referrerPolicy(
+                        referrerPolicy ->
+                            referrerPolicy.policy(
+                                ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+                    .httpStrictTransportSecurity(
+                        hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(HSTS_MAX_AGE_SECONDS)))
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .exceptionHandling(
@@ -168,6 +198,8 @@ public class SecurityConfig {
       throws IOException {
     response.setStatus(status.value());
     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+    response.setHeader(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE);
+    response.setHeader(HttpHeaders.PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE);
     objectMapper.writeValue(
         response.getWriter(),
         ErrorResponse.builder()

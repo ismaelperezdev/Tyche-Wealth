@@ -3,6 +3,7 @@ package com.tychewealth.repository;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
 import static com.tychewealth.testdata.EntityBuilder.buildRefreshToken;
 import static com.tychewealth.testdata.EntityBuilder.buildUser;
+import static com.tychewealth.utils.Utils.sha256Hex;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -43,7 +44,8 @@ class RefreshTokenRepositoryTest {
     Instant expiresAt = Instant.now().plusSeconds(3600);
     refreshTokenRepository.save(buildRefreshToken(SAVED_REFRESH_TOKEN, user, expiresAt, false));
 
-    Optional<RefreshTokenEntity> result = refreshTokenRepository.findByToken(SAVED_REFRESH_TOKEN);
+    Optional<RefreshTokenEntity> result =
+        refreshTokenRepository.findByToken(sha256Hex(SAVED_REFRESH_TOKEN));
 
     assertTrue(result.isPresent());
     assertEquals(user.getId(), result.get().getUser().getId());
@@ -53,7 +55,8 @@ class RefreshTokenRepositoryTest {
 
   @Test
   void findByTokenReturnsEmptyWhenTokenDoesNotExist() {
-    Optional<RefreshTokenEntity> result = refreshTokenRepository.findByToken(MISSING_TOKEN);
+    Optional<RefreshTokenEntity> result =
+        refreshTokenRepository.findByToken(sha256Hex(MISSING_TOKEN));
 
     assertTrue(result.isEmpty());
   }
@@ -96,22 +99,16 @@ class RefreshTokenRepositoryTest {
 
     assertEquals(1, revokedCount);
     assertTrue(
-        refreshTokenRepository.findByToken(activeToken.getToken()).orElseThrow().isRevoked());
+        refreshTokenRepository.findByToken(sha256Hex(ACTIVE_TOKEN)).orElseThrow().isRevoked());
     assertTrue(
+        refreshTokenRepository.findByToken(sha256Hex(REVOKED_TOKEN)).orElseThrow().isRevoked());
+    assertFalse(
         refreshTokenRepository
-            .findByToken(alreadyRevokedToken.getToken())
+            .findByToken(sha256Hex(EXPIRED_REFRESH_TOKEN))
             .orElseThrow()
             .isRevoked());
     assertFalse(
-        refreshTokenRepository
-            .findByToken(expiredUnrevokedToken.getToken())
-            .orElseThrow()
-            .isRevoked());
-    assertFalse(
-        refreshTokenRepository
-            .findByToken(otherUserActiveToken.getToken())
-            .orElseThrow()
-            .isRevoked());
+        refreshTokenRepository.findByToken(sha256Hex(OTHER_USER_TOKEN)).orElseThrow().isRevoked());
   }
 
   @Test
@@ -127,17 +124,30 @@ class RefreshTokenRepositoryTest {
     refreshTokenRepository.save(
         buildRefreshToken(REVOKED_REFRESH_TOKEN, user, now.plusSeconds(3600), true));
 
-    int activeRevoked = refreshTokenRepository.revokeTokenIfActive(activeToken.getToken(), now);
-    int expiredRevoked = refreshTokenRepository.revokeTokenIfActive(EXPIRED_REFRESH_TOKEN, now);
-    int alreadyRevoked = refreshTokenRepository.revokeTokenIfActive(REVOKED_REFRESH_TOKEN, now);
+    int activeRevoked =
+        refreshTokenRepository.revokeTokenIfActive(sha256Hex(ACTIVE_REFRESH_TOKEN), now);
+    int expiredRevoked =
+        refreshTokenRepository.revokeTokenIfActive(sha256Hex(EXPIRED_REFRESH_TOKEN), now);
+    int alreadyRevoked =
+        refreshTokenRepository.revokeTokenIfActive(sha256Hex(REVOKED_REFRESH_TOKEN), now);
 
     assertEquals(1, activeRevoked);
     assertEquals(0, expiredRevoked);
     assertEquals(0, alreadyRevoked);
     assertTrue(
-        refreshTokenRepository.findByToken(activeToken.getToken()).orElseThrow().isRevoked());
+        refreshTokenRepository
+            .findByToken(sha256Hex(ACTIVE_REFRESH_TOKEN))
+            .orElseThrow()
+            .isRevoked());
     assertFalse(
-        refreshTokenRepository.findByToken(EXPIRED_REFRESH_TOKEN).orElseThrow().isRevoked());
-    assertTrue(refreshTokenRepository.findByToken(REVOKED_REFRESH_TOKEN).orElseThrow().isRevoked());
+        refreshTokenRepository
+            .findByToken(sha256Hex(EXPIRED_REFRESH_TOKEN))
+            .orElseThrow()
+            .isRevoked());
+    assertTrue(
+        refreshTokenRepository
+            .findByToken(sha256Hex(REVOKED_REFRESH_TOKEN))
+            .orElseThrow()
+            .isRevoked());
   }
 }

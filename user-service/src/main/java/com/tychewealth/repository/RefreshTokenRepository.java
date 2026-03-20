@@ -13,7 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity, Long> {
 
-  Optional<RefreshTokenEntity> findByToken(String token);
+  @Query("select rt from RefreshTokenEntity rt where rt.token = :token")
+  Optional<RefreshTokenEntity> findByToken(@Param("token") String token);
 
   @Transactional
   @Modifying(clearAutomatically = true, flushAutomatically = true)

@@ -9,6 +9,7 @@ import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.enums.InvestmentHorizonEnum;
 import com.tychewealth.enums.RiskProfileEnum;
 import com.tychewealth.enums.StrategyTypeEnum;
+import com.tychewealth.utils.Utils;
 import java.math.BigDecimal;
 import java.time.Instant;
 
@@ -46,7 +47,7 @@ public final class EntityBuilder {
   public static RefreshTokenEntity buildRefreshToken(
       String token, UserEntity user, Instant expiresAt, boolean revoked) {
     RefreshTokenEntity refreshToken = new RefreshTokenEntity();
-    refreshToken.setToken(token);
+    refreshToken.setToken(Utils.sha256Hex(token));
     refreshToken.setUser(user);
     refreshToken.setExpiresAt(expiresAt);
     refreshToken.setRevoked(revoked);

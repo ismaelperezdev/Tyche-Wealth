@@ -33,6 +33,7 @@ import static com.tychewealth.testhelper.AuthTestHelper.logout;
 import static com.tychewealth.testhelper.AuthTestHelper.refresh;
 import static com.tychewealth.testhelper.AuthTestHelper.registerRequest;
 import static com.tychewealth.testhelper.MetricsTestHelper.counterValue;
+import static com.tychewealth.utils.Utils.sha256Hex;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -350,17 +351,24 @@ class AuthApiControllerIntegrationTest {
         objectMapper.readValue(responseBody, RefreshTokenResponseDto.class);
 
     assertNotEquals(previousTokenValue, refreshResponse.getRefreshToken());
-    assertTrue(refreshTokenRepository.findByToken(refreshResponse.getRefreshToken()).isPresent());
+    assertTrue(
+        refreshTokenRepository
+            .findByToken(sha256Hex(refreshResponse.getRefreshToken()))
+            .isPresent());
     assertFalse(
         refreshTokenRepository
-            .findByToken(refreshResponse.getRefreshToken())
+            .findByToken(sha256Hex(refreshResponse.getRefreshToken()))
             .orElseThrow()
             .isRevoked());
-    assertTrue(refreshTokenRepository.findByToken(previousTokenValue).orElseThrow().isRevoked());
+    assertTrue(
+        refreshTokenRepository
+            .findByToken(sha256Hex(previousTokenValue))
+            .orElseThrow()
+            .isRevoked());
     assertEquals(
         previousToken.getUser().getId(),
         refreshTokenRepository
-            .findByToken(refreshResponse.getRefreshToken())
+            .findByToken(sha256Hex(refreshResponse.getRefreshToken()))
             .orElseThrow()
             .getUser()
             .getId());
@@ -474,7 +482,10 @@ class AuthApiControllerIntegrationTest {
     logout(mockMvc, objectMapper, TEST_REFRESH_TOKEN_EXISTING).andExpect(status().isNoContent());
 
     assertTrue(
-        refreshTokenRepository.findByToken(TEST_REFRESH_TOKEN_EXISTING).orElseThrow().isRevoked());
+        refreshTokenRepository
+            .findByToken(sha256Hex(TEST_REFRESH_TOKEN_EXISTING))
+            .orElseThrow()
+            .isRevoked());
   }
 
   @Test
