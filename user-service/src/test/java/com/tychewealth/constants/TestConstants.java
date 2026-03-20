@@ -29,6 +29,20 @@ public final class TestConstants {
   public static final String TEST_REFRESH_TOKEN_REVOKED = "revoked-refresh-token";
   public static final String TEST_REFRESH_TOKEN_EXPIRED = "expired-refresh-token";
   public static final String TEST_REFRESH_TOKEN_METRICS = "metrics-refresh-token";
+  public static final String TEST_REFRESH_TOKEN_PEPPER = "test-refresh-token-pepper";
+
+  public static final String TEST_PROMETHEUS_USERNAME = "prometheus";
+  public static final String TEST_PROMETHEUS_PASSWORD = "secret";
+  public static final String TEST_MISSING_USERNAME = "missing";
+  public static final String TEST_PROMETHEUS_ROLE = "ROLE_PROMETHEUS";
+  public static final String TEST_PROMETHEUS_CREDENTIALS_ERROR =
+      "Prometheus username/password not configured";
+  public static final String TEST_HEADER_X_CONTENT_TYPE_OPTIONS = "X-Content-Type-Options";
+  public static final String TEST_HEADER_X_FRAME_OPTIONS = "X-Frame-Options";
+  public static final String TEST_HEADER_REFERRER_POLICY = "Referrer-Policy";
+  public static final String TEST_HEADER_STRICT_TRANSPORT_SECURITY = "Strict-Transport-Security";
+  public static final String TEST_ATTACKER_BASIC_TOKEN = "Basic attacker-token";
+  public static final String TEST_TAMPERED_TOKEN_SUFFIX = "tampered";
 
   private TestConstants() {}
 }

@@ -1,6 +1,8 @@
 package com.tychewealth.error.handler;
 
 import static com.tychewealth.constants.ApiConstants.USER_BASE_URL;
+import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
+import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
 
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.exception.UserException;
@@ -10,6 +12,7 @@ import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -100,7 +103,10 @@ public class ErrorHandler {
                     : description)
             .build();
 
-    return ResponseEntity.status(status).body(response);
+    return ResponseEntity.status(status)
+        .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
+        .header(HttpHeaders.PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE)
+        .body(response);
   }
 
   private ResponseEntity<ErrorResponse> buildFromException(

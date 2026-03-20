@@ -31,6 +31,7 @@ import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.UserRepository;
+import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,7 @@ class RedisIntegrationTest {
   @Autowired private UserRepository userRepository;
   @Autowired private RefreshTokenRepository refreshTokenRepository;
   @Autowired private PasswordEncoder passwordEncoder;
+  @Autowired private AuthRefreshTokenHelper authRefreshTokenHelper;
 
   private LoginRequestDto validLoginRequest;
 
@@ -121,7 +123,7 @@ class RedisIntegrationTest {
 
     assertTrue(
         refreshTokenRepository
-            .findByToken(loginResponse.getRefreshToken())
+            .findByToken(authRefreshTokenHelper.hashRefreshToken(loginResponse.getRefreshToken()))
             .orElseThrow()
             .isRevoked());
 

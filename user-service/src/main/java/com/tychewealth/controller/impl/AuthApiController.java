@@ -1,5 +1,9 @@
 package com.tychewealth.controller.impl;
 
+import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
+import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
+import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
+
 import com.tychewealth.constants.LogConstants;
 import com.tychewealth.controller.AuthApi;
 import com.tychewealth.dto.auth.LoginResponseDto;
@@ -13,6 +17,7 @@ import com.tychewealth.utils.LogContextFactory;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,7 +41,7 @@ public class AuthApiController implements AuthApi {
         LogContextFactory.mask(register.getEmail()));
 
     UserResponseDto response = authService.register(register);
-    return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    return withNoStoreHeaders(ResponseEntity.status(HttpStatus.CREATED)).body(response);
   }
 
   @Override
@@ -48,7 +53,7 @@ public class AuthApiController implements AuthApi {
         LogContextFactory.mask(login.getEmail()));
 
     LoginResponseDto response = authService.login(login);
-    return ResponseEntity.status(HttpStatus.OK).body(response);
+    return withNoStoreHeaders(ResponseEntity.status(HttpStatus.OK)).body(response);
   }
 
   @Override
@@ -57,16 +62,25 @@ public class AuthApiController implements AuthApi {
     log.info(LogConstants.REQUEST_START, LogConstants.AUTH, LogConstants.REFRESH_TOKEN_ACTION);
 
     RefreshTokenResponseDto response = authService.refresh(refreshTokenRequestDto);
-    return ResponseEntity.status(HttpStatus.OK).body(response);
+    return withNoStoreHeaders(ResponseEntity.status(HttpStatus.OK)).body(response);
   }
 
   @Override
   public ResponseEntity<Void> logout(
-      @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+      @RequestHeader(value = AUTHORIZATION_HEADER, required = false) String authorizationHeader,
       @Valid @RequestBody RefreshTokenRequestDto refreshTokenRequestDto) {
     log.info(LogConstants.REQUEST_START, LogConstants.AUTH, LogConstants.LOGOUT_ACTION);
 
     authService.logout(authorizationHeader, refreshTokenRequestDto);
-    return ResponseEntity.noContent().build();
+    return ResponseEntity.noContent()
+        .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
+        .header(HttpHeaders.PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE)
+        .build();
+  }
+
+  private ResponseEntity.BodyBuilder withNoStoreHeaders(ResponseEntity.BodyBuilder builder) {
+    return builder
+        .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
+        .header(HttpHeaders.PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE);
   }
 }

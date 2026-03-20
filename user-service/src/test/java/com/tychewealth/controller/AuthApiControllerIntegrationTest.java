@@ -24,6 +24,7 @@ import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_EXISTIN
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_EXPIRED;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_METRICS;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_MISSING;
+import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_REVOKED;
 import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
 import static com.tychewealth.testdata.EntityBuilder.buildRefreshToken;
@@ -33,6 +34,7 @@ import static com.tychewealth.testhelper.AuthTestHelper.logout;
 import static com.tychewealth.testhelper.AuthTestHelper.refresh;
 import static com.tychewealth.testhelper.AuthTestHelper.registerRequest;
 import static com.tychewealth.testhelper.MetricsTestHelper.counterValue;
+import static com.tychewealth.utils.Utils.sha256Hex;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -348,22 +350,20 @@ class AuthApiControllerIntegrationTest {
 
     RefreshTokenResponseDto refreshResponse =
         objectMapper.readValue(responseBody, RefreshTokenResponseDto.class);
+    RefreshTokenEntity newRefreshToken =
+        refreshTokenRepository
+            .findByToken(sha256Hex(refreshResponse.getRefreshToken(), TEST_REFRESH_TOKEN_PEPPER))
+            .orElseThrow();
 
     assertNotEquals(previousTokenValue, refreshResponse.getRefreshToken());
-    assertTrue(refreshTokenRepository.findByToken(refreshResponse.getRefreshToken()).isPresent());
-    assertFalse(
+    assertNotNull(newRefreshToken);
+    assertFalse(newRefreshToken.isRevoked());
+    assertTrue(
         refreshTokenRepository
-            .findByToken(refreshResponse.getRefreshToken())
+            .findByToken(sha256Hex(previousTokenValue, TEST_REFRESH_TOKEN_PEPPER))
             .orElseThrow()
             .isRevoked());
-    assertTrue(refreshTokenRepository.findByToken(previousTokenValue).orElseThrow().isRevoked());
-    assertEquals(
-        previousToken.getUser().getId(),
-        refreshTokenRepository
-            .findByToken(refreshResponse.getRefreshToken())
-            .orElseThrow()
-            .getUser()
-            .getId());
+    assertEquals(previousToken.getUser().getId(), newRefreshToken.getUser().getId());
   }
 
   @Test
@@ -474,7 +474,10 @@ class AuthApiControllerIntegrationTest {
     logout(mockMvc, objectMapper, TEST_REFRESH_TOKEN_EXISTING).andExpect(status().isNoContent());
 
     assertTrue(
-        refreshTokenRepository.findByToken(TEST_REFRESH_TOKEN_EXISTING).orElseThrow().isRevoked());
+        refreshTokenRepository
+            .findByToken(sha256Hex(TEST_REFRESH_TOKEN_EXISTING, TEST_REFRESH_TOKEN_PEPPER))
+            .orElseThrow()
+            .isRevoked());
   }
 
   @Test

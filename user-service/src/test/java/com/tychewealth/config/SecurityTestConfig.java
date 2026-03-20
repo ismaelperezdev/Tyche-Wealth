@@ -1,5 +1,9 @@
 package com.tychewealth.config;
 
+import static com.tychewealth.constants.SecurityConstants.ACTUATOR_PROMETHEUS_PATH;
+import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
+import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.error.handler.ErrorResponse;
@@ -10,18 +14,28 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.util.StringUtils;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -29,7 +43,42 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @TestConfiguration
 public class SecurityTestConfig {
 
+  @Value("${app.security.hsts.include-sub-domains:true}")
+  private boolean hstsIncludeSubDomains;
+
+  @Value("${app.security.hsts.max-age-seconds:31536000}")
+  private long hstsMaxAgeSeconds;
+
   @Bean
+  @Order(1)
+  public SecurityFilterChain prometheusSecurityFilterChain(
+      HttpSecurity http, AccessDeniedHandler accessDeniedHandler) throws Exception {
+    http.securityMatcher(ACTUATOR_PROMETHEUS_PATH)
+        .csrf(AbstractHttpConfigurer::disable)
+        .headers(
+            headers ->
+                headers
+                    .contentTypeOptions(Customizer.withDefaults())
+                    .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
+                    .referrerPolicy(
+                        referrerPolicy ->
+                            referrerPolicy.policy(
+                                ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+                    .httpStrictTransportSecurity(
+                        hsts ->
+                            hsts.includeSubDomains(hstsIncludeSubDomains)
+                                .maxAgeInSeconds(hstsMaxAgeSeconds)))
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(authorize -> authorize.anyRequest().hasRole("PROMETHEUS"))
+        .httpBasic(Customizer.withDefaults())
+        .exceptionHandling(exceptions -> exceptions.accessDeniedHandler(accessDeniedHandler));
+
+    return http.build();
+  }
+
+  @Bean
+  @Order(2)
   public SecurityFilterChain securityFilterChain(
       HttpSecurity http,
       JwtAuthenticationFilter jwtAuthenticationFilter,
@@ -40,6 +89,19 @@ public class SecurityTestConfig {
       throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
         .cors(cors -> cors.configurationSource(corsConfigurationSource))
+        .headers(
+            headers ->
+                headers
+                    .contentTypeOptions(Customizer.withDefaults())
+                    .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
+                    .referrerPolicy(
+                        referrerPolicy ->
+                            referrerPolicy.policy(
+                                ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+                    .httpStrictTransportSecurity(
+                        hsts ->
+                            hsts.includeSubDomains(hstsIncludeSubDomains)
+                                .maxAgeInSeconds(hstsMaxAgeSeconds)))
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .exceptionHandling(
@@ -67,6 +129,23 @@ public class SecurityTestConfig {
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
+  }
+
+  @Bean
+  public UserDetailsService prometheusUserDetailsService(
+      @Value("${app.security.prometheus.username:prometheus-scraper}") String prometheusUsername,
+      @Value("${PROMETHEUS_PASSWORD:test-prometheus-secret}") String prometheusPassword,
+      PasswordEncoder passwordEncoder) {
+    if (!StringUtils.hasText(prometheusUsername) || !StringUtils.hasText(prometheusPassword)) {
+      throw new IllegalStateException("Prometheus username/password not configured");
+    }
+
+    UserDetails prometheusUser =
+        User.withUsername(prometheusUsername)
+            .password(passwordEncoder.encode(prometheusPassword))
+            .roles("PROMETHEUS")
+            .build();
+    return new InMemoryUserDetailsManager(prometheusUser);
   }
 
   @Bean
@@ -123,6 +202,8 @@ public class SecurityTestConfig {
       throws IOException {
     response.setStatus(status.value());
     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+    response.setHeader(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE);
+    response.setHeader(HttpHeaders.PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE);
     objectMapper.writeValue(
         response.getWriter(),
         ErrorResponse.builder()

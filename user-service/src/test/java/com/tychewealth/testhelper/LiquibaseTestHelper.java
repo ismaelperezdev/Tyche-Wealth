@@ -1,5 +1,8 @@
 package com.tychewealth.testhelper;
 
+import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
+
+import com.tychewealth.utils.Utils;
 import java.sql.Timestamp;
 import java.time.Instant;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -75,7 +78,7 @@ public class LiquibaseTestHelper {
         VALUES (?, ?, ?, ?, ?, ?)
         """,
         id,
-        token,
+        Utils.sha256Hex(token, TEST_REFRESH_TOKEN_PEPPER),
         userId,
         Timestamp.from(Instant.now().plusSeconds(3600)),
         false,

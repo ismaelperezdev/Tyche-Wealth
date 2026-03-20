@@ -1,8 +1,11 @@
 package com.tychewealth.config;
 
+import static com.tychewealth.constants.TestConstants.TEST_PROMETHEUS_PASSWORD;
+import static com.tychewealth.constants.TestConstants.TEST_PROMETHEUS_USERNAME;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
 
 import com.tychewealth.controller.impl.AuthApiController;
+import com.tychewealth.controller.impl.UserApiController;
 import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.handler.ErrorHandler;
@@ -16,7 +19,10 @@ import com.tychewealth.service.helper.token.AccessTokenHelper;
 import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
 import com.tychewealth.service.helper.token.TokenStateHelper;
 import com.tychewealth.service.helper.token.TokenValidationHelper;
+import com.tychewealth.service.helper.user.UserHelper;
+import com.tychewealth.service.helper.user.UserValidationHelper;
 import com.tychewealth.service.impl.AuthServiceImpl;
+import com.tychewealth.service.impl.UserServiceImpl;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.monitoring.UserMetrics;
 import org.springframework.boot.SpringBootConfiguration;
@@ -35,7 +41,9 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
   IntegrationTestConfig.class,
   RefreshRateLimitConfig.class,
   AuthApiController.class,
+  UserApiController.class,
   AuthServiceImpl.class,
+  UserServiceImpl.class,
   AuthValidationHelper.class,
   AuthRegisterHelper.class,
   AuthLoginHelper.class,
@@ -46,11 +54,13 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
   AuthMetrics.class,
   UserMetrics.class,
   ErrorHandler.class,
-  UserMapperImpl.class
+  UserMapperImpl.class,
+  UserHelper.class,
+  UserValidationHelper.class
 })
 @EnableJpaRepositories(basePackageClasses = {UserRepository.class, RefreshTokenRepository.class})
 @EntityScan(basePackageClasses = {UserEntity.class, RefreshTokenEntity.class})
-public class AuthIntegrationTestConfig {
+public class SecurityIntegrationTestConfig {
 
   public static class Initializer
       implements ApplicationContextInitializer<ConfigurableApplicationContext> {
@@ -61,6 +71,8 @@ public class AuthIntegrationTestConfig {
               "spring.liquibase.change-log=classpath:db.changelog/changelog-master.xml",
               "app.auth.jwt.secret=4AYI7d6GOEvFEcCJZkDA0hGFqI6SuF5RAsxAjqzTmaM=",
               "app.auth.jwt.refresh-token-pepper=" + TEST_REFRESH_TOKEN_PEPPER,
+              "app.security.prometheus.username=" + TEST_PROMETHEUS_USERNAME,
+              "PROMETHEUS_PASSWORD=" + TEST_PROMETHEUS_PASSWORD,
               "app.auth.register-rate-limit.max-requests=2",
               "app.auth.register-rate-limit.window-seconds=300",
               "app.auth.login-rate-limit.max-requests=2",

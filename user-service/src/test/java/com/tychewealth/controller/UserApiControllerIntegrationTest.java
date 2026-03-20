@@ -20,6 +20,7 @@ import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_CONFIRM_MISM
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_INVALID;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_NEW_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
+import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
 import static com.tychewealth.constants.TestConstants.TEST_UPDATE_USERNAME_NORMALIZED;
 import static com.tychewealth.constants.TestConstants.TEST_UPDATE_USERNAME_REQUEST;
 import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
@@ -36,6 +37,7 @@ import static com.tychewealth.testhelper.UserTestHelper.updatePasswordRequest;
 import static com.tychewealth.testhelper.UserTestHelper.updatePasswordRequestUnauthorized;
 import static com.tychewealth.testhelper.UserTestHelper.updateRequest;
 import static com.tychewealth.testhelper.UserTestHelper.updateRequestUnauthorized;
+import static com.tychewealth.utils.Utils.sha256Hex;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -47,7 +49,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.config.UserIntegrationTestConfig;
-import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.RefreshTokenRepository;
@@ -229,10 +230,9 @@ class UserApiControllerIntegrationTest {
   @Test
   void updatePasswordChangesPasswordAndRevokesActiveRefreshTokens() throws Exception {
     UserEntity saved = userRepository.saveAndFlush(existingUser);
-    RefreshTokenEntity refreshToken =
-        refreshTokenRepository.saveAndFlush(
-            buildRefreshToken(
-                "user-password-change-token", saved, Instant.now().plusSeconds(300), false));
+    String refreshTokenValue = "user-password-change-token";
+    refreshTokenRepository.saveAndFlush(
+        buildRefreshToken(refreshTokenValue, saved, Instant.now().plusSeconds(300), false));
     String accessToken = accessTokenHelper.generateAccessToken(saved).accessToken();
 
     updatePasswordRequest(
@@ -246,7 +246,10 @@ class UserApiControllerIntegrationTest {
     UserEntity updatedUser = userRepository.findById(saved.getId()).orElseThrow();
     assertTrue(passwordEncoder.matches(TEST_PASSWORD_NEW_VALID, updatedUser.getPassword()));
     assertTrue(
-        refreshTokenRepository.findByToken(refreshToken.getToken()).orElseThrow().isRevoked());
+        refreshTokenRepository
+            .findByToken(sha256Hex(refreshTokenValue, TEST_REFRESH_TOKEN_PEPPER))
+            .orElseThrow()
+            .isRevoked());
   }
 
   @Test

@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 @Component
@@ -34,19 +35,25 @@ public class AuthRefreshTokenHelper {
   private final AuthMetrics authMetrics;
   private final SecureRandom secureRandom = new SecureRandom();
   private final long refreshTokenTtlSeconds;
+  private final String refreshTokenPepper;
 
   public AuthRefreshTokenHelper(
       RefreshTokenRepository refreshTokenRepository,
       TokenStateHelper tokenStateHelper,
       AuthMetrics authMetrics,
-      @Value("${app.auth.jwt.refresh-token-ttl-seconds:1209600}") long refreshTokenTtlSeconds) {
+      @Value("${app.auth.jwt.refresh-token-ttl-seconds:1209600}") long refreshTokenTtlSeconds,
+      @Value("${app.auth.jwt.refresh-token-pepper}") String refreshTokenPepper) {
     if (refreshTokenTtlSeconds <= 0) {
       throw new IllegalArgumentException("Refresh token TTL must be positive");
+    }
+    if (!StringUtils.hasText(refreshTokenPepper)) {
+      throw new IllegalArgumentException("Refresh token pepper must be configured");
     }
     this.refreshTokenRepository = refreshTokenRepository;
     this.tokenStateHelper = tokenStateHelper;
     this.authMetrics = authMetrics;
     this.refreshTokenTtlSeconds = refreshTokenTtlSeconds;
+    this.refreshTokenPepper = refreshTokenPepper;
   }
 
   public record LinkedRefreshToken(String token, Instant expiresAt) {}
@@ -65,7 +72,7 @@ public class AuthRefreshTokenHelper {
     RefreshTokenEntity refreshToken = new RefreshTokenEntity();
 
     refreshToken.setUser(user);
-    refreshToken.setToken(token);
+    refreshToken.setToken(hashRefreshToken(token));
     refreshToken.setExpiresAt(expiresAt);
     refreshToken.setRevoked(false);
 
@@ -82,7 +89,8 @@ public class AuthRefreshTokenHelper {
 
   @Transactional
   public RefreshTokenEntity validateRefreshToken(String token) {
-    int revokedCount = refreshTokenRepository.revokeTokenIfActive(token, Instant.now());
+    int revokedCount =
+        refreshTokenRepository.revokeTokenIfActive(hashRefreshToken(token), Instant.now());
     authMetrics.recordTokensRevoked(revokedCount);
 
     if (revokedCount == 0) {
@@ -93,7 +101,11 @@ public class AuthRefreshTokenHelper {
   }
 
   public Optional<RefreshTokenEntity> findByToken(String token) {
-    return refreshTokenRepository.findByToken(token);
+    return refreshTokenRepository.findByToken(hashRefreshToken(token));
+  }
+
+  public String hashRefreshToken(String token) {
+    return com.tychewealth.utils.Utils.sha256Hex(token, refreshTokenPepper);
   }
 
   private void throwInvalidRefreshToken() {
@@ -143,7 +155,7 @@ public class AuthRefreshTokenHelper {
       }
     }
 
-    refreshTokenRepository.deleteByToken(refreshToken);
+    refreshTokenRepository.deleteByToken(hashRefreshToken(refreshToken));
     authMetrics.recordTokenStateUnavailable();
     AuthException exception =
         new AuthException(
