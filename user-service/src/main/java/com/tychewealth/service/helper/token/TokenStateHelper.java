@@ -21,6 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Slf4j
 @Component
@@ -90,7 +92,19 @@ public class TokenStateHelper {
   }
 
   public void unlinkRefreshToken(String refreshToken) {
-    redisTemplate.delete(buildRefreshTokenAccessTokenLinkKey(refreshToken));
+    String redisKey = buildRefreshTokenAccessTokenLinkKey(refreshToken);
+    if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+      redisTemplate.delete(redisKey);
+      return;
+    }
+
+    TransactionSynchronizationManager.registerSynchronization(
+        new TransactionSynchronization() {
+          @Override
+          public void afterCommit() {
+            redisTemplate.delete(redisKey);
+          }
+        });
   }
 
   public String extractBearerToken(String authorizationHeader) {

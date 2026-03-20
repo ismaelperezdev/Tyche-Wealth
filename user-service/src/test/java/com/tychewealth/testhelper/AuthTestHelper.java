@@ -4,7 +4,7 @@ import static com.tychewealth.constants.ApiConstants.AUTH_LOGIN_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_LOGOUT_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_REFRESH_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_REGISTER_URL;
-import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
+import static com.tychewealth.constants.AuthConstants.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -71,7 +71,7 @@ public final class AuthTestHelper {
             .content(objectMapper.writeValueAsString(new RefreshTokenRequestDto(refreshToken)));
 
     if (accessToken != null && !accessToken.isBlank()) {
-      requestBuilder.header(AUTHORIZATION_HEADER, "Bearer " + accessToken);
+      requestBuilder.header(AUTHORIZATION_HEADER, TOKEN_TYPE_BEARER_PREFIX + accessToken);
     }
 
     return mockMvc.perform(requestBuilder);

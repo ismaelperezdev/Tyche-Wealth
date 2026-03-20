@@ -21,7 +21,14 @@ class AuthRateLimitInterceptorTest {
     InMemoryRateLimitStore store = new InMemoryRateLimitStore(new MutableClock());
     AuthRateLimitInterceptor interceptor =
         new AuthRateLimitInterceptor(
-            NAMESPACE, 1, 60, ErrorDefinition.RATE_LIMITED.getDescription(), null, null, store);
+            NAMESPACE,
+            1,
+            60,
+            ErrorDefinition.RATE_LIMITED.getDescription(),
+            null,
+            null,
+            null,
+            store);
 
     MockHttpServletRequest firstRequest = RateLimitWebTestHelper.buildRequest("198.51.100.10");
     MockHttpServletRequest secondRequest = RateLimitWebTestHelper.buildRequest("203.0.113.20");
@@ -40,7 +47,14 @@ class AuthRateLimitInterceptorTest {
     InMemoryRateLimitStore store = RateLimitWebTestHelper.buildStore(clock);
     AuthRateLimitInterceptor interceptor =
         new AuthRateLimitInterceptor(
-            NAMESPACE, 1, 1, ErrorDefinition.RATE_LIMITED.getDescription(), null, null, store);
+            NAMESPACE,
+            1,
+            1,
+            ErrorDefinition.RATE_LIMITED.getDescription(),
+            null,
+            null,
+            null,
+            store);
 
     MockHttpServletRequest request = RateLimitWebTestHelper.buildRequest(null);
     MockHttpServletResponse response = RateLimitWebTestHelper.buildResponse();

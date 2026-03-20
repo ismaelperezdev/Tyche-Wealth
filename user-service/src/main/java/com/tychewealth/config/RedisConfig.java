@@ -20,7 +20,6 @@ public class RedisConfig {
     redisTemplate.setValueSerializer(stringRedisSerializer);
     redisTemplate.setHashKeySerializer(stringRedisSerializer);
     redisTemplate.setHashValueSerializer(stringRedisSerializer);
-    redisTemplate.afterPropertiesSet();
 
     return redisTemplate;
   }

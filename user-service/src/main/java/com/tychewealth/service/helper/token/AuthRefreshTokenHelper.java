@@ -144,6 +144,11 @@ public class AuthRefreshTokenHelper {
     }
 
     refreshTokenRepository.deleteByToken(refreshToken);
-    throw new IllegalStateException("Failed to persist refresh-token state in Redis", lastFailure);
+    authMetrics.recordTokenStateUnavailable();
+    AuthException exception =
+        new AuthException(
+            ErrorDefinition.GENERIC_INTERNAL_ERROR, null, HttpStatus.SERVICE_UNAVAILABLE);
+    exception.initCause(lastFailure);
+    throw exception;
   }
 }

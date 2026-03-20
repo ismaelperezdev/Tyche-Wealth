@@ -40,6 +40,7 @@ public class RefreshRateLimitConfig implements WebMvcConfigurer {
             ErrorDefinition.RATE_LIMITED.getDescription(),
             ignored -> authMetrics.recordLoginRequest(),
             ignored -> authMetrics.recordLoginRateLimited(),
+            ignored -> authMetrics.recordLoginRateLimitStoreUnavailable(),
             rateLimitStore);
     this.registerRateLimitInterceptor =
         new AuthRateLimitInterceptor(
@@ -49,6 +50,7 @@ public class RefreshRateLimitConfig implements WebMvcConfigurer {
             ErrorDefinition.RATE_LIMITED.getDescription(),
             ignored -> authMetrics.recordRegisterRequest(),
             ignored -> authMetrics.recordRegisterRateLimited(),
+            ignored -> authMetrics.recordRegisterRateLimitStoreUnavailable(),
             rateLimitStore);
     this.refreshRateLimitInterceptor =
         new RefreshRateLimitInterceptor(

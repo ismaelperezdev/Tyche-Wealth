@@ -3,6 +3,7 @@ package com.tychewealth.service.monitoring;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_FAILURE;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_INVALID_CREDENTIALS;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_RATE_LIMITED;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_RATE_LIMIT_STORE_UNAVAILABLE;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_REQUESTS;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_SUCCESS;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REFRESH_FAILURE;
@@ -14,6 +15,7 @@ import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REFRESH_TOKE
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_CONFLICT;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_FAILURE;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_RATE_LIMITED;
+import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_RATE_LIMIT_STORE_UNAVAILABLE;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_REQUESTS;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_SUCCESS;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_TOKEN_STATE_UNAVAILABLE;
@@ -29,12 +31,14 @@ public class AuthMetrics {
   private final Counter registerSuccesses;
   private final Counter registerFailures;
   private final Counter registerRateLimited;
+  private final Counter registerRateLimitStoreUnavailable;
   private final Counter registerConflicts;
 
   private final Counter loginRequests;
   private final Counter loginSuccesses;
   private final Counter loginFailures;
   private final Counter loginRateLimited;
+  private final Counter loginRateLimitStoreUnavailable;
   private final Counter loginInvalidCredentials;
   private final Counter tokenStateUnavailable;
 
@@ -66,6 +70,11 @@ public class AuthMetrics {
             meterRegistry,
             METRIC_AUTH_REGISTER_RATE_LIMITED,
             "Register requests rejected by rate limiting.");
+    this.registerRateLimitStoreUnavailable =
+        counter(
+            meterRegistry,
+            METRIC_AUTH_REGISTER_RATE_LIMIT_STORE_UNAVAILABLE,
+            "Register requests that could not be rate-limited because the backing store was unavailable.");
     this.registerConflicts =
         counter(
             meterRegistry,
@@ -92,6 +101,11 @@ public class AuthMetrics {
             meterRegistry,
             METRIC_AUTH_LOGIN_RATE_LIMITED,
             "Login requests rejected by rate limiting.");
+    this.loginRateLimitStoreUnavailable =
+        counter(
+            meterRegistry,
+            METRIC_AUTH_LOGIN_RATE_LIMIT_STORE_UNAVAILABLE,
+            "Login requests that could not be rate-limited because the backing store was unavailable.");
     this.loginInvalidCredentials =
         counter(
             meterRegistry,
@@ -151,6 +165,10 @@ public class AuthMetrics {
     registerRateLimited.increment();
   }
 
+  public void recordRegisterRateLimitStoreUnavailable() {
+    registerRateLimitStoreUnavailable.increment();
+  }
+
   public void recordRegisterConflict() {
     registerConflicts.increment();
   }
@@ -169,6 +187,10 @@ public class AuthMetrics {
 
   public void recordLoginRateLimited() {
     loginRateLimited.increment();
+  }
+
+  public void recordLoginRateLimitStoreUnavailable() {
+    loginRateLimitStoreUnavailable.increment();
   }
 
   public void recordLoginInvalidCredentials() {

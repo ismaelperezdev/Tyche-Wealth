@@ -6,6 +6,9 @@ import static com.tychewealth.constants.ApiConstants.USER_ME_URL;
 import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER;
 import static com.tychewealth.constants.TestConstants.TEST_EMAIL_LAURA;
+import static com.tychewealth.constants.TestConstants.TEST_FIELD_CONFIRM_NEW_PASSWORD;
+import static com.tychewealth.constants.TestConstants.TEST_FIELD_CURRENT_PASSWORD;
+import static com.tychewealth.constants.TestConstants.TEST_FIELD_NEW_PASSWORD;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_NEW_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
@@ -100,9 +103,9 @@ class RedisIntegrationTest {
                 .content(
                     objectMapper.writeValueAsString(
                         Map.of(
-                            "currentPassword", TEST_PASSWORD_VALID,
-                            "newPassword", TEST_PASSWORD_NEW_VALID,
-                            "confirmNewPassword", TEST_PASSWORD_NEW_VALID))))
+                            TEST_FIELD_CURRENT_PASSWORD, TEST_PASSWORD_VALID,
+                            TEST_FIELD_NEW_PASSWORD, TEST_PASSWORD_NEW_VALID,
+                            TEST_FIELD_CONFIRM_NEW_PASSWORD, TEST_PASSWORD_NEW_VALID))))
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
@@ -164,9 +167,9 @@ class RedisIntegrationTest {
                 .content(
                     objectMapper.writeValueAsString(
                         Map.of(
-                            "currentPassword", TEST_PASSWORD_VALID,
-                            "newPassword", TEST_PASSWORD_NEW_VALID,
-                            "confirmNewPassword", TEST_PASSWORD_NEW_VALID))))
+                            TEST_FIELD_CURRENT_PASSWORD, TEST_PASSWORD_VALID,
+                            TEST_FIELD_NEW_PASSWORD, TEST_PASSWORD_NEW_VALID,
+                            TEST_FIELD_CONFIRM_NEW_PASSWORD, TEST_PASSWORD_NEW_VALID))))
         .andExpect(status().isNoContent());
 
     mockMvc
