@@ -1,8 +1,8 @@
 package com.tychewealth.controller.impl;
 
+import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
-import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 
 import com.tychewealth.constants.LogConstants;
 import com.tychewealth.controller.UserApi;

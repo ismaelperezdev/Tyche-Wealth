@@ -155,7 +155,7 @@ public class AuthRefreshTokenHelper {
       }
     }
 
-    refreshTokenRepository.deleteByToken(refreshToken);
+    refreshTokenRepository.deleteByToken(hashRefreshToken(refreshToken));
     authMetrics.recordTokenStateUnavailable();
     AuthException exception =
         new AuthException(
