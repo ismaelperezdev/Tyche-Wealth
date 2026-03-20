@@ -16,11 +16,11 @@ import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.service.AuthService;
 import com.tychewealth.service.helper.auth.AuthLoginHelper;
-import com.tychewealth.service.helper.auth.AuthLogoutHelper;
 import com.tychewealth.service.helper.auth.AuthRegisterHelper;
 import com.tychewealth.service.helper.auth.AuthValidationHelper;
 import com.tychewealth.service.helper.token.AccessTokenHelper;
 import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
+import com.tychewealth.service.helper.token.TokenStateHelper;
 import com.tychewealth.service.helper.token.TokenValidationHelper;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.AuthTokenPayload;
@@ -42,7 +42,7 @@ public class AuthServiceImpl implements AuthService {
   private final AuthValidationHelper authValidationHelper;
   private final AuthRegisterHelper authRegisterHelper;
   private final AuthLoginHelper authLoginHelper;
-  private final AuthLogoutHelper authLogoutHelper;
+  private final TokenStateHelper tokenStateHelper;
   private final AuthRefreshTokenHelper authRefreshTokenHelper;
   private final AccessTokenHelper accessTokenHelper;
   private final TokenValidationHelper tokenValidationHelper;
@@ -92,6 +92,9 @@ public class AuthServiceImpl implements AuthService {
     String newRefreshToken = authRefreshTokenHelper.generateRefreshToken();
     Instant newRefreshTokenExpiration = authRefreshTokenHelper.calculateRefreshTokenExpiration();
     authRefreshTokenHelper.saveToken(user, newRefreshToken, newRefreshTokenExpiration);
+    tokenStateHelper.unlinkRefreshToken(refreshTokenRequestDto.getRefreshToken());
+    tokenStateHelper.linkRefreshTokenToAccessToken(
+        newRefreshToken, accessTokenPayload.jti(), newRefreshTokenExpiration);
     authMetrics.recordRefreshSuccess();
 
     return new RefreshTokenResponseDto(
@@ -105,9 +108,15 @@ public class AuthServiceImpl implements AuthService {
   @Transactional
   public void logout(String authorizationHeader, RefreshTokenRequestDto refreshTokenRequestDto) {
     tokenValidationHelper.validateRefreshTokenRequest(refreshTokenRequestDto);
+    String refreshTokenValue = refreshTokenRequestDto.getRefreshToken();
     RefreshTokenEntity refreshToken =
-        authRefreshTokenHelper.validateRefreshToken(refreshTokenRequestDto.getRefreshToken());
-    authLogoutHelper.revokeAccessTokenIfPresent(authorizationHeader);
+        authRefreshTokenHelper.validateRefreshToken(refreshTokenValue);
+    tokenStateHelper.revokeAccessTokenIfPresent(authorizationHeader);
+    tokenStateHelper
+        .findAccessTokenJtiByRefreshToken(refreshTokenValue)
+        .ifPresent(
+            tokenId -> tokenStateHelper.revokeAccessToken(tokenId, refreshToken.getExpiresAt()));
+    tokenStateHelper.unlinkRefreshToken(refreshTokenValue);
 
     log.info(
         LogConstants.REQUEST_SUCCESS + LogConstants.USER_ID,

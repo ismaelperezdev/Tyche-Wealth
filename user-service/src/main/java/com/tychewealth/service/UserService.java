@@ -10,7 +10,8 @@ public interface UserService {
 
   UserResponseDto update(Long userId, UserUpdateRequestDto updateRequest);
 
-  Long updatePassword(Long userId, UserPasswordUpdateRequestDto updatePasswordRequest);
+  Long updatePassword(
+      Long userId, String authorizationHeader, UserPasswordUpdateRequestDto updatePasswordRequest);
 
-  Long delete(Long userId);
+  Long delete(Long userId, String authorizationHeader);
 }

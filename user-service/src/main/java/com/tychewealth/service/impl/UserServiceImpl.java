@@ -6,7 +6,9 @@ import com.tychewealth.dto.user.request.UserUpdateRequestDto;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.mapper.user.UserMapper;
 import com.tychewealth.service.UserService;
+import com.tychewealth.service.helper.token.TokenStateHelper;
 import com.tychewealth.service.helper.user.UserHelper;
+import com.tychewealth.service.helper.user.UserValidationHelper;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,8 @@ public class UserServiceImpl implements UserService {
 
   private final UserMapper userMapper;
   private final UserHelper userHelper;
+  private final UserValidationHelper userValidationHelper;
+  private final TokenStateHelper tokenStateHelper;
 
   @Override
   public UserResponseDto retrieve(Long userId) {
@@ -27,22 +31,28 @@ public class UserServiceImpl implements UserService {
   @Transactional
   public UserResponseDto update(Long userId, UserUpdateRequestDto updateRequest) {
     UserEntity user = userHelper.findActiveUser(userId);
+    userValidationHelper.validateUsernameIsAvailableForUpdate(
+        updateRequest.getUsername(), user.getId());
 
     return userMapper.toDto(userHelper.update(user, updateRequest));
   }
 
   @Override
   @Transactional
-  public Long updatePassword(Long userId, UserPasswordUpdateRequestDto updatePasswordRequest) {
+  public Long updatePassword(
+      Long userId, String authorizationHeader, UserPasswordUpdateRequestDto updatePasswordRequest) {
     UserEntity user = userHelper.findActiveUser(userId);
+    userValidationHelper.validatePasswordUpdate(updatePasswordRequest, user);
+    tokenStateHelper.revokeAccessTokenIfPresent(authorizationHeader);
 
     return userHelper.updatePassword(user, updatePasswordRequest);
   }
 
   @Override
   @Transactional
-  public Long delete(Long userId) {
+  public Long delete(Long userId, String authorizationHeader) {
     UserEntity user = userHelper.findActiveUser(userId);
+    tokenStateHelper.revokeAccessTokenIfPresent(authorizationHeader);
 
     return userHelper.softDelete(user);
   }

@@ -13,6 +13,7 @@ import com.tychewealth.service.helper.auth.AuthRegisterHelper;
 import com.tychewealth.service.helper.auth.AuthValidationHelper;
 import com.tychewealth.service.helper.token.AccessTokenHelper;
 import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
+import com.tychewealth.service.helper.token.TokenStateHelper;
 import com.tychewealth.service.helper.token.TokenValidationHelper;
 import com.tychewealth.service.helper.user.UserHelper;
 import com.tychewealth.service.helper.user.UserValidationHelper;
@@ -43,6 +44,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
   AuthRegisterHelper.class,
   AuthLoginHelper.class,
   AccessTokenHelper.class,
+  TokenStateHelper.class,
   TokenValidationHelper.class,
   AuthRefreshTokenHelper.class,
   UserHelper.class,
@@ -66,9 +68,9 @@ public class RedisIntegrationTestConfig {
               "app.auth.jwt.secret=4AYI7d6GOEvFEcCJZkDA0hGFqI6SuF5RAsxAjqzTmaM=",
               "app.auth.register-rate-limit.max-requests=2",
               "app.auth.register-rate-limit.window-seconds=300",
-              "app.auth.login-rate-limit.max-requests=2",
+              "app.auth.login-rate-limit.max-requests=20",
               "app.auth.login-rate-limit.window-seconds=60",
-              "app.auth.refresh-rate-limit.max-requests=2",
+              "app.auth.refresh-rate-limit.max-requests=20",
               "app.auth.refresh-rate-limit.window-seconds=60")
           .applyTo(applicationContext.getEnvironment());
     }

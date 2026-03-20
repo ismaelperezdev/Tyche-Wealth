@@ -18,6 +18,7 @@ import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
+import java.util.UUID;
 import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,6 +48,7 @@ public class AccessTokenHelper {
   public AuthTokenPayload generateAccessToken(UserEntity user) {
     Instant issuedAt = Instant.now();
     Instant expiresAt = issuedAt.plusSeconds(accessTokenTtlSeconds);
+    String jti = UUID.randomUUID().toString();
 
     String token =
         Jwts.builder()
@@ -54,6 +56,7 @@ public class AccessTokenHelper {
             .type("JWT")
             .and()
             .subject(String.valueOf(user.getId()))
+            .id(jti)
             .claim("email", user.getEmail())
             .claim("username", user.getUsername())
             .issuedAt(Date.from(issuedAt))
@@ -61,7 +64,7 @@ public class AccessTokenHelper {
             .signWith(signingKey, Jwts.SIG.HS256)
             .compact();
 
-    return new AuthTokenPayload(TOKEN_TYPE_BEARER, token, accessTokenTtlSeconds);
+    return new AuthTokenPayload(TOKEN_TYPE_BEARER, token, accessTokenTtlSeconds, jti);
   }
 
   public Long extractUserId(String token) {
@@ -76,6 +79,15 @@ public class AccessTokenHelper {
   public Instant extractExpiration(String token) {
     try {
       return parseClaims(token).getExpiration().toInstant();
+    } catch (JwtException | IllegalArgumentException ex) {
+      log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_ACCESS_TOKEN_MESSAGE);
+      throw new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);
+    }
+  }
+
+  public String extractTokenId(String token) {
+    try {
+      return parseClaims(token).getId();
     } catch (JwtException | IllegalArgumentException ex) {
       log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_ACCESS_TOKEN_MESSAGE);
       throw new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);

@@ -12,6 +12,7 @@ import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
 import static com.tychewealth.testhelper.AuthTestHelper.login;
 import static com.tychewealth.testhelper.AuthTestHelper.logout;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -109,7 +110,7 @@ class RedisIntegrationTest {
   }
 
   @Test
-  void logoutWithoutAuthorizationHeaderStillRevokesRefreshToken() throws Exception {
+  void logoutWithoutAuthorizationHeaderStillRevokesRefreshTokenAndAccessToken() throws Exception {
     LoginResponseDto loginResponse = login(mockMvc, objectMapper, validLoginRequest);
 
     logout(mockMvc, objectMapper, loginResponse.getRefreshToken())
@@ -120,6 +121,16 @@ class RedisIntegrationTest {
             .findByToken(loginResponse.getRefreshToken())
             .orElseThrow()
             .isRevoked());
+
+    mockMvc
+        .perform(
+            get(USER_ME_URL)
+                .header(
+                    AUTHORIZATION_HEADER, TOKEN_TYPE_BEARER + " " + loginResponse.getAccessToken()))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
+        .andExpect(jsonPath("$.description").value(ErrorDefinition.UNAUTHORIZED.getDescription()));
   }
 
   @Test
@@ -134,6 +145,57 @@ class RedisIntegrationTest {
                 .content(
                     objectMapper.writeValueAsString(
                         new RefreshTokenRequestDto(loginResponse.getRefreshToken()))))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
+        .andExpect(jsonPath("$.description").value(ErrorDefinition.UNAUTHORIZED.getDescription()));
+  }
+
+  @Test
+  void updatePasswordRevokesCurrentAccessToken() throws Exception {
+    LoginResponseDto loginResponse = login(mockMvc, objectMapper, validLoginRequest);
+
+    mockMvc
+        .perform(
+            patch(USER_ME_PASSWORD_URL)
+                .header(
+                    AUTHORIZATION_HEADER, TOKEN_TYPE_BEARER + " " + loginResponse.getAccessToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    objectMapper.writeValueAsString(
+                        Map.of(
+                            "currentPassword", TEST_PASSWORD_VALID,
+                            "newPassword", TEST_PASSWORD_NEW_VALID,
+                            "confirmNewPassword", TEST_PASSWORD_NEW_VALID))))
+        .andExpect(status().isNoContent());
+
+    mockMvc
+        .perform(
+            get(USER_ME_URL)
+                .header(
+                    AUTHORIZATION_HEADER, TOKEN_TYPE_BEARER + " " + loginResponse.getAccessToken()))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
+        .andExpect(jsonPath("$.description").value(ErrorDefinition.UNAUTHORIZED.getDescription()));
+  }
+
+  @Test
+  void deleteRevokesCurrentAccessToken() throws Exception {
+    LoginResponseDto loginResponse = login(mockMvc, objectMapper, validLoginRequest);
+
+    mockMvc
+        .perform(
+            delete(USER_ME_URL)
+                .header(
+                    AUTHORIZATION_HEADER, TOKEN_TYPE_BEARER + " " + loginResponse.getAccessToken()))
+        .andExpect(status().isNoContent());
+
+    mockMvc
+        .perform(
+            get(USER_ME_URL)
+                .header(
+                    AUTHORIZATION_HEADER, TOKEN_TYPE_BEARER + " " + loginResponse.getAccessToken()))
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))

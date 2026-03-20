@@ -7,6 +7,7 @@ import com.tychewealth.entity.UserEntity;
 import com.tychewealth.mapper.user.UserMapper;
 import com.tychewealth.service.helper.token.AccessTokenHelper;
 import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
+import com.tychewealth.service.helper.token.TokenStateHelper;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.AuthTokenPayload;
 import java.time.Instant;
@@ -21,6 +22,7 @@ public class AuthLoginHelper {
 
   private final AccessTokenHelper accessTokenHelper;
   private final AuthRefreshTokenHelper refreshTokenHelper;
+  private final TokenStateHelper tokenStateHelper;
   private final UserMapper userMapper;
   private final AuthMetrics authMetrics;
 
@@ -31,6 +33,8 @@ public class AuthLoginHelper {
     String refreshToken = refreshTokenHelper.generateRefreshToken();
     Instant refreshTokenExpiresAt = refreshTokenHelper.calculateRefreshTokenExpiration();
     refreshTokenHelper.saveToken(user, refreshToken, refreshTokenExpiresAt);
+    tokenStateHelper.linkRefreshTokenToAccessToken(
+        refreshToken, tokenPayload.jti(), refreshTokenExpiresAt);
     authMetrics.recordLoginSuccess();
 
     log.info(
