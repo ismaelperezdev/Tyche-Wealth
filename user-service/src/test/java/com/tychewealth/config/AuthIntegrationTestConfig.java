@@ -17,7 +17,6 @@ import com.tychewealth.service.helper.token.TokenValidationHelper;
 import com.tychewealth.service.impl.AuthServiceImpl;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.monitoring.UserMetrics;
-import org.mockito.Mockito;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
@@ -25,7 +24,6 @@ import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServic
 import org.springframework.boot.test.util.TestPropertyValues;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
@@ -40,6 +38,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
   AuthRegisterHelper.class,
   AuthLoginHelper.class,
   AccessTokenHelper.class,
+  TokenStateHelper.class,
   TokenValidationHelper.class,
   AuthRefreshTokenHelper.class,
   AuthMetrics.class,
@@ -50,11 +49,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableJpaRepositories(basePackageClasses = {UserRepository.class, RefreshTokenRepository.class})
 @EntityScan(basePackageClasses = {UserEntity.class, RefreshTokenEntity.class})
 public class AuthIntegrationTestConfig {
-
-  @Bean
-  public TokenStateHelper tokenStateHelper() {
-    return Mockito.mock(TokenStateHelper.class);
-  }
 
   public static class Initializer
       implements ApplicationContextInitializer<ConfigurableApplicationContext> {
