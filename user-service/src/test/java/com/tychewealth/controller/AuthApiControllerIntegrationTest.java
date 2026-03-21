@@ -3,6 +3,9 @@ package com.tychewealth.controller;
 import static com.tychewealth.constants.ApiConstants.AUTH_BASE_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_REFRESH_URL;
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER;
+import static com.tychewealth.constants.CommonConstants.FIELD_EMAIL;
+import static com.tychewealth.constants.CommonConstants.FIELD_ID;
+import static com.tychewealth.constants.CommonConstants.FIELD_USERNAME;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_FAILURE;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_INVALID_CREDENTIALS;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_RATE_LIMITED;
@@ -41,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
@@ -56,6 +60,7 @@ import com.tychewealth.dto.auth.LoginResponseDto;
 import com.tychewealth.dto.auth.RefreshTokenResponseDto;
 import com.tychewealth.dto.auth.request.LoginRequestDto;
 import com.tychewealth.dto.auth.request.RegisterRequestDto;
+import com.tychewealth.dto.auth.request.ResendVerificationEmailRequestDto;
 import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.handler.ErrorDefinition;
@@ -151,9 +156,9 @@ class AuthApiControllerIntegrationTest {
 
     registerRequest(mockMvc, objectMapper, validRequest)
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.id").isNumber())
-        .andExpect(jsonPath("$.email").value(validRequest.getEmail()))
-        .andExpect(jsonPath("$.username").value(validRequest.getUsername()))
+        .andExpect(jsonPath("$." + FIELD_ID).isNumber())
+        .andExpect(jsonPath("$." + FIELD_EMAIL).value(validRequest.getEmail()))
+        .andExpect(jsonPath("$." + FIELD_USERNAME).value(validRequest.getUsername()))
         .andExpect(jsonPath("$.createdAt").exists())
         .andExpect(jsonPath("$.password").doesNotExist());
 
@@ -162,6 +167,8 @@ class AuthApiControllerIntegrationTest {
     assertNotNull(created.getId());
     assertNotEquals(validRequest.getPassword(), created.getPassword());
     assertTrue(passwordEncoder.matches(validRequest.getPassword(), created.getPassword()));
+    assertNotNull(created.getVerificationTokenExpiresAt());
+    assertTrue(created.getVerificationTokenExpiresAt().isAfter(Instant.now()));
     assertEquals(requestsBefore + 1, counterValue(meterRegistry, METRIC_AUTH_REGISTER_REQUESTS));
     assertEquals(successBefore + 1, counterValue(meterRegistry, METRIC_AUTH_REGISTER_SUCCESS));
   }
@@ -177,7 +184,8 @@ class AuthApiControllerIntegrationTest {
     assertEquals(validRequest.getEmail(), sentEmail.to());
     assertEquals("Verify your email", sentEmail.subject());
     assertTrue(sentEmail.html().contains("/auth/verify-registration"));
-    assertTrue(sentEmail.text().contains("15 minutes"));
+    assertTrue(sentEmail.html().contains("24 hours"));
+    assertTrue(sentEmail.text().contains("24 hours"));
 
     String token = extractVerificationToken(sentEmail.html());
 
@@ -188,6 +196,7 @@ class AuthApiControllerIntegrationTest {
     UserEntity verifiedUser =
         userRepository.findByEmailIncludingDeleted(validRequest.getEmail()).orElseThrow();
     assertTrue(verifiedUser.isVerified());
+    assertNull(verifiedUser.getVerificationTokenExpiresAt());
   }
 
   @Test
@@ -203,6 +212,7 @@ class AuthApiControllerIntegrationTest {
 
     UserEntity verifiedUser = userRepository.findById(user.getId()).orElseThrow();
     assertTrue(verifiedUser.isVerified());
+    assertNull(verifiedUser.getVerificationTokenExpiresAt());
   }
 
   @Test
@@ -224,6 +234,7 @@ class AuthApiControllerIntegrationTest {
 
     UserEntity verifiedUser = userRepository.findById(user.getId()).orElseThrow();
     assertTrue(verifiedUser.isVerified());
+    assertNull(verifiedUser.getVerificationTokenExpiresAt());
   }
 
   @Test
@@ -272,6 +283,51 @@ class AuthApiControllerIntegrationTest {
   }
 
   @Test
+  void resendVerificationEmailReturnsNoContentWhenPreviousVerificationEmailIsStillAvailable()
+      throws Exception {
+    existingLoginUser.setVerified(false);
+    existingLoginUser.setVerificationTokenExpiresAt(Instant.now().plusSeconds(300));
+    userRepository.save(existingLoginUser);
+
+    mockMvc
+        .perform(
+            post(AUTH_BASE_URL + "/resend-verification")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    objectMapper.writeValueAsString(
+                        new ResendVerificationEmailRequestDto(existingLoginUser.getEmail()))))
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
+  void resendVerificationEmailSendsNewEmailWhenPreviousVerificationTokenHasExpired()
+      throws Exception {
+    existingLoginUser.setVerified(false);
+    existingLoginUser.setVerificationTokenExpiresAt(Instant.now().minusSeconds(5));
+    UserEntity user = userRepository.save(existingLoginUser);
+
+    mockMvc
+        .perform(
+            post(AUTH_BASE_URL + "/resend-verification")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    objectMapper.writeValueAsString(
+                        new ResendVerificationEmailRequestDto(existingLoginUser.getEmail()))))
+        .andExpect(status().isNoContent());
+
+    ArgumentCaptor<EmailMessage> emailCaptor = ArgumentCaptor.forClass(EmailMessage.class);
+    verify(emailService).send(emailCaptor.capture());
+
+    EmailMessage sentEmail = emailCaptor.getValue();
+    assertEquals(existingLoginUser.getEmail(), sentEmail.to());
+    assertTrue(sentEmail.html().contains("/auth/verify-registration"));
+
+    UserEntity updatedUser = userRepository.findById(user.getId()).orElseThrow();
+    assertNotNull(updatedUser.getVerificationTokenExpiresAt());
+    assertTrue(updatedUser.getVerificationTokenExpiresAt().isAfter(Instant.now()));
+  }
+
+  @Test
   void registerReturnsTooManyRequestsWhenRateLimitIsExceeded() throws Exception {
     RegisterRequestDto invalidRegisterRequest = new RegisterRequestDto("", "", "short");
     double requestsBefore = counterValue(meterRegistry, METRIC_AUTH_REGISTER_REQUESTS);
@@ -317,9 +373,9 @@ class AuthApiControllerIntegrationTest {
         .andExpect(jsonPath("$.accessToken").isString())
         .andExpect(jsonPath("$.refreshToken").isString())
         .andExpect(jsonPath("$.expiresIn").isNumber())
-        .andExpect(jsonPath("$.user.id").isNumber())
-        .andExpect(jsonPath("$.user.email").value(validRequest.getEmail()))
-        .andExpect(jsonPath("$.user.username").value(validRequest.getUsername()))
+        .andExpect(jsonPath("$.user." + FIELD_ID).isNumber())
+        .andExpect(jsonPath("$.user." + FIELD_EMAIL).value(validRequest.getEmail()))
+        .andExpect(jsonPath("$.user." + FIELD_USERNAME).value(validRequest.getUsername()))
         .andExpect(jsonPath("$.user.password").doesNotExist());
 
     assertEquals(requestsBefore + 1, counterValue(meterRegistry, METRIC_AUTH_LOGIN_REQUESTS));

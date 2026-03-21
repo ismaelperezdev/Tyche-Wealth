@@ -8,6 +8,7 @@ import com.tychewealth.mapper.user.UserMapper;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.helper.token.AccessTokenHelper;
 import com.tychewealth.service.token.AuthTokenPayload;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -25,7 +26,12 @@ public class AuthRegisterHelper {
     UserEntity toCreate = userMapper.create(register);
     toCreate.setPassword(passwordEncoder.encode(register.getPassword()));
     UserEntity created = userRepository.save(toCreate);
+
     AuthTokenPayload verificationToken = accessTokenHelper.generateVerifyEmailToken(created);
+    Instant verificationTokenExpiresAt =
+        accessTokenHelper.extractExpiration(verificationToken.accessToken());
+    created.setVerificationTokenExpiresAt(verificationTokenExpiresAt);
+
     UserResponseDto response = userMapper.toDto(created);
     return new RegisteredUserResultDto(response, verificationToken);
   }

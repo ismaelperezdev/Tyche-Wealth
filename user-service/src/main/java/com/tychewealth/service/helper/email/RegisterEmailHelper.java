@@ -15,6 +15,7 @@ public class RegisterEmailHelper {
 
   private static final String VERIFY_EMAIL_SUBJECT = "Verify your email";
   private static final String VERIFY_EMAIL_LINK_PLACEHOLDER = "{{verification_link}}";
+  private static final String VERIFY_EMAIL_EXPIRATION_PLACEHOLDER = "{{expiration_text}}";
 
   private final String verifyEmailUrl;
   private final String cachedVerifyEmailTemplate;
@@ -34,11 +35,12 @@ public class RegisterEmailHelper {
   public EmailMessage buildVerifyEmailMessage(
       String email, String verificationToken, long expiresInSeconds) {
     String verificationLink = buildVerificationLink(verificationToken);
+    String expirationText = formatExpirationText(expiresInSeconds);
     return new EmailMessage(
         email,
         VERIFY_EMAIL_SUBJECT,
-        renderHtml(verificationLink),
-        buildText(verificationLink, expiresInSeconds));
+        renderHtml(verificationLink, expirationText),
+        buildText(verificationLink, expirationText));
   }
 
   private String buildVerificationLink(String token) {
@@ -48,16 +50,27 @@ public class RegisterEmailHelper {
         .toUriString();
   }
 
-  private String renderHtml(String verificationLink) {
-    return cachedVerifyEmailTemplate.replace(VERIFY_EMAIL_LINK_PLACEHOLDER, verificationLink);
+  private String renderHtml(String verificationLink, String expirationText) {
+    return cachedVerifyEmailTemplate
+        .replace(VERIFY_EMAIL_LINK_PLACEHOLDER, verificationLink)
+        .replace(VERIFY_EMAIL_EXPIRATION_PLACEHOLDER, expirationText);
   }
 
-  private String buildText(String verificationLink, long expiresInSeconds) {
-    long expiresInMinutes = (expiresInSeconds + 59) / 60;
+  private String buildText(String verificationLink, String expirationText) {
     return "Verify your email by visiting "
         + verificationLink
         + ". This link will expire in "
-        + expiresInMinutes
-        + " minutes.";
+        + expirationText
+        + ".";
+  }
+
+  private String formatExpirationText(long expiresInSeconds) {
+    if (expiresInSeconds % 3600 == 0) {
+      long hours = expiresInSeconds / 3600;
+      return hours + (hours == 1 ? " hour" : " hours");
+    }
+
+    long expiresInMinutes = (expiresInSeconds + 59) / 60;
+    return expiresInMinutes + (expiresInMinutes == 1 ? " minute" : " minutes");
   }
 }

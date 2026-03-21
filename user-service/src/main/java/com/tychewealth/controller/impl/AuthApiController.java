@@ -23,6 +23,7 @@ import com.tychewealth.dto.auth.RefreshTokenResponseDto;
 import com.tychewealth.dto.auth.request.LoginRequestDto;
 import com.tychewealth.dto.auth.request.RefreshTokenRequestDto;
 import com.tychewealth.dto.auth.request.RegisterRequestDto;
+import com.tychewealth.dto.auth.request.ResendVerificationEmailRequestDto;
 import com.tychewealth.dto.user.UserResponseDto;
 import com.tychewealth.service.AuthService;
 import jakarta.validation.Valid;
@@ -72,6 +73,22 @@ public class AuthApiController implements AuthApi {
 
     LoginResponseDto response = authService.login(login);
     return withNoStoreHeaders(status(HttpStatus.OK)).body(response);
+  }
+
+  @Override
+  public ResponseEntity<Void> resendVerificationEmail(
+      @Valid @RequestBody ResendVerificationEmailRequestDto resendVerificationEmailRequestDto) {
+    log.info(
+        REQUEST_START,
+        AUTH,
+        VERIFY_REGISTRATION_ACTION,
+        mask(resendVerificationEmailRequestDto.getEmail()));
+
+    authService.resendVerificationEmail(resendVerificationEmailRequestDto);
+    return ResponseEntity.noContent()
+        .header(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
+        .header(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE)
+        .build();
   }
 
   @Override

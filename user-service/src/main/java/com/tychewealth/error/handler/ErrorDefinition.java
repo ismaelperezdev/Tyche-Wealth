@@ -32,6 +32,10 @@ public enum ErrorDefinition {
       "TYCHE-104",
       "AUTH_REGISTER_PASSWORD_FORMAT_INVALID",
       "Password must be 8-72 characters and include at least one uppercase letter, one lowercase letter, one number, and one symbol"),
+  AUTH_VERIFICATION_EMAIL_STILL_AVAILABLE(
+      "TYCHE-105",
+      "AUTH_VERIFICATION_EMAIL_STILL_AVAILABLE",
+      "The previous verification email is still available"),
 
   // USER
   USER_NOT_FOUND("TYCHE-200", "USER_NOT_FOUND", "The requested user was not found"),

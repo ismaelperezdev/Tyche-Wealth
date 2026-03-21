@@ -9,6 +9,7 @@ import com.tychewealth.dto.auth.RefreshTokenResponseDto;
 import com.tychewealth.dto.auth.request.LoginRequestDto;
 import com.tychewealth.dto.auth.request.RefreshTokenRequestDto;
 import com.tychewealth.dto.auth.request.RegisterRequestDto;
+import com.tychewealth.dto.auth.request.ResendVerificationEmailRequestDto;
 import com.tychewealth.dto.user.UserResponseDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -32,6 +33,10 @@ public interface AuthApi {
 
   @PostMapping(value = "/login", consumes = REQUEST_CONSUMES, produces = REQUEST_PRODUCES)
   ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto login);
+
+  @PostMapping(value = "/resend-verification", consumes = REQUEST_CONSUMES)
+  ResponseEntity<Void> resendVerificationEmail(
+      @Valid @RequestBody ResendVerificationEmailRequestDto resendVerificationEmailRequestDto);
 
   @PostMapping(value = "/refresh", consumes = REQUEST_CONSUMES, produces = REQUEST_PRODUCES)
   ResponseEntity<RefreshTokenResponseDto> refresh(

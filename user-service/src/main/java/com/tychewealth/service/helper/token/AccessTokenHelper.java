@@ -3,6 +3,8 @@ package com.tychewealth.service.helper.token;
 import static com.tychewealth.constants.AuthConstants.TOKEN_PURPOSE_CLAIM;
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER;
 import static com.tychewealth.constants.AuthConstants.VERIFY_REGISTRATION_TOKEN_PURPOSE;
+import static com.tychewealth.constants.CommonConstants.FIELD_EMAIL;
+import static com.tychewealth.constants.CommonConstants.FIELD_USERNAME;
 import static com.tychewealth.constants.LogConstants.ACCESS_TOKEN_ACTION;
 import static com.tychewealth.constants.LogConstants.AUTH;
 import static com.tychewealth.constants.LogConstants.INVALID_ACCESS_TOKEN_MESSAGE;
@@ -39,7 +41,7 @@ public class AccessTokenHelper {
   public AccessTokenHelper(
       @Value("${app.auth.jwt.secret}") String jwtSecret,
       @Value("${app.auth.jwt.access-token-ttl-seconds:900}") long accessTokenTtlSeconds,
-      @Value("${app.auth.jwt.verify-email-token-ttl-seconds:900}")
+      @Value("${app.auth.jwt.verify-email-token-ttl-seconds:86400}")
           long verifyEmailTokenTtlSeconds) {
 
     if (accessTokenTtlSeconds <= 0) {
@@ -90,8 +92,8 @@ public class AccessTokenHelper {
             .and()
             .subject(String.valueOf(user.getId()))
             .id(jti)
-            .claim("email", user.getEmail())
-            .claim("username", user.getUsername())
+            .claim(FIELD_EMAIL, user.getEmail())
+            .claim(FIELD_USERNAME, user.getUsername())
             .issuedAt(Date.from(issuedAt))
             .expiration(Date.from(expiresAt));
 

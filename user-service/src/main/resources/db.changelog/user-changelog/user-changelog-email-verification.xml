@@ -25,4 +25,22 @@
 
     </changeSet>
 
+    <changeSet id="add-users-verification-token-expires-at-column" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <columnExists tableName="users" columnName="verification_token_expires_at"/>
+            </not>
+        </preConditions>
+
+        <addColumn tableName="users">
+            <column name="verification_token_expires_at" type="TIMESTAMP"/>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="users" columnName="verification_token_expires_at"/>
+        </rollback>
+
+    </changeSet>
+
 </databaseChangeLog>

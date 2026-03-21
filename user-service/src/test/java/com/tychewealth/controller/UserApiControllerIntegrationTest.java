@@ -4,6 +4,9 @@ import static com.tychewealth.constants.ApiConstants.USER_ME_PASSWORD_URL;
 import static com.tychewealth.constants.ApiConstants.USER_ME_URL;
 import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER_PREFIX;
+import static com.tychewealth.constants.CommonConstants.FIELD_EMAIL;
+import static com.tychewealth.constants.CommonConstants.FIELD_ID;
+import static com.tychewealth.constants.CommonConstants.FIELD_USERNAME;
 import static com.tychewealth.constants.MetricConstants.METRIC_USER_CURRENT_PASSWORD_INVALID;
 import static com.tychewealth.constants.MetricConstants.METRIC_USER_DELETE_REQUESTS;
 import static com.tychewealth.constants.MetricConstants.METRIC_USER_DELETE_SUCCESS;
@@ -102,9 +105,9 @@ class UserApiControllerIntegrationTest {
 
     retrieveRequest(mockMvc, accessToken)
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.id").value(saved.getId()))
-        .andExpect(jsonPath("$.email").value(saved.getEmail()))
-        .andExpect(jsonPath("$.username").value(saved.getUsername()))
+        .andExpect(jsonPath("$." + FIELD_ID).value(saved.getId()))
+        .andExpect(jsonPath("$." + FIELD_EMAIL).value(saved.getEmail()))
+        .andExpect(jsonPath("$." + FIELD_USERNAME).value(saved.getUsername()))
         .andExpect(jsonPath("$.createdAt").exists())
         .andExpect(jsonPath("$.password").doesNotExist());
 
@@ -129,7 +132,7 @@ class UserApiControllerIntegrationTest {
     mockMvc
         .perform(get(USER_ME_URL).header(AUTHORIZATION_HEADER, "bearer " + accessToken))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.id").value(saved.getId()));
+        .andExpect(jsonPath("$." + FIELD_ID).value(saved.getId()));
   }
 
   @Test
@@ -149,9 +152,9 @@ class UserApiControllerIntegrationTest {
 
     updateRequest(mockMvc, objectMapper, accessToken, TEST_UPDATE_USERNAME_REQUEST)
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.id").value(saved.getId()))
-        .andExpect(jsonPath("$.email").value(saved.getEmail()))
-        .andExpect(jsonPath("$.username").value(TEST_UPDATE_USERNAME_NORMALIZED));
+        .andExpect(jsonPath("$." + FIELD_ID).value(saved.getId()))
+        .andExpect(jsonPath("$." + FIELD_EMAIL).value(saved.getEmail()))
+        .andExpect(jsonPath("$." + FIELD_USERNAME).value(TEST_UPDATE_USERNAME_NORMALIZED));
 
     UserEntity updatedUser = userRepository.findById(saved.getId()).orElseThrow();
     assertEquals(TEST_UPDATE_USERNAME_NORMALIZED, updatedUser.getUsername());
