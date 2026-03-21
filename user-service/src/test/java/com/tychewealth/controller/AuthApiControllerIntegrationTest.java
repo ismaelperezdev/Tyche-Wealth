@@ -57,6 +57,7 @@ import com.tychewealth.dto.auth.LoginResponseDto;
 import com.tychewealth.dto.auth.RefreshTokenResponseDto;
 import com.tychewealth.dto.auth.request.LoginRequestDto;
 import com.tychewealth.dto.auth.request.RegisterRequestDto;
+import com.tychewealth.dto.auth.request.ResendVerificationEmailRequestDto;
 import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.handler.ErrorDefinition;
@@ -276,6 +277,60 @@ class AuthApiControllerIntegrationTest {
         .andExpect(
             jsonPath("$.description")
                 .value(ErrorDefinition.AUTH_REGISTRATION_CONFLICT.getDescription()));
+  }
+
+  @Test
+  void resendVerificationEmailReturnsBadRequestWhenPreviousVerificationEmailIsStillAvailable()
+      throws Exception {
+    existingLoginUser.setVerified(false);
+    existingLoginUser.setVerificationTokenExpiresAt(Instant.now().plusSeconds(300));
+    userRepository.save(existingLoginUser);
+
+    mockMvc
+        .perform(
+            post(AUTH_BASE_URL + "/resend-verification")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    objectMapper.writeValueAsString(
+                        new ResendVerificationEmailRequestDto(existingLoginUser.getEmail()))))
+        .andExpect(status().isBadRequest())
+        .andExpect(
+            jsonPath("$.code")
+                .value(ErrorDefinition.AUTH_VERIFICATION_EMAIL_STILL_AVAILABLE.getCode()))
+        .andExpect(
+            jsonPath("$.type")
+                .value(ErrorDefinition.AUTH_VERIFICATION_EMAIL_STILL_AVAILABLE.getType()))
+        .andExpect(
+            jsonPath("$.description")
+                .value(ErrorDefinition.AUTH_VERIFICATION_EMAIL_STILL_AVAILABLE.getDescription()));
+  }
+
+  @Test
+  void resendVerificationEmailSendsNewEmailWhenPreviousVerificationTokenHasExpired()
+      throws Exception {
+    existingLoginUser.setVerified(false);
+    existingLoginUser.setVerificationTokenExpiresAt(Instant.now().minusSeconds(5));
+    UserEntity user = userRepository.save(existingLoginUser);
+
+    mockMvc
+        .perform(
+            post(AUTH_BASE_URL + "/resend-verification")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    objectMapper.writeValueAsString(
+                        new ResendVerificationEmailRequestDto(existingLoginUser.getEmail()))))
+        .andExpect(status().isNoContent());
+
+    ArgumentCaptor<EmailMessage> emailCaptor = ArgumentCaptor.forClass(EmailMessage.class);
+    verify(emailService).send(emailCaptor.capture());
+
+    EmailMessage sentEmail = emailCaptor.getValue();
+    assertEquals(existingLoginUser.getEmail(), sentEmail.to());
+    assertTrue(sentEmail.html().contains("/auth/verify-registration"));
+
+    UserEntity updatedUser = userRepository.findById(user.getId()).orElseThrow();
+    assertNotNull(updatedUser.getVerificationTokenExpiresAt());
+    assertTrue(updatedUser.getVerificationTokenExpiresAt().isAfter(Instant.now()));
   }
 
   @Test

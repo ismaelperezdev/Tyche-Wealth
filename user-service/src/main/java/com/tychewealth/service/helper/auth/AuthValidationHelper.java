@@ -13,6 +13,7 @@ import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.utils.Utils;
+import java.time.Instant;
 import java.util.Locale;
 import java.util.regex.Pattern;
 import lombok.AllArgsConstructor;
@@ -61,6 +62,21 @@ public class AuthValidationHelper {
     authMetrics.recordLoginInvalidCredentials();
     throw new AuthException(
         ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS, null, HttpStatus.UNAUTHORIZED);
+  }
+
+  public void validateVerificationEmailCanBeResent(UserEntity user) {
+    Instant verificationTokenExpiresAt = user.getVerificationTokenExpiresAt();
+    if (verificationTokenExpiresAt == null || !verificationTokenExpiresAt.isAfter(Instant.now())) {
+      return;
+    }
+
+    log.warn(
+        LogConstants.REQUEST_CONFLICT,
+        LogConstants.AUTH,
+        LogConstants.VERIFY_REGISTRATION_ACTION,
+        "previous verification email is still available");
+    throw new AuthException(
+        ErrorDefinition.AUTH_VERIFICATION_EMAIL_STILL_AVAILABLE, null, HttpStatus.BAD_REQUEST);
   }
 
   public AuthException validateRegisterPersistenceConflict(DataIntegrityViolationException ex) {

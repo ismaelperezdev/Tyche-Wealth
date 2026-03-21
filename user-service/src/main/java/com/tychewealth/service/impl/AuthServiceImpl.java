@@ -6,6 +6,7 @@ import com.tychewealth.dto.auth.RefreshTokenResponseDto;
 import com.tychewealth.dto.auth.request.LoginRequestDto;
 import com.tychewealth.dto.auth.request.RefreshTokenRequestDto;
 import com.tychewealth.dto.auth.request.RegisterRequestDto;
+import com.tychewealth.dto.auth.request.ResendVerificationEmailRequestDto;
 import com.tychewealth.dto.user.UserResponseDto;
 import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
@@ -24,6 +25,7 @@ import com.tychewealth.service.helper.token.TokenStateHelper;
 import com.tychewealth.service.helper.token.TokenValidationHelper;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.AuthTokenPayload;
+import com.tychewealth.utils.Utils;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -80,17 +82,12 @@ public class AuthServiceImpl implements AuthService {
 
     try {
       var registeredUser = authRegisterHelper.createUser(register);
-      var verificationEmailMessage =
-          registerEmailHelper.buildVerifyEmailMessage(
-              registeredUser.response().getEmail(),
-              registeredUser.verificationToken().accessToken(),
-              registeredUser.verificationToken().expiresIn());
-
+      scheduleVerificationEmail(
+          registeredUser.response().getEmail(), registeredUser.verificationToken());
       TransactionSynchronizationManager.registerSynchronization(
           new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-              emailService.send(verificationEmailMessage);
               authMetrics.recordRegisterSuccess();
               log.info(
                   LogConstants.REQUEST_SUCCESS + LogConstants.USER_ID,
@@ -104,6 +101,24 @@ public class AuthServiceImpl implements AuthService {
     } catch (DataIntegrityViolationException ex) {
       throw authValidationHelper.validateRegisterPersistenceConflict(ex);
     }
+  }
+
+  @Override
+  @Transactional
+  public void resendVerificationEmail(
+      ResendVerificationEmailRequestDto resendVerificationEmailRequestDto) {
+    UserEntity user =
+        userRepository
+            .findByEmailAndDeletedAtIsNull(
+                Utils.normalizeIdentity(resendVerificationEmailRequestDto.getEmail()))
+            .orElseThrow(
+                () ->
+                    new AuthException(ErrorDefinition.USER_NOT_FOUND, null, HttpStatus.NOT_FOUND));
+    authValidationHelper.validateVerificationEmailCanBeResent(user);
+    AuthTokenPayload verificationToken = accessTokenHelper.generateVerifyEmailToken(user);
+    user.setVerificationTokenExpiresAt(
+        accessTokenHelper.extractExpiration(verificationToken.accessToken()));
+    scheduleVerificationEmail(user.getEmail(), verificationToken);
   }
 
   @Override
@@ -155,5 +170,19 @@ public class AuthServiceImpl implements AuthService {
         LogConstants.AUTH,
         LogConstants.LOGOUT_ACTION,
         refreshToken.getUser().getId());
+  }
+
+  private void scheduleVerificationEmail(String email, AuthTokenPayload verificationToken) {
+    var verificationEmailMessage =
+        registerEmailHelper.buildVerifyEmailMessage(
+            email, verificationToken.accessToken(), verificationToken.expiresIn());
+
+    TransactionSynchronizationManager.registerSynchronization(
+        new TransactionSynchronization() {
+          @Override
+          public void afterCommit() {
+            emailService.send(verificationEmailMessage);
+          }
+        });
   }
 }
