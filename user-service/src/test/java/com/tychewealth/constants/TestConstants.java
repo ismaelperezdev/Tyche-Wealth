@@ -30,6 +30,13 @@ public final class TestConstants {
   public static final String TEST_REFRESH_TOKEN_EXPIRED = "expired-refresh-token";
   public static final String TEST_REFRESH_TOKEN_METRICS = "metrics-refresh-token";
   public static final String TEST_REFRESH_TOKEN_PEPPER = "test-refresh-token-pepper";
+  public static final String TEST_RESEND_BASE_URL = "https://api.resend.com";
+  public static final String TEST_RESEND_API_KEY = "re_test_key";
+  public static final String TEST_RESEND_FROM = "Tyche Wealth <auth@tyche-wealth.com>";
+  public static final String TEST_EMAIL_SUBJECT_VERIFY = "Verify your email";
+  public static final String TEST_EMAIL_HTML_BODY = "<p>Hello</p>";
+  public static final String TEST_EMAIL_TEXT_BODY = "Hello";
+  public static final int TEST_EMAIL_DAILY_LIMIT = 2;
 
   public static final String TEST_PROMETHEUS_USERNAME = "prometheus";
   public static final String TEST_PROMETHEUS_PASSWORD = "secret";

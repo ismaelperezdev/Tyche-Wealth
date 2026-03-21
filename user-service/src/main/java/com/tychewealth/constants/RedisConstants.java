@@ -4,6 +4,9 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 
 public final class RedisConstants {
 
+  public static final String EMAIL_DAILY_LIMIT_NAMESPACE = "rate-limit:email:daily";
+  public static final String EMAIL_DAILY_LIMIT_CLIENT_KEY = "global";
+
   public static final DefaultRedisScript<Long> INCREMENT_WITH_TTL_SCRIPT =
       new DefaultRedisScript<>(
           """

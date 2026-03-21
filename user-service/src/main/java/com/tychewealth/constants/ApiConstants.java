@@ -19,6 +19,7 @@ public class ApiConstants {
 
   public static final String REQUEST_PRODUCES = MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8";
   public static final String REQUEST_CONSUMES = MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8";
+  public static final String RESEND_EMAILS_PATH = "/emails";
 
   ApiConstants() {}
 }

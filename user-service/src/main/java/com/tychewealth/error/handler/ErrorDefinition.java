@@ -42,7 +42,10 @@ public enum ErrorDefinition {
   USER_NEW_PASSWORD_MUST_BE_DIFFERENT(
       "TYCHE-203",
       "USER_NEW_PASSWORD_MUST_BE_DIFFERENT",
-      "The new password must be different from the current password");
+      "The new password must be different from the current password"),
+
+  // EMAIL
+  EMAIL_DELIVERY_FAILED("TYCHE-300", "EMAIL_DELIVERY_FAILED", "Failed to deliver email");
 
   private final String code;
   private final String type;
