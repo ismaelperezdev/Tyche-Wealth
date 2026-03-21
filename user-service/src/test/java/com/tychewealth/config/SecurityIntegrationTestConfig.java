@@ -43,6 +43,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableAutoConfiguration(exclude = UserDetailsServiceAutoConfiguration.class)
 @Import({
   IntegrationTestConfig.class,
+  EmailConfig.class,
   RefreshRateLimitConfig.class,
   AuthApiController.class,
   UserApiController.class,
@@ -81,6 +82,9 @@ public class SecurityIntegrationTestConfig {
               "spring.liquibase.change-log=classpath:db.changelog/changelog-master.xml",
               "app.auth.jwt.secret=4AYI7d6GOEvFEcCJZkDA0hGFqI6SuF5RAsxAjqzTmaM=",
               "app.auth.jwt.refresh-token-pepper=" + TEST_REFRESH_TOKEN_PEPPER,
+              "app.auth.verify-registration-url=http://localhost:8080/tyche-wealth/user-service/v1/auth/verify-registration",
+              "app.email.resend.api-key=test-resend-api-key",
+              "app.email.resend.from=Tyche Wealth <auth@tyche-wealth.test>",
               "app.security.prometheus.username=" + TEST_PROMETHEUS_USERNAME,
               "PROMETHEUS_PASSWORD=" + TEST_PROMETHEUS_PASSWORD,
               "app.auth.register-rate-limit.max-requests=2",
