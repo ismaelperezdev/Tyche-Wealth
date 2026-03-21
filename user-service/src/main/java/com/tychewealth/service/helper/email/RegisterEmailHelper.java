@@ -1,6 +1,5 @@
 package com.tychewealth.service.helper.email;
 
-import com.tychewealth.entity.UserEntity;
 import com.tychewealth.service.email.EmailMessage;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -29,10 +28,10 @@ public class RegisterEmailHelper {
   }
 
   public EmailMessage buildVerifyEmailMessage(
-      UserEntity user, String verificationToken, long expiresInSeconds) {
+      String email, String verificationToken, long expiresInSeconds) {
     String verificationLink = buildVerificationLink(verificationToken);
     return new EmailMessage(
-        user.getEmail(),
+        email,
         VERIFY_EMAIL_SUBJECT,
         renderHtml(verificationLink),
         buildText(verificationLink, expiresInSeconds));

@@ -66,6 +66,7 @@ class RedisIntegrationTest {
     existingLoginUser.setEmail(TEST_EMAIL_LAURA);
     existingLoginUser.setUsername(TEST_USERNAME_LAURA);
     existingLoginUser.setPassword(passwordEncoder.encode(TEST_PASSWORD_VALID));
+    existingLoginUser.setVerified(true);
     userRepository.save(existingLoginUser);
 
     validLoginRequest = new LoginRequestDto(TEST_EMAIL_LAURA, TEST_PASSWORD_VALID);

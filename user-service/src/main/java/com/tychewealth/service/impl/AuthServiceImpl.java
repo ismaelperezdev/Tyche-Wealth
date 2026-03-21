@@ -79,7 +79,7 @@ public class AuthServiceImpl implements AuthService {
 
       emailService.send(
           registerEmailHelper.buildVerifyEmailMessage(
-              registeredUser.user(),
+              registeredUser.response().getEmail(),
               registeredUser.verificationToken().accessToken(),
               registeredUser.verificationToken().expiresIn()));
 

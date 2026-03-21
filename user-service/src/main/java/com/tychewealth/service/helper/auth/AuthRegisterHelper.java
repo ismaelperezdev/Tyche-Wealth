@@ -39,6 +39,6 @@ public class AuthRegisterHelper {
         LogConstants.AUTH,
         LogConstants.REGISTER_ACTION,
         created.getId());
-    return new RegisteredUserResultDto(created, response, verificationToken);
+    return new RegisteredUserResultDto(response, verificationToken);
   }
 }

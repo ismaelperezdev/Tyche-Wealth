@@ -106,7 +106,14 @@ public class AccessTokenHelper {
 
   public Long extractUserId(String token) {
     try {
-      return Long.valueOf(parseClaims(token).getSubject());
+      Claims claims = parseClaims(token);
+      String purpose = claims.get(TOKEN_PURPOSE_CLAIM, String.class);
+
+      if (StringUtils.hasText(purpose)) {
+        throw new IllegalArgumentException("Token with purpose is not valid for bearer auth");
+      }
+
+      return Long.valueOf(claims.getSubject());
     } catch (JwtException | IllegalArgumentException ex) {
       log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_ACCESS_TOKEN_MESSAGE);
       throw new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);

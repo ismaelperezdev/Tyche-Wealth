@@ -90,6 +90,7 @@ class UserApiControllerIntegrationTest {
     existingUser =
         buildUser(
             TEST_EMAIL_LAURA, TEST_USERNAME_LAURA, passwordEncoder.encode(TEST_PASSWORD_VALID));
+    existingUser.setVerified(true);
   }
 
   @Test
@@ -212,6 +213,7 @@ class UserApiControllerIntegrationTest {
     UserEntity anotherUser =
         buildUser(
             TEST_OTHER_EMAIL, TEST_OCCUPIED_USERNAME, passwordEncoder.encode(TEST_PASSWORD_VALID));
+    anotherUser.setVerified(true);
     userRepository.saveAndFlush(anotherUser);
     String accessToken = accessTokenHelper.generateAccessToken(saved).accessToken();
     double conflictBefore = counterValue(meterRegistry, METRIC_USER_USERNAME_CONFLICT);
