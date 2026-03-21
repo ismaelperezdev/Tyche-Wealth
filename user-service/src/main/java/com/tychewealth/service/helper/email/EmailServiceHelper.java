@@ -5,7 +5,6 @@ import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER_PREFIX;
 import static com.tychewealth.constants.LogConstants.EMAIL;
 import static com.tychewealth.constants.LogConstants.EMAIL_DAILY_QUOTA_SKIPPED_MESSAGE;
-import static com.tychewealth.constants.LogConstants.EMAIL_REQUEST_FIELDS;
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 import static com.tychewealth.constants.LogConstants.RESEND_DELIVERY_FAILED_MESSAGE;
 import static com.tychewealth.constants.LogConstants.SEND_ACTION;
@@ -41,7 +40,7 @@ public class EmailServiceHelper implements EmailService {
 
   @Override
   public void send(EmailMessage emailMessage) {
-    if (!canSendWithinDailyQuota(emailMessage)) {
+    if (!canSendWithinDailyQuota()) {
       return;
     }
 
@@ -56,20 +55,13 @@ public class EmailServiceHelper implements EmailService {
           .retrieve()
           .toBodilessEntity();
     } catch (RestClientException ex) {
-      log.error(
-          REQUEST_CONFLICT + EMAIL_REQUEST_FIELDS,
-          EMAIL,
-          SEND_ACTION,
-          RESEND_DELIVERY_FAILED_MESSAGE,
-          emailMessage.to(),
-          emailMessage.subject(),
-          ex);
+      log.error(REQUEST_CONFLICT, EMAIL, SEND_ACTION, RESEND_DELIVERY_FAILED_MESSAGE, ex);
       throw EmailException.of(
           ErrorDefinition.EMAIL_DELIVERY_FAILED, null, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
-  private boolean canSendWithinDailyQuota(EmailMessage emailMessage) {
+  private boolean canSendWithinDailyQuota() {
     long currentCount =
         rateLimitStore.increment(
             EMAIL_DAILY_LIMIT_NAMESPACE + ":" + currentUtcDate(clock),
@@ -77,13 +69,7 @@ public class EmailServiceHelper implements EmailService {
             durationUntilNextUtcMidnight(clock));
 
     if (currentCount > emailDailyLimit) {
-      log.info(
-          REQUEST_CONFLICT + EMAIL_REQUEST_FIELDS,
-          EMAIL,
-          SEND_ACTION,
-          EMAIL_DAILY_QUOTA_SKIPPED_MESSAGE,
-          emailMessage.to(),
-          emailMessage.subject());
+      log.info(REQUEST_CONFLICT, EMAIL, SEND_ACTION, EMAIL_DAILY_QUOTA_SKIPPED_MESSAGE);
       return false;
     }
     return true;

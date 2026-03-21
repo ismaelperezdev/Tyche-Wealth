@@ -35,6 +35,7 @@ public class EmailConfig {
     Assert.hasText(
         resendEmailProperties.getFrom(),
         "app.email.resend.from must be configured when Resend is enabled");
+    Assert.isTrue(emailDailyLimit > 0, "app.email.daily-limit must be a positive integer");
 
     RestClient restClient = restClientBuilder.baseUrl(resendEmailProperties.getBaseUrl()).build();
     return new EmailServiceHelper(

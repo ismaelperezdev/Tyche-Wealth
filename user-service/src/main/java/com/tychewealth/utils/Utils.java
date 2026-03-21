@@ -6,6 +6,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.HexFormat;
@@ -48,7 +49,8 @@ public final class Utils {
   }
 
   public static Duration durationUntilNextUtcMidnight(Clock clock) {
-    LocalDate tomorrow = LocalDate.now(clock.withZone(ZoneOffset.UTC)).plusDays(1);
-    return Duration.between(clock.instant(), tomorrow.atStartOfDay().toInstant(ZoneOffset.UTC));
+    Instant now = clock.instant();
+    LocalDate tomorrow = now.atZone(ZoneOffset.UTC).toLocalDate().plusDays(1);
+    return Duration.between(now, tomorrow.atStartOfDay().toInstant(ZoneOffset.UTC));
   }
 }
