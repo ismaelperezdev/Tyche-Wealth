@@ -177,7 +177,8 @@ class AuthApiControllerIntegrationTest {
     assertEquals(validRequest.getEmail(), sentEmail.to());
     assertEquals("Verify your email", sentEmail.subject());
     assertTrue(sentEmail.html().contains("/auth/verify-registration"));
-    assertTrue(sentEmail.text().contains("15 minutes"));
+    assertTrue(sentEmail.html().contains("24 hours"));
+    assertTrue(sentEmail.text().contains("24 hours"));
 
     String token = extractVerificationToken(sentEmail.html());
 

@@ -39,7 +39,7 @@ public class AccessTokenHelper {
   public AccessTokenHelper(
       @Value("${app.auth.jwt.secret}") String jwtSecret,
       @Value("${app.auth.jwt.access-token-ttl-seconds:900}") long accessTokenTtlSeconds,
-      @Value("${app.auth.jwt.verify-email-token-ttl-seconds:900}")
+      @Value("${app.auth.jwt.verify-email-token-ttl-seconds:86400}")
           long verifyEmailTokenTtlSeconds) {
 
     if (accessTokenTtlSeconds <= 0) {
