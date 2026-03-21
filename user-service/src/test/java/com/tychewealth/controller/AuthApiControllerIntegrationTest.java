@@ -1,5 +1,6 @@
 package com.tychewealth.controller;
 
+import static com.tychewealth.constants.ApiConstants.AUTH_BASE_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_REFRESH_URL;
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_FAILURE;
@@ -41,6 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -57,6 +59,8 @@ import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.UserRepository;
+import com.tychewealth.service.helper.token.AccessTokenHelper;
+import com.tychewealth.service.token.AuthTokenPayload;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
@@ -86,6 +90,7 @@ class AuthApiControllerIntegrationTest {
   @Autowired private RefreshRateLimitConfig rateLimitConfig;
 
   @Autowired private PasswordEncoder passwordEncoder;
+  @Autowired private AccessTokenHelper accessTokenHelper;
 
   private RegisterRequestDto validRequest;
   private LoginRequestDto validLoginRequest;
@@ -146,6 +151,30 @@ class AuthApiControllerIntegrationTest {
     assertTrue(passwordEncoder.matches(validRequest.getPassword(), created.getPassword()));
     assertEquals(requestsBefore + 1, counterValue(meterRegistry, METRIC_AUTH_REGISTER_REQUESTS));
     assertEquals(successBefore + 1, counterValue(meterRegistry, METRIC_AUTH_REGISTER_SUCCESS));
+  }
+
+  @Test
+  void verifyEmailReturnsNoContentWhenTokenIsValid() throws Exception {
+    UserEntity user = userRepository.save(existingLoginUser);
+    AuthTokenPayload verifyEmailToken = accessTokenHelper.generateVerifyEmailToken(user);
+
+    mockMvc
+        .perform(
+            get(AUTH_BASE_URL + "/verify-email").param("token", verifyEmailToken.accessToken()))
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
+  void verifyEmailReturnsUnauthorizedWhenTokenIsRegularAccessToken() throws Exception {
+    UserEntity user = userRepository.save(existingLoginUser);
+    AuthTokenPayload accessToken = accessTokenHelper.generateAccessToken(user);
+
+    mockMvc
+        .perform(get(AUTH_BASE_URL + "/verify-email").param("token", accessToken.accessToken()))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
+        .andExpect(jsonPath("$.description").value(ErrorDefinition.UNAUTHORIZED.getDescription()));
   }
 
   @Test

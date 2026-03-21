@@ -1,8 +1,5 @@
 package com.tychewealth.service.impl;
 
-import static com.tychewealth.constants.AuthConstants.EMAIL_CONSTRAINT;
-import static com.tychewealth.constants.AuthConstants.USERNAME_CONSTRAINT;
-
 import com.tychewealth.constants.LogConstants;
 import com.tychewealth.dto.auth.LoginResponseDto;
 import com.tychewealth.dto.auth.RefreshTokenResponseDto;
@@ -24,10 +21,8 @@ import com.tychewealth.service.helper.token.TokenStateHelper;
 import com.tychewealth.service.helper.token.TokenValidationHelper;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.AuthTokenPayload;
-import java.util.Locale;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -48,26 +43,22 @@ public class AuthServiceImpl implements AuthService {
   private final AuthMetrics authMetrics;
 
   @Override
+  public void verifyEmail(String token) {
+    if (token == null || token.isBlank()) {
+      throw new AuthException(ErrorDefinition.GENERIC_BAD_REQUEST, null, HttpStatus.BAD_REQUEST);
+    }
+
+    accessTokenHelper.extractVerifyEmailUserId(token);
+  }
+
+  @Override
   public UserResponseDto register(RegisterRequestDto register) {
     authValidationHelper.validateRegisterRequest(register);
 
     try {
       return authRegisterHelper.createUser(register);
     } catch (DataIntegrityViolationException ex) {
-      if (!isUserUniqueConstraintViolation(ex)) {
-        throw ex;
-      }
-
-      log.warn(
-          LogConstants.REQUEST_CONFLICT,
-          LogConstants.AUTH,
-          LogConstants.REGISTER_ACTION,
-          "registration conflict detected at persistence layer");
-      authMetrics.recordRegisterFailure();
-      authMetrics.recordRegisterConflict();
-
-      throw new AuthException(
-          ErrorDefinition.AUTH_REGISTRATION_CONFLICT, null, HttpStatus.CONFLICT);
+      throw authValidationHelper.validateRegisterPersistenceConflict(ex);
     }
   }
 
@@ -120,34 +111,5 @@ public class AuthServiceImpl implements AuthService {
         LogConstants.AUTH,
         LogConstants.LOGOUT_ACTION,
         refreshToken.getUser().getId());
-  }
-
-  private boolean isUserUniqueConstraintViolation(Throwable throwable) {
-    Throwable current = throwable;
-
-    while (current != null) {
-      if (current instanceof ConstraintViolationException cve) {
-        String constraintName = cve.getConstraintName();
-        if (isUserUniqueConstraint(constraintName)) {
-          return true;
-        }
-      }
-
-      String message = current.getMessage();
-      if (isUserUniqueConstraint(message)) {
-        return true;
-      }
-
-      current = current.getCause();
-    }
-    return false;
-  }
-
-  private boolean isUserUniqueConstraint(String source) {
-    if (source == null || source.isBlank()) {
-      return false;
-    }
-    String normalized = source.toLowerCase(Locale.ROOT);
-    return normalized.contains(EMAIL_CONSTRAINT) || normalized.contains(USERNAME_CONSTRAINT);
   }
 }

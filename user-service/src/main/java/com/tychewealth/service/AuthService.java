@@ -9,6 +9,8 @@ import com.tychewealth.dto.user.UserResponseDto;
 
 public interface AuthService {
 
+  void verifyEmail(String token);
+
   UserResponseDto register(RegisterRequestDto register);
 
   LoginResponseDto login(LoginRequestDto login);
