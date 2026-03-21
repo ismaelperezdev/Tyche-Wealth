@@ -30,6 +30,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Slf4j
 @Service
@@ -76,12 +78,25 @@ public class AuthServiceImpl implements AuthService {
 
     try {
       var registeredUser = authRegisterHelper.createUser(register);
-
-      emailService.send(
+      var verificationEmailMessage =
           registerEmailHelper.buildVerifyEmailMessage(
               registeredUser.response().getEmail(),
               registeredUser.verificationToken().accessToken(),
-              registeredUser.verificationToken().expiresIn()));
+              registeredUser.verificationToken().expiresIn());
+
+      TransactionSynchronizationManager.registerSynchronization(
+          new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+              emailService.send(verificationEmailMessage);
+              authMetrics.recordRegisterSuccess();
+              log.info(
+                  LogConstants.REQUEST_SUCCESS + LogConstants.USER_ID,
+                  LogConstants.AUTH,
+                  LogConstants.REGISTER_ACTION,
+                  registeredUser.response().getId());
+            }
+          });
 
       return registeredUser.response();
     } catch (DataIntegrityViolationException ex) {
