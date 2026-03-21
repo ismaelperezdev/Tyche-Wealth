@@ -4,6 +4,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.HexFormat;
 import java.util.Locale;
 import javax.crypto.Mac;
@@ -37,5 +41,14 @@ public final class Utils {
     } catch (GeneralSecurityException ex) {
       throw new IllegalStateException("HmacSHA256 algorithm not available", ex);
     }
+  }
+
+  public static String currentUtcDate(Clock clock) {
+    return LocalDate.now(clock.withZone(ZoneOffset.UTC)).toString();
+  }
+
+  public static Duration durationUntilNextUtcMidnight(Clock clock) {
+    LocalDate tomorrow = LocalDate.now(clock.withZone(ZoneOffset.UTC)).plusDays(1);
+    return Duration.between(clock.instant(), tomorrow.atStartOfDay().toInstant(ZoneOffset.UTC));
   }
 }

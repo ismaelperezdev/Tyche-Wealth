@@ -5,6 +5,7 @@ import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
 
 import com.tychewealth.error.exception.AuthException;
+import com.tychewealth.error.exception.EmailException;
 import com.tychewealth.error.exception.UserException;
 import com.tychewealth.service.monitoring.UserMetrics;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,6 +40,11 @@ public class ErrorHandler {
 
   @ExceptionHandler(UserException.class)
   public ResponseEntity<ErrorResponse> handleUserException(UserException ex) {
+    return buildFromException(ex.getErrorDefinition(), ex.getHttpStatus());
+  }
+
+  @ExceptionHandler(EmailException.class)
+  public ResponseEntity<ErrorResponse> handleEmailException(EmailException ex) {
     return buildFromException(ex.getErrorDefinition(), ex.getHttpStatus());
   }
 
