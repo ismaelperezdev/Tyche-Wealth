@@ -3,6 +3,9 @@ package com.tychewealth.controller;
 import static com.tychewealth.constants.ApiConstants.AUTH_BASE_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_REFRESH_URL;
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER;
+import static com.tychewealth.constants.CommonConstants.FIELD_EMAIL;
+import static com.tychewealth.constants.CommonConstants.FIELD_ID;
+import static com.tychewealth.constants.CommonConstants.FIELD_USERNAME;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_FAILURE;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_INVALID_CREDENTIALS;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_RATE_LIMITED;
@@ -153,9 +156,9 @@ class AuthApiControllerIntegrationTest {
 
     registerRequest(mockMvc, objectMapper, validRequest)
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.id").isNumber())
-        .andExpect(jsonPath("$.email").value(validRequest.getEmail()))
-        .andExpect(jsonPath("$.username").value(validRequest.getUsername()))
+        .andExpect(jsonPath("$." + FIELD_ID).isNumber())
+        .andExpect(jsonPath("$." + FIELD_EMAIL).value(validRequest.getEmail()))
+        .andExpect(jsonPath("$." + FIELD_USERNAME).value(validRequest.getUsername()))
         .andExpect(jsonPath("$.createdAt").exists())
         .andExpect(jsonPath("$.password").doesNotExist());
 
@@ -280,7 +283,7 @@ class AuthApiControllerIntegrationTest {
   }
 
   @Test
-  void resendVerificationEmailReturnsBadRequestWhenPreviousVerificationEmailIsStillAvailable()
+  void resendVerificationEmailReturnsNoContentWhenPreviousVerificationEmailIsStillAvailable()
       throws Exception {
     existingLoginUser.setVerified(false);
     existingLoginUser.setVerificationTokenExpiresAt(Instant.now().plusSeconds(300));
@@ -293,16 +296,7 @@ class AuthApiControllerIntegrationTest {
                 .content(
                     objectMapper.writeValueAsString(
                         new ResendVerificationEmailRequestDto(existingLoginUser.getEmail()))))
-        .andExpect(status().isBadRequest())
-        .andExpect(
-            jsonPath("$.code")
-                .value(ErrorDefinition.AUTH_VERIFICATION_EMAIL_STILL_AVAILABLE.getCode()))
-        .andExpect(
-            jsonPath("$.type")
-                .value(ErrorDefinition.AUTH_VERIFICATION_EMAIL_STILL_AVAILABLE.getType()))
-        .andExpect(
-            jsonPath("$.description")
-                .value(ErrorDefinition.AUTH_VERIFICATION_EMAIL_STILL_AVAILABLE.getDescription()));
+        .andExpect(status().isNoContent());
   }
 
   @Test
@@ -379,9 +373,9 @@ class AuthApiControllerIntegrationTest {
         .andExpect(jsonPath("$.accessToken").isString())
         .andExpect(jsonPath("$.refreshToken").isString())
         .andExpect(jsonPath("$.expiresIn").isNumber())
-        .andExpect(jsonPath("$.user.id").isNumber())
-        .andExpect(jsonPath("$.user.email").value(validRequest.getEmail()))
-        .andExpect(jsonPath("$.user.username").value(validRequest.getUsername()))
+        .andExpect(jsonPath("$.user." + FIELD_ID).isNumber())
+        .andExpect(jsonPath("$.user." + FIELD_EMAIL).value(validRequest.getEmail()))
+        .andExpect(jsonPath("$.user." + FIELD_USERNAME).value(validRequest.getUsername()))
         .andExpect(jsonPath("$.user.password").doesNotExist());
 
     assertEquals(requestsBefore + 1, counterValue(meterRegistry, METRIC_AUTH_LOGIN_REQUESTS));

@@ -67,10 +67,10 @@ public class RegisterEmailHelper {
   private String formatExpirationText(long expiresInSeconds) {
     if (expiresInSeconds % 3600 == 0) {
       long hours = expiresInSeconds / 3600;
-      return hours + " hours";
+      return hours + (hours == 1 ? " hour" : " hours");
     }
 
     long expiresInMinutes = (expiresInSeconds + 59) / 60;
-    return expiresInMinutes + " minutes";
+    return expiresInMinutes + (expiresInMinutes == 1 ? " minute" : " minutes");
   }
 }

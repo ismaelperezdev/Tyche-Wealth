@@ -18,6 +18,7 @@ import com.tychewealth.service.helper.auth.AuthLoginHelper;
 import com.tychewealth.service.helper.auth.AuthRegisterHelper;
 import com.tychewealth.service.helper.auth.AuthValidationHelper;
 import com.tychewealth.service.helper.email.RegisterEmailHelper;
+import com.tychewealth.service.helper.email.VerificationEmailHelper;
 import com.tychewealth.service.helper.token.AccessTokenHelper;
 import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
 import com.tychewealth.service.helper.token.TokenStateHelper;
@@ -59,6 +60,7 @@ import org.springframework.data.redis.core.RedisTemplate;
   AuthRegisterHelper.class,
   AuthLoginHelper.class,
   RegisterEmailHelper.class,
+  VerificationEmailHelper.class,
   AccessTokenHelper.class,
   TokenStateHelper.class,
   TokenValidationHelper.class,

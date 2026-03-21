@@ -64,10 +64,20 @@ public class AuthValidationHelper {
         ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS, null, HttpStatus.UNAUTHORIZED);
   }
 
-  public void validateVerificationEmailCanBeResent(UserEntity user) {
+  public boolean canResendVerificationEmail(UserEntity user) {
+
+    if (user.isVerified()) {
+      log.warn(
+          LogConstants.REQUEST_CONFLICT,
+          LogConstants.AUTH,
+          LogConstants.VERIFY_REGISTRATION_ACTION,
+          "user is already verified");
+      return false;
+    }
+
     Instant verificationTokenExpiresAt = user.getVerificationTokenExpiresAt();
     if (verificationTokenExpiresAt == null || !verificationTokenExpiresAt.isAfter(Instant.now())) {
-      return;
+      return true;
     }
 
     log.warn(
@@ -75,8 +85,7 @@ public class AuthValidationHelper {
         LogConstants.AUTH,
         LogConstants.VERIFY_REGISTRATION_ACTION,
         "previous verification email is still available");
-    throw new AuthException(
-        ErrorDefinition.AUTH_VERIFICATION_EMAIL_STILL_AVAILABLE, null, HttpStatus.BAD_REQUEST);
+    return false;
   }
 
   public AuthException validateRegisterPersistenceConflict(DataIntegrityViolationException ex) {

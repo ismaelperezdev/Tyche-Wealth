@@ -14,11 +14,10 @@ import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.AuthService;
-import com.tychewealth.service.EmailService;
 import com.tychewealth.service.helper.auth.AuthLoginHelper;
 import com.tychewealth.service.helper.auth.AuthRegisterHelper;
 import com.tychewealth.service.helper.auth.AuthValidationHelper;
-import com.tychewealth.service.helper.email.RegisterEmailHelper;
+import com.tychewealth.service.helper.email.VerificationEmailHelper;
 import com.tychewealth.service.helper.token.AccessTokenHelper;
 import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
 import com.tychewealth.service.helper.token.TokenStateHelper;
@@ -26,14 +25,13 @@ import com.tychewealth.service.helper.token.TokenValidationHelper;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.AuthTokenPayload;
 import com.tychewealth.utils.Utils;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Slf4j
 @Service
@@ -43,8 +41,7 @@ public class AuthServiceImpl implements AuthService {
   private final AuthValidationHelper authValidationHelper;
   private final AuthRegisterHelper authRegisterHelper;
   private final AuthLoginHelper authLoginHelper;
-  private final RegisterEmailHelper registerEmailHelper;
-  private final EmailService emailService;
+  private final VerificationEmailHelper verificationEmailHelper;
   private final TokenStateHelper tokenStateHelper;
   private final AuthRefreshTokenHelper authRefreshTokenHelper;
   private final AccessTokenHelper accessTokenHelper;
@@ -82,19 +79,18 @@ public class AuthServiceImpl implements AuthService {
 
     try {
       var registeredUser = authRegisterHelper.createUser(register);
-      scheduleVerificationEmail(
-          registeredUser.response().getEmail(), registeredUser.verificationToken());
-      TransactionSynchronizationManager.registerSynchronization(
-          new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-              authMetrics.recordRegisterSuccess();
-              log.info(
-                  LogConstants.REQUEST_SUCCESS + LogConstants.USER_ID,
-                  LogConstants.AUTH,
-                  LogConstants.REGISTER_ACTION,
-                  registeredUser.response().getId());
-            }
+      verificationEmailHelper.scheduleVerificationEmail(
+          registeredUser.response().getId(),
+          registeredUser.response().getEmail(),
+          registeredUser.verificationToken(),
+          null,
+          () -> {
+            authMetrics.recordRegisterSuccess();
+            log.info(
+                LogConstants.REQUEST_SUCCESS + LogConstants.USER_ID,
+                LogConstants.AUTH,
+                LogConstants.REGISTER_ACTION,
+                registeredUser.response().getId());
           });
 
       return registeredUser.response();
@@ -107,18 +103,24 @@ public class AuthServiceImpl implements AuthService {
   @Transactional
   public void resendVerificationEmail(
       ResendVerificationEmailRequestDto resendVerificationEmailRequestDto) {
+    String normalizedEmail = Utils.normalizeIdentity(resendVerificationEmailRequestDto.getEmail());
     UserEntity user =
-        userRepository
-            .findByEmailAndDeletedAtIsNull(
-                Utils.normalizeIdentity(resendVerificationEmailRequestDto.getEmail()))
-            .orElseThrow(
-                () ->
-                    new AuthException(ErrorDefinition.USER_NOT_FOUND, null, HttpStatus.NOT_FOUND));
-    authValidationHelper.validateVerificationEmailCanBeResent(user);
+        userRepository.findByEmailAndDeletedAtIsNullForUpdate(normalizedEmail).orElse(null);
+
+    if (user == null || !authValidationHelper.canResendVerificationEmail(user)) {
+      return;
+    }
+
+    Instant previousVerificationTokenExpiresAt = user.getVerificationTokenExpiresAt();
     AuthTokenPayload verificationToken = accessTokenHelper.generateVerifyEmailToken(user);
     user.setVerificationTokenExpiresAt(
         accessTokenHelper.extractExpiration(verificationToken.accessToken()));
-    scheduleVerificationEmail(user.getEmail(), verificationToken);
+    verificationEmailHelper.scheduleVerificationEmail(
+        user.getId(),
+        user.getEmail(),
+        verificationToken,
+        previousVerificationTokenExpiresAt,
+        () -> {});
   }
 
   @Override
@@ -170,19 +172,5 @@ public class AuthServiceImpl implements AuthService {
         LogConstants.AUTH,
         LogConstants.LOGOUT_ACTION,
         refreshToken.getUser().getId());
-  }
-
-  private void scheduleVerificationEmail(String email, AuthTokenPayload verificationToken) {
-    var verificationEmailMessage =
-        registerEmailHelper.buildVerifyEmailMessage(
-            email, verificationToken.accessToken(), verificationToken.expiresIn());
-
-    TransactionSynchronizationManager.registerSynchronization(
-        new TransactionSynchronization() {
-          @Override
-          public void afterCommit() {
-            emailService.send(verificationEmailMessage);
-          }
-        });
   }
 }

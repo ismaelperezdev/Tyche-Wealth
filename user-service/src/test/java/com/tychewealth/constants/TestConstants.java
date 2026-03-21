@@ -17,7 +17,6 @@ public final class TestConstants {
   public static final String TEST_FIELD_CURRENT_PASSWORD = "currentPassword";
   public static final String TEST_FIELD_NEW_PASSWORD = "newPassword";
   public static final String TEST_FIELD_CONFIRM_NEW_PASSWORD = "confirmNewPassword";
-  public static final String TEST_FIELD_USERNAME = "username";
 
   public static final String TEST_UPDATE_USERNAME_REQUEST = "AfterUpdate";
   public static final String TEST_UPDATE_USERNAME_NORMALIZED = "afterupdate";
