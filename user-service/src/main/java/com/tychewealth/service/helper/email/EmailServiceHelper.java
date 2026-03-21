@@ -17,7 +17,6 @@ import com.tychewealth.dto.email.ResendEmailPropertiesDto;
 import com.tychewealth.dto.email.request.ResendSendEmailRequestDto;
 import com.tychewealth.error.exception.EmailException;
 import com.tychewealth.error.handler.ErrorDefinition;
-import com.tychewealth.service.EmailService;
 import com.tychewealth.service.email.EmailMessage;
 import com.tychewealth.service.ratelimit.RateLimitStore;
 import java.time.Clock;
@@ -30,7 +29,7 @@ import org.springframework.web.client.RestClientException;
 
 @Slf4j
 @RequiredArgsConstructor
-public class EmailServiceHelper implements EmailService {
+public class EmailServiceHelper {
 
   private final RestClient restClient;
   private final ResendEmailPropertiesDto resendEmailProperties;
@@ -38,7 +37,6 @@ public class EmailServiceHelper implements EmailService {
   private final RateLimitStore rateLimitStore;
   private final Clock clock;
 
-  @Override
   public void send(EmailMessage emailMessage) {
     if (!canSendWithinDailyQuota()) {
       return;

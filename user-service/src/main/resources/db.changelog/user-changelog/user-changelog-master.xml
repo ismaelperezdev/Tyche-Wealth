@@ -7,5 +7,6 @@
 
     <include file="user-changelog-dll.xml" relativeToChangelogFile="true"/>
     <include file="user-changelog-soft-delete.xml" relativeToChangelogFile="true"/>
+    <include file="user-changelog-email-verification.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

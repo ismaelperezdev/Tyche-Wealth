@@ -62,7 +62,8 @@ public class UserIntegrationTestConfig {
       TestPropertyValues.of(
               "spring.liquibase.change-log=classpath:db.changelog/changelog-master.xml",
               "app.auth.jwt.secret=4AYI7d6GOEvFEcCJZkDA0hGFqI6SuF5RAsxAjqzTmaM=",
-              "app.auth.jwt.refresh-token-pepper=" + TEST_REFRESH_TOKEN_PEPPER)
+              "app.auth.jwt.refresh-token-pepper=" + TEST_REFRESH_TOKEN_PEPPER,
+              "app.auth.verify-registration-url=http://localhost:8080/tyche-wealth/user-service/v1/auth/verify-registration")
           .applyTo(applicationContext.getEnvironment());
     }
   }

@@ -9,9 +9,11 @@ import com.tychewealth.error.handler.ErrorHandler;
 import com.tychewealth.mapper.user.UserMapperImpl;
 import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.UserRepository;
+import com.tychewealth.service.EmailService;
 import com.tychewealth.service.helper.auth.AuthLoginHelper;
 import com.tychewealth.service.helper.auth.AuthRegisterHelper;
 import com.tychewealth.service.helper.auth.AuthValidationHelper;
+import com.tychewealth.service.helper.email.RegisterEmailHelper;
 import com.tychewealth.service.helper.token.AccessTokenHelper;
 import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
 import com.tychewealth.service.helper.token.TokenStateHelper;
@@ -19,6 +21,7 @@ import com.tychewealth.service.helper.token.TokenValidationHelper;
 import com.tychewealth.service.impl.AuthServiceImpl;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.monitoring.UserMetrics;
+import org.mockito.Mockito;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
@@ -33,12 +36,14 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableAutoConfiguration(exclude = UserDetailsServiceAutoConfiguration.class)
 @Import({
   IntegrationTestConfig.class,
+  EmailConfig.class,
   RefreshRateLimitConfig.class,
   AuthApiController.class,
   AuthServiceImpl.class,
   AuthValidationHelper.class,
   AuthRegisterHelper.class,
   AuthLoginHelper.class,
+  RegisterEmailHelper.class,
   AccessTokenHelper.class,
   TokenStateHelper.class,
   TokenValidationHelper.class,
@@ -52,6 +57,11 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EntityScan(basePackageClasses = {UserEntity.class, RefreshTokenEntity.class})
 public class AuthIntegrationTestConfig {
 
+  @org.springframework.context.annotation.Bean
+  public EmailService emailService() {
+    return Mockito.mock(EmailService.class);
+  }
+
   public static class Initializer
       implements ApplicationContextInitializer<ConfigurableApplicationContext> {
 
@@ -61,6 +71,9 @@ public class AuthIntegrationTestConfig {
               "spring.liquibase.change-log=classpath:db.changelog/changelog-master.xml",
               "app.auth.jwt.secret=4AYI7d6GOEvFEcCJZkDA0hGFqI6SuF5RAsxAjqzTmaM=",
               "app.auth.jwt.refresh-token-pepper=" + TEST_REFRESH_TOKEN_PEPPER,
+              "app.auth.verify-registration-url=http://localhost:8080/tyche-wealth/user-service/v1/auth/verify-registration",
+              "app.email.resend.api-key=test-resend-api-key",
+              "app.email.resend.from=Tyche Wealth <auth@tyche-wealth.test>",
               "app.auth.register-rate-limit.max-requests=2",
               "app.auth.register-rate-limit.window-seconds=300",
               "app.auth.login-rate-limit.max-requests=2",

@@ -60,15 +60,16 @@ public class LiquibaseTestHelper {
   public void insertUser(Long id, String email, String username) {
     jdbcTemplate.update(
         """
-        INSERT INTO users (id, email, username, password, created_at, deleted_at)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO users (id, email, username, password, created_at, deleted_at, is_verified)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         id,
         email,
         username,
         DEFAULT_STORED_PASSWORD,
         Timestamp.from(Instant.now()),
-        null);
+        null,
+        false);
   }
 
   public void insertRefreshToken(Long id, String token, Long userId) {

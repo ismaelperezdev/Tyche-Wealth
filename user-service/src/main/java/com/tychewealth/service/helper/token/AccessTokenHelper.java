@@ -1,6 +1,8 @@
 package com.tychewealth.service.helper.token;
 
+import static com.tychewealth.constants.AuthConstants.TOKEN_PURPOSE_CLAIM;
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER;
+import static com.tychewealth.constants.AuthConstants.VERIFY_REGISTRATION_TOKEN_PURPOSE;
 import static com.tychewealth.constants.LogConstants.ACCESS_TOKEN_ACTION;
 import static com.tychewealth.constants.LogConstants.AUTH;
 import static com.tychewealth.constants.LogConstants.INVALID_ACCESS_TOKEN_MESSAGE;
@@ -32,26 +34,56 @@ public class AccessTokenHelper {
 
   private final SecretKey signingKey;
   private final long accessTokenTtlSeconds;
+  private final long verifyEmailTokenTtlSeconds;
 
   public AccessTokenHelper(
       @Value("${app.auth.jwt.secret}") String jwtSecret,
-      @Value("${app.auth.jwt.access-token-ttl-seconds:900}") long accessTokenTtlSeconds) {
+      @Value("${app.auth.jwt.access-token-ttl-seconds:900}") long accessTokenTtlSeconds,
+      @Value("${app.auth.jwt.verify-email-token-ttl-seconds:900}")
+          long verifyEmailTokenTtlSeconds) {
 
     if (accessTokenTtlSeconds <= 0) {
       throw new IllegalArgumentException(
           "app.auth.jwt.access-token-ttl-seconds must be greater than 0");
     }
+    if (verifyEmailTokenTtlSeconds <= 0) {
+      throw new IllegalArgumentException(
+          "app.auth.jwt.verify-email-token-ttl-seconds must be greater than 0");
+    }
 
     this.signingKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     this.accessTokenTtlSeconds = accessTokenTtlSeconds;
+    this.verifyEmailTokenTtlSeconds = verifyEmailTokenTtlSeconds;
   }
 
   public AuthTokenPayload generateAccessToken(UserEntity user) {
+    return generateToken(user, accessTokenTtlSeconds, null);
+  }
+
+  public AuthTokenPayload generateVerifyEmailToken(UserEntity user) {
+    return generateToken(user, verifyEmailTokenTtlSeconds, VERIFY_REGISTRATION_TOKEN_PURPOSE);
+  }
+
+  public Long extractVerifyEmailUserId(String token) {
+    try {
+      Claims claims = parseClaims(token);
+      String purpose = claims.get(TOKEN_PURPOSE_CLAIM, String.class);
+      if (!VERIFY_REGISTRATION_TOKEN_PURPOSE.equals(purpose)) {
+        throw new IllegalArgumentException("Token is not intended for email verification");
+      }
+      return Long.valueOf(claims.getSubject());
+    } catch (JwtException | IllegalArgumentException ex) {
+      log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_ACCESS_TOKEN_MESSAGE);
+      throw new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);
+    }
+  }
+
+  private AuthTokenPayload generateToken(UserEntity user, long ttlSeconds, String purpose) {
     Instant issuedAt = Instant.now();
-    Instant expiresAt = issuedAt.plusSeconds(accessTokenTtlSeconds);
+    Instant expiresAt = issuedAt.plusSeconds(ttlSeconds);
     String jti = UUID.randomUUID().toString();
 
-    String token =
+    var builder =
         Jwts.builder()
             .header()
             .type("JWT")
@@ -61,16 +93,27 @@ public class AccessTokenHelper {
             .claim("email", user.getEmail())
             .claim("username", user.getUsername())
             .issuedAt(Date.from(issuedAt))
-            .expiration(Date.from(expiresAt))
-            .signWith(signingKey, Jwts.SIG.HS256)
-            .compact();
+            .expiration(Date.from(expiresAt));
 
-    return new AuthTokenPayload(TOKEN_TYPE_BEARER, token, accessTokenTtlSeconds, jti);
+    if (StringUtils.hasText(purpose)) {
+      builder.claim(TOKEN_PURPOSE_CLAIM, purpose);
+    }
+
+    String token = builder.signWith(signingKey, Jwts.SIG.HS256).compact();
+
+    return new AuthTokenPayload(TOKEN_TYPE_BEARER, token, ttlSeconds, jti);
   }
 
   public Long extractUserId(String token) {
     try {
-      return Long.valueOf(parseClaims(token).getSubject());
+      Claims claims = parseClaims(token);
+      String purpose = claims.get(TOKEN_PURPOSE_CLAIM, String.class);
+
+      if (StringUtils.hasText(purpose)) {
+        throw new IllegalArgumentException("Token with purpose is not valid for bearer auth");
+      }
+
+      return Long.valueOf(claims.getSubject());
     } catch (JwtException | IllegalArgumentException ex) {
       log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_ACCESS_TOKEN_MESSAGE);
       throw new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);

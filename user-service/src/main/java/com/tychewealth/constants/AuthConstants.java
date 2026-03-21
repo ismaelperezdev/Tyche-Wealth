@@ -12,6 +12,8 @@ public final class AuthConstants {
   public static final String AUTHORIZATION_HEADER = "Authorization";
   public static final String TOKEN_TYPE_BEARER = "Bearer";
   public static final String TOKEN_TYPE_BEARER_PREFIX = TOKEN_TYPE_BEARER + " ";
+  public static final String TOKEN_PURPOSE_CLAIM = "purpose";
+  public static final String VERIFY_REGISTRATION_TOKEN_PURPOSE = "verify-registration";
   public static final int REFRESH_TOKEN_BYTE_LENGTH = 32;
   public static final int TOKEN_LINK_MAX_ATTEMPTS = 2;
 

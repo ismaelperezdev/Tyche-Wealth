@@ -1,6 +1,8 @@
 package com.tychewealth.service.helper.auth;
 
+import static com.tychewealth.constants.AuthConstants.EMAIL_CONSTRAINT;
 import static com.tychewealth.constants.AuthConstants.LOGIN_PASSWORD_POLICY;
+import static com.tychewealth.constants.AuthConstants.USERNAME_CONSTRAINT;
 
 import com.tychewealth.constants.LogConstants;
 import com.tychewealth.dto.auth.request.LoginRequestDto;
@@ -11,9 +13,12 @@ import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.utils.Utils;
+import java.util.Locale;
 import java.util.regex.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -37,8 +42,41 @@ public class AuthValidationHelper {
 
   public UserEntity validateLoginRequest(LoginRequestDto login) {
     UserEntity user = validateLoginEmail(login.getEmail());
+    validateUserIsVerified(user);
     validateLoginPassword(login.getPassword(), user.getPassword());
     return user;
+  }
+
+  public void validateUserIsVerified(UserEntity user) {
+    if (user.isVerified()) {
+      return;
+    }
+
+    log.warn(
+        LogConstants.REQUEST_CONFLICT,
+        LogConstants.AUTH,
+        LogConstants.LOGIN_ACTION,
+        LogConstants.INVALID_LOGIN_CREDENTIALS_MESSAGE);
+    authMetrics.recordLoginFailure();
+    authMetrics.recordLoginInvalidCredentials();
+    throw new AuthException(
+        ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS, null, HttpStatus.UNAUTHORIZED);
+  }
+
+  public AuthException validateRegisterPersistenceConflict(DataIntegrityViolationException ex) {
+    if (!validateUserUniqueConstraintViolation(ex)) {
+      throw ex;
+    }
+
+    log.warn(
+        LogConstants.REQUEST_CONFLICT,
+        LogConstants.AUTH,
+        LogConstants.REGISTER_ACTION,
+        "registration conflict detected at persistence layer");
+    authMetrics.recordRegisterFailure();
+    authMetrics.recordRegisterConflict();
+
+    return new AuthException(ErrorDefinition.AUTH_REGISTRATION_CONFLICT, null, HttpStatus.CONFLICT);
   }
 
   public void validateEmailIsAvailable(String email) {
@@ -137,5 +175,34 @@ public class AuthValidationHelper {
       throw new AuthException(
           ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS, null, HttpStatus.UNAUTHORIZED);
     }
+  }
+
+  private boolean validateUserUniqueConstraintViolation(Throwable throwable) {
+    Throwable current = throwable;
+
+    while (current != null) {
+      if (current instanceof ConstraintViolationException cve) {
+        String constraintName = cve.getConstraintName();
+        if (validateUserUniqueConstraint(constraintName)) {
+          return true;
+        }
+      }
+
+      String message = current.getMessage();
+      if (validateUserUniqueConstraint(message)) {
+        return true;
+      }
+
+      current = current.getCause();
+    }
+    return false;
+  }
+
+  private boolean validateUserUniqueConstraint(String source) {
+    if (source == null || source.isBlank()) {
+      return false;
+    }
+    String normalized = source.toLowerCase(Locale.ROOT);
+    return normalized.contains(EMAIL_CONSTRAINT) || normalized.contains(USERNAME_CONSTRAINT);
   }
 }

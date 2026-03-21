@@ -1,6 +1,10 @@
 package com.tychewealth.error.handler;
 
 import static com.tychewealth.constants.ApiConstants.USER_BASE_URL;
+import static com.tychewealth.constants.LogConstants.ERROR_HANDLER_ACTION;
+import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT_WITH_URI;
+import static com.tychewealth.constants.LogConstants.SYSTEM;
+import static com.tychewealth.constants.LogConstants.UNHANDLED_EXCEPTION_MESSAGE;
 import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
 
@@ -12,6 +16,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -23,6 +28,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
+@Slf4j
 @RestControllerAdvice
 @AllArgsConstructor
 public class ErrorHandler {
@@ -90,7 +96,15 @@ public class ErrorHandler {
   }
 
   @ExceptionHandler(Exception.class)
-  public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+  public ResponseEntity<ErrorResponse> handleGenericException(
+      Exception ex, HttpServletRequest request) {
+    log.error(
+        REQUEST_CONFLICT_WITH_URI,
+        SYSTEM,
+        ERROR_HANDLER_ACTION,
+        UNHANDLED_EXCEPTION_MESSAGE,
+        request == null ? "unknown" : request.getRequestURI(),
+        ex);
     return build(
         ErrorDefinition.GENERIC_INTERNAL_ERROR,
         HttpStatus.INTERNAL_SERVER_ERROR,

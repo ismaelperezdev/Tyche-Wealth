@@ -1,5 +1,6 @@
 package com.tychewealth.controller;
 
+import static com.tychewealth.constants.ApiConstants.AUTH_BASE_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_REFRESH_URL;
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_FAILURE;
@@ -41,6 +42,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -57,12 +61,19 @@ import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.UserRepository;
+import com.tychewealth.service.EmailService;
+import com.tychewealth.service.email.EmailMessage;
+import com.tychewealth.service.helper.token.AccessTokenHelper;
+import com.tychewealth.service.token.AuthTokenPayload;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -76,6 +87,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 class AuthApiControllerIntegrationTest {
 
+  private static final Pattern VERIFY_REGISTRATION_TOKEN_PATTERN =
+      Pattern.compile("token=([^\"&]+)");
+
   @Autowired private MockMvc mockMvc;
 
   @Autowired private ObjectMapper objectMapper;
@@ -86,6 +100,8 @@ class AuthApiControllerIntegrationTest {
   @Autowired private RefreshRateLimitConfig rateLimitConfig;
 
   @Autowired private PasswordEncoder passwordEncoder;
+  @Autowired private AccessTokenHelper accessTokenHelper;
+  @Autowired private EmailService emailService;
 
   private RegisterRequestDto validRequest;
   private LoginRequestDto validLoginRequest;
@@ -100,6 +116,7 @@ class AuthApiControllerIntegrationTest {
     refreshTokenRepository.deleteAll();
     userRepository.deleteAll();
     rateLimitConfig.resetAll();
+    reset(emailService);
     validRequest =
         new RegisterRequestDto(TEST_EMAIL_LAURA, TEST_USERNAME_LAURA, TEST_PASSWORD_VALID);
     conflictByEmailRequest =
@@ -122,6 +139,7 @@ class AuthApiControllerIntegrationTest {
     existingLoginUser.setEmail(validRequest.getEmail());
     existingLoginUser.setUsername(validRequest.getUsername());
     existingLoginUser.setPassword(passwordEncoder.encode(validRequest.getPassword()));
+    existingLoginUser.setVerified(true);
 
     validLoginRequest = new LoginRequestDto(validRequest.getEmail(), validRequest.getPassword());
   }
@@ -146,6 +164,80 @@ class AuthApiControllerIntegrationTest {
     assertTrue(passwordEncoder.matches(validRequest.getPassword(), created.getPassword()));
     assertEquals(requestsBefore + 1, counterValue(meterRegistry, METRIC_AUTH_REGISTER_REQUESTS));
     assertEquals(successBefore + 1, counterValue(meterRegistry, METRIC_AUTH_REGISTER_SUCCESS));
+  }
+
+  @Test
+  void registerSendsVerificationEmailWithWorkingVerifyLink() throws Exception {
+    registerRequest(mockMvc, objectMapper, validRequest).andExpect(status().isCreated());
+
+    ArgumentCaptor<EmailMessage> emailCaptor = ArgumentCaptor.forClass(EmailMessage.class);
+    verify(emailService).send(emailCaptor.capture());
+
+    EmailMessage sentEmail = emailCaptor.getValue();
+    assertEquals(validRequest.getEmail(), sentEmail.to());
+    assertEquals("Verify your email", sentEmail.subject());
+    assertTrue(sentEmail.html().contains("/auth/verify-registration"));
+    assertTrue(sentEmail.text().contains("15 minutes"));
+
+    String token = extractVerificationToken(sentEmail.html());
+
+    mockMvc
+        .perform(get(AUTH_BASE_URL + "/verify-registration").param("token", token))
+        .andExpect(status().isNoContent());
+
+    UserEntity verifiedUser =
+        userRepository.findByEmailIncludingDeleted(validRequest.getEmail()).orElseThrow();
+    assertTrue(verifiedUser.isVerified());
+  }
+
+  @Test
+  void verifyRegistrationReturnsNoContentAndMarksUserVerifiedWhenTokenIsValid() throws Exception {
+    UserEntity user = userRepository.save(existingLoginUser);
+    AuthTokenPayload verifyEmailToken = accessTokenHelper.generateVerifyEmailToken(user);
+
+    mockMvc
+        .perform(
+            get(AUTH_BASE_URL + "/verify-registration")
+                .param("token", verifyEmailToken.accessToken()))
+        .andExpect(status().isNoContent());
+
+    UserEntity verifiedUser = userRepository.findById(user.getId()).orElseThrow();
+    assertTrue(verifiedUser.isVerified());
+  }
+
+  @Test
+  void verifyRegistrationIsIdempotentWhenUserWasAlreadyVerified() throws Exception {
+    UserEntity user = userRepository.save(existingLoginUser);
+    AuthTokenPayload verifyEmailToken = accessTokenHelper.generateVerifyEmailToken(user);
+
+    mockMvc
+        .perform(
+            get(AUTH_BASE_URL + "/verify-registration")
+                .param("token", verifyEmailToken.accessToken()))
+        .andExpect(status().isNoContent());
+
+    mockMvc
+        .perform(
+            get(AUTH_BASE_URL + "/verify-registration")
+                .param("token", verifyEmailToken.accessToken()))
+        .andExpect(status().isNoContent());
+
+    UserEntity verifiedUser = userRepository.findById(user.getId()).orElseThrow();
+    assertTrue(verifiedUser.isVerified());
+  }
+
+  @Test
+  void verifyRegistrationReturnsUnauthorizedWhenTokenIsRegularAccessToken() throws Exception {
+    UserEntity user = userRepository.save(existingLoginUser);
+    AuthTokenPayload accessToken = accessTokenHelper.generateAccessToken(user);
+
+    mockMvc
+        .perform(
+            get(AUTH_BASE_URL + "/verify-registration").param("token", accessToken.accessToken()))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
+        .andExpect(jsonPath("$.description").value(ErrorDefinition.UNAUTHORIZED.getDescription()));
   }
 
   @Test
@@ -263,6 +355,22 @@ class AuthApiControllerIntegrationTest {
   @Test
   void loginReturnsUnauthorizedWhenUserWasSoftDeleted() throws Exception {
     existingLoginUser.setDeletedAt(java.time.LocalDateTime.now());
+    userRepository.save(existingLoginUser);
+
+    loginRequest(mockMvc, objectMapper, validLoginRequest)
+        .andExpect(status().isUnauthorized())
+        .andExpect(
+            jsonPath("$.code").value(ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS.getCode()))
+        .andExpect(
+            jsonPath("$.type").value(ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS.getType()))
+        .andExpect(
+            jsonPath("$.description")
+                .value(ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS.getDescription()));
+  }
+
+  @Test
+  void loginReturnsUnauthorizedWhenUserIsNotVerified() throws Exception {
+    existingLoginUser.setVerified(false);
     userRepository.save(existingLoginUser);
 
     loginRequest(mockMvc, objectMapper, validLoginRequest)
@@ -497,5 +605,11 @@ class AuthApiControllerIntegrationTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getType()));
+  }
+
+  private String extractVerificationToken(String html) {
+    Matcher matcher = VERIFY_REGISTRATION_TOKEN_PATTERN.matcher(html);
+    assertTrue(matcher.find());
+    return matcher.group(1);
   }
 }

@@ -1,8 +1,5 @@
 package com.tychewealth.service.impl;
 
-import static com.tychewealth.constants.AuthConstants.EMAIL_CONSTRAINT;
-import static com.tychewealth.constants.AuthConstants.USERNAME_CONSTRAINT;
-
 import com.tychewealth.constants.LogConstants;
 import com.tychewealth.dto.auth.LoginResponseDto;
 import com.tychewealth.dto.auth.RefreshTokenResponseDto;
@@ -14,24 +11,27 @@ import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
+import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.AuthService;
+import com.tychewealth.service.EmailService;
 import com.tychewealth.service.helper.auth.AuthLoginHelper;
 import com.tychewealth.service.helper.auth.AuthRegisterHelper;
 import com.tychewealth.service.helper.auth.AuthValidationHelper;
+import com.tychewealth.service.helper.email.RegisterEmailHelper;
 import com.tychewealth.service.helper.token.AccessTokenHelper;
 import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
 import com.tychewealth.service.helper.token.TokenStateHelper;
 import com.tychewealth.service.helper.token.TokenValidationHelper;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.AuthTokenPayload;
-import java.util.Locale;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Slf4j
 @Service
@@ -41,33 +41,66 @@ public class AuthServiceImpl implements AuthService {
   private final AuthValidationHelper authValidationHelper;
   private final AuthRegisterHelper authRegisterHelper;
   private final AuthLoginHelper authLoginHelper;
+  private final RegisterEmailHelper registerEmailHelper;
+  private final EmailService emailService;
   private final TokenStateHelper tokenStateHelper;
   private final AuthRefreshTokenHelper authRefreshTokenHelper;
   private final AccessTokenHelper accessTokenHelper;
   private final TokenValidationHelper tokenValidationHelper;
   private final AuthMetrics authMetrics;
+  private final UserRepository userRepository;
 
   @Override
+  @Transactional
+  public void verifyEmail(String token) {
+    if (token == null || token.isBlank()) {
+      throw new AuthException(ErrorDefinition.GENERIC_BAD_REQUEST, null, HttpStatus.BAD_REQUEST);
+    }
+
+    Long userId = accessTokenHelper.extractVerifyEmailUserId(token);
+    UserEntity user =
+        userRepository
+            .findByIdAndDeletedAtIsNull(userId)
+            .orElseThrow(
+                () ->
+                    new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED));
+    if (user.isVerified()) {
+      return;
+    }
+    user.setVerified(true);
+    userRepository.save(user);
+  }
+
+  @Override
+  @Transactional
   public UserResponseDto register(RegisterRequestDto register) {
     authValidationHelper.validateRegisterRequest(register);
 
     try {
-      return authRegisterHelper.createUser(register);
+      var registeredUser = authRegisterHelper.createUser(register);
+      var verificationEmailMessage =
+          registerEmailHelper.buildVerifyEmailMessage(
+              registeredUser.response().getEmail(),
+              registeredUser.verificationToken().accessToken(),
+              registeredUser.verificationToken().expiresIn());
+
+      TransactionSynchronizationManager.registerSynchronization(
+          new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+              emailService.send(verificationEmailMessage);
+              authMetrics.recordRegisterSuccess();
+              log.info(
+                  LogConstants.REQUEST_SUCCESS + LogConstants.USER_ID,
+                  LogConstants.AUTH,
+                  LogConstants.REGISTER_ACTION,
+                  registeredUser.response().getId());
+            }
+          });
+
+      return registeredUser.response();
     } catch (DataIntegrityViolationException ex) {
-      if (!isUserUniqueConstraintViolation(ex)) {
-        throw ex;
-      }
-
-      log.warn(
-          LogConstants.REQUEST_CONFLICT,
-          LogConstants.AUTH,
-          LogConstants.REGISTER_ACTION,
-          "registration conflict detected at persistence layer");
-      authMetrics.recordRegisterFailure();
-      authMetrics.recordRegisterConflict();
-
-      throw new AuthException(
-          ErrorDefinition.AUTH_REGISTRATION_CONFLICT, null, HttpStatus.CONFLICT);
+      throw authValidationHelper.validateRegisterPersistenceConflict(ex);
     }
   }
 
@@ -120,34 +153,5 @@ public class AuthServiceImpl implements AuthService {
         LogConstants.AUTH,
         LogConstants.LOGOUT_ACTION,
         refreshToken.getUser().getId());
-  }
-
-  private boolean isUserUniqueConstraintViolation(Throwable throwable) {
-    Throwable current = throwable;
-
-    while (current != null) {
-      if (current instanceof ConstraintViolationException cve) {
-        String constraintName = cve.getConstraintName();
-        if (isUserUniqueConstraint(constraintName)) {
-          return true;
-        }
-      }
-
-      String message = current.getMessage();
-      if (isUserUniqueConstraint(message)) {
-        return true;
-      }
-
-      current = current.getCause();
-    }
-    return false;
-  }
-
-  private boolean isUserUniqueConstraint(String source) {
-    if (source == null || source.isBlank()) {
-      return false;
-    }
-    String normalized = source.toLowerCase(Locale.ROOT);
-    return normalized.contains(EMAIL_CONSTRAINT) || normalized.contains(USERNAME_CONSTRAINT);
   }
 }

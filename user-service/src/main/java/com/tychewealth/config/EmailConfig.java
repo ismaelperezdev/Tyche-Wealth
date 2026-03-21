@@ -3,9 +3,10 @@ package com.tychewealth.config;
 import com.tychewealth.dto.email.ResendEmailPropertiesDto;
 import com.tychewealth.service.helper.email.EmailServiceHelper;
 import com.tychewealth.service.ratelimit.RateLimitStore;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.Clock;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,7 +23,6 @@ public class EmailConfig {
   }
 
   @Bean
-  @ConditionalOnProperty(prefix = "app.email.resend", name = "enabled", havingValue = "true")
   public EmailServiceHelper emailServiceHelper(
       RestClient.Builder restClientBuilder,
       ResendEmailPropertiesDto resendEmailProperties,
@@ -40,5 +40,21 @@ public class EmailConfig {
     RestClient restClient = restClientBuilder.baseUrl(resendEmailProperties.getBaseUrl()).build();
     return new EmailServiceHelper(
         restClient, resendEmailProperties, emailDailyLimit, rateLimitStore, emailClock);
+  }
+
+  @Bean
+  public URI verifyRegistrationUri(
+      @Value("${app.auth.verify-registration-url}") String verifyRegistrationUrl) {
+    Assert.hasText(verifyRegistrationUrl, "app.auth.verify-registration-url must be configured");
+
+    try {
+      URI uri = new URI(verifyRegistrationUrl);
+      Assert.isTrue(uri.isAbsolute(), "app.auth.verify-registration-url must be an absolute URL");
+      Assert.hasText(uri.getScheme(), "app.auth.verify-registration-url must include a scheme");
+      Assert.hasText(uri.getHost(), "app.auth.verify-registration-url must include a host");
+      return uri;
+    } catch (URISyntaxException ex) {
+      throw new IllegalStateException("app.auth.verify-registration-url must be a valid URL", ex);
+    }
   }
 }

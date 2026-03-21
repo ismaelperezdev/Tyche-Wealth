@@ -54,6 +54,9 @@ public class UserEntity {
   @Column(name = "created_at", nullable = false)
   private LocalDateTime createdAt;
 
+  @Column(name = "is_verified", nullable = false)
+  private boolean isVerified = false;
+
   @Column(name = "deleted_at")
   private LocalDateTime deletedAt;
 
