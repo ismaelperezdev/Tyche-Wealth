@@ -42,8 +42,25 @@ public class AuthValidationHelper {
 
   public UserEntity validateLoginRequest(LoginRequestDto login) {
     UserEntity user = validateLoginEmail(login.getEmail());
+    validateUserIsVerified(user);
     validateLoginPassword(login.getPassword(), user.getPassword());
     return user;
+  }
+
+  public void validateUserIsVerified(UserEntity user) {
+    if (user.isVerified()) {
+      return;
+    }
+
+    log.warn(
+        LogConstants.REQUEST_CONFLICT,
+        LogConstants.AUTH,
+        LogConstants.LOGIN_ACTION,
+        LogConstants.INVALID_LOGIN_CREDENTIALS_MESSAGE);
+    authMetrics.recordLoginFailure();
+    authMetrics.recordLoginInvalidCredentials();
+    throw new AuthException(
+        ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS, null, HttpStatus.UNAUTHORIZED);
   }
 
   public AuthException validateRegisterPersistenceConflict(DataIntegrityViolationException ex) {

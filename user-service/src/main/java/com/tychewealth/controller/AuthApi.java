@@ -24,8 +24,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Tag(name = "Auth")
 public interface AuthApi {
 
-  @GetMapping(value = "/verify-email", produces = REQUEST_PRODUCES)
-  ResponseEntity<Void> verifyEmail(@RequestParam("token") String token);
+  @GetMapping(value = "/verify-registration", produces = REQUEST_PRODUCES)
+  ResponseEntity<Void> verifyRegistration(@RequestParam("token") String token);
 
   @PostMapping(value = "/register", consumes = REQUEST_CONSUMES, produces = REQUEST_PRODUCES)
   ResponseEntity<UserResponseDto> register(@Valid @RequestBody RegisterRequestDto register);

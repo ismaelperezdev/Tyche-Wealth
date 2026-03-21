@@ -11,10 +11,13 @@ import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
+import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.AuthService;
+import com.tychewealth.service.EmailService;
 import com.tychewealth.service.helper.auth.AuthLoginHelper;
 import com.tychewealth.service.helper.auth.AuthRegisterHelper;
 import com.tychewealth.service.helper.auth.AuthValidationHelper;
+import com.tychewealth.service.helper.email.RegisterEmailHelper;
 import com.tychewealth.service.helper.token.AccessTokenHelper;
 import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
 import com.tychewealth.service.helper.token.TokenStateHelper;
@@ -36,27 +39,51 @@ public class AuthServiceImpl implements AuthService {
   private final AuthValidationHelper authValidationHelper;
   private final AuthRegisterHelper authRegisterHelper;
   private final AuthLoginHelper authLoginHelper;
+  private final RegisterEmailHelper registerEmailHelper;
+  private final EmailService emailService;
   private final TokenStateHelper tokenStateHelper;
   private final AuthRefreshTokenHelper authRefreshTokenHelper;
   private final AccessTokenHelper accessTokenHelper;
   private final TokenValidationHelper tokenValidationHelper;
   private final AuthMetrics authMetrics;
+  private final UserRepository userRepository;
 
   @Override
+  @Transactional
   public void verifyEmail(String token) {
     if (token == null || token.isBlank()) {
       throw new AuthException(ErrorDefinition.GENERIC_BAD_REQUEST, null, HttpStatus.BAD_REQUEST);
     }
 
-    accessTokenHelper.extractVerifyEmailUserId(token);
+    Long userId = accessTokenHelper.extractVerifyEmailUserId(token);
+    UserEntity user =
+        userRepository
+            .findByIdAndDeletedAtIsNull(userId)
+            .orElseThrow(
+                () ->
+                    new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED));
+    if (user.isVerified()) {
+      return;
+    }
+    user.setVerified(true);
+    userRepository.save(user);
   }
 
   @Override
+  @Transactional
   public UserResponseDto register(RegisterRequestDto register) {
     authValidationHelper.validateRegisterRequest(register);
 
     try {
-      return authRegisterHelper.createUser(register);
+      var registeredUser = authRegisterHelper.createUser(register);
+
+      emailService.send(
+          registerEmailHelper.buildVerifyEmailMessage(
+              registeredUser.user(),
+              registeredUser.verificationToken().accessToken(),
+              registeredUser.verificationToken().expiresIn()));
+
+      return registeredUser.response();
     } catch (DataIntegrityViolationException ex) {
       throw authValidationHelper.validateRegisterPersistenceConflict(ex);
     }

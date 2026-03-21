@@ -2,7 +2,7 @@ package com.tychewealth.service.helper.token;
 
 import static com.tychewealth.constants.AuthConstants.TOKEN_PURPOSE_CLAIM;
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER;
-import static com.tychewealth.constants.AuthConstants.VERIFY_EMAIL_TOKEN_PURPOSE;
+import static com.tychewealth.constants.AuthConstants.VERIFY_REGISTRATION_TOKEN_PURPOSE;
 import static com.tychewealth.constants.LogConstants.ACCESS_TOKEN_ACTION;
 import static com.tychewealth.constants.LogConstants.AUTH;
 import static com.tychewealth.constants.LogConstants.INVALID_ACCESS_TOKEN_MESSAGE;
@@ -61,14 +61,14 @@ public class AccessTokenHelper {
   }
 
   public AuthTokenPayload generateVerifyEmailToken(UserEntity user) {
-    return generateToken(user, verifyEmailTokenTtlSeconds, VERIFY_EMAIL_TOKEN_PURPOSE);
+    return generateToken(user, verifyEmailTokenTtlSeconds, VERIFY_REGISTRATION_TOKEN_PURPOSE);
   }
 
   public Long extractVerifyEmailUserId(String token) {
     try {
       Claims claims = parseClaims(token);
       String purpose = claims.get(TOKEN_PURPOSE_CLAIM, String.class);
-      if (!VERIFY_EMAIL_TOKEN_PURPOSE.equals(purpose)) {
+      if (!VERIFY_REGISTRATION_TOKEN_PURPOSE.equals(purpose)) {
         throw new IllegalArgumentException("Token is not intended for email verification");
       }
       return Long.valueOf(claims.getSubject());

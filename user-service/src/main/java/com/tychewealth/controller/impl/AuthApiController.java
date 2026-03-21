@@ -9,7 +9,7 @@ import static com.tychewealth.constants.LogConstants.REFRESH_TOKEN_ACTION;
 import static com.tychewealth.constants.LogConstants.REGISTER_ACTION;
 import static com.tychewealth.constants.LogConstants.REGISTER_REQUEST_FIELDS;
 import static com.tychewealth.constants.LogConstants.REQUEST_START;
-import static com.tychewealth.constants.LogConstants.VERIFY_EMAIL_ACTION;
+import static com.tychewealth.constants.LogConstants.VERIFY_REGISTRATION_ACTION;
 import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
 import static com.tychewealth.utils.LogContextFactory.mask;
@@ -43,8 +43,8 @@ public class AuthApiController implements AuthApi {
   private final AuthService authService;
 
   @Override
-  public ResponseEntity<Void> verifyEmail(@RequestParam("token") String token) {
-    log.info(REQUEST_START, AUTH, VERIFY_EMAIL_ACTION);
+  public ResponseEntity<Void> verifyRegistration(@RequestParam("token") String token) {
+    log.info(REQUEST_START, AUTH, VERIFY_REGISTRATION_ACTION);
 
     authService.verifyEmail(token);
     return ResponseEntity.noContent()

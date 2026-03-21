@@ -13,9 +13,11 @@ import com.tychewealth.error.handler.ErrorHandler;
 import com.tychewealth.mapper.user.UserMapperImpl;
 import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.UserRepository;
+import com.tychewealth.service.EmailService;
 import com.tychewealth.service.helper.auth.AuthLoginHelper;
 import com.tychewealth.service.helper.auth.AuthRegisterHelper;
 import com.tychewealth.service.helper.auth.AuthValidationHelper;
+import com.tychewealth.service.helper.email.RegisterEmailHelper;
 import com.tychewealth.service.helper.token.AccessTokenHelper;
 import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
 import com.tychewealth.service.helper.token.TokenStateHelper;
@@ -28,6 +30,7 @@ import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.monitoring.UserMetrics;
 import com.tychewealth.service.ratelimit.RateLimitStore;
 import com.tychewealth.service.ratelimit.RedisRateLimitStore;
+import org.mockito.Mockito;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
@@ -54,6 +57,7 @@ import org.springframework.data.redis.core.RedisTemplate;
   AuthValidationHelper.class,
   AuthRegisterHelper.class,
   AuthLoginHelper.class,
+  RegisterEmailHelper.class,
   AccessTokenHelper.class,
   TokenStateHelper.class,
   TokenValidationHelper.class,
@@ -68,6 +72,11 @@ import org.springframework.data.redis.core.RedisTemplate;
 @EnableJpaRepositories(basePackageClasses = {UserRepository.class, RefreshTokenRepository.class})
 @EntityScan(basePackageClasses = {UserEntity.class, RefreshTokenEntity.class})
 public class RedisIntegrationTestConfig {
+
+  @Bean
+  public EmailService emailService() {
+    return Mockito.mock(EmailService.class);
+  }
 
   @Bean
   @Primary

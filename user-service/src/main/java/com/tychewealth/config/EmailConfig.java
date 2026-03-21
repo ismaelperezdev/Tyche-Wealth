@@ -5,7 +5,6 @@ import com.tychewealth.service.helper.email.EmailServiceHelper;
 import com.tychewealth.service.ratelimit.RateLimitStore;
 import java.time.Clock;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,7 +21,6 @@ public class EmailConfig {
   }
 
   @Bean
-  @ConditionalOnProperty(prefix = "app.email.resend", name = "enabled", havingValue = "true")
   public EmailServiceHelper emailServiceHelper(
       RestClient.Builder restClientBuilder,
       ResendEmailPropertiesDto resendEmailProperties,

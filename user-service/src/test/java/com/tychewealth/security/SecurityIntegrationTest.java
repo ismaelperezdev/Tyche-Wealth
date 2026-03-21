@@ -89,6 +89,7 @@ class SecurityIntegrationTest {
     existingUser.setEmail(TEST_EMAIL_LAURA);
     existingUser.setUsername(TEST_USERNAME_LAURA);
     existingUser.setPassword(passwordEncoder.encode(TEST_PASSWORD_VALID));
+    existingUser.setVerified(true);
     userRepository.save(existingUser);
 
     validLoginRequest = new LoginRequestDto(TEST_EMAIL_LAURA, TEST_PASSWORD_VALID);
