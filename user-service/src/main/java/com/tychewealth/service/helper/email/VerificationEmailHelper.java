@@ -1,13 +1,15 @@
 package com.tychewealth.service.helper.email;
 
-import com.tychewealth.repository.UserRepository;
+import static org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization;
+
 import com.tychewealth.service.EmailService;
+import com.tychewealth.service.email.EmailMessage;
+import com.tychewealth.service.helper.token.VerificationTokenRecoveryHelper;
 import com.tychewealth.service.token.AuthTokenPayload;
 import java.time.Instant;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Component
 @AllArgsConstructor
@@ -15,7 +17,7 @@ public class VerificationEmailHelper {
 
   private final RegisterEmailHelper registerEmailHelper;
   private final EmailService emailService;
-  private final UserRepository userRepository;
+  private final VerificationTokenRecoveryHelper verificationTokenRecoveryHelper;
 
   public void scheduleVerificationEmail(
       Long userId,
@@ -28,29 +30,28 @@ public class VerificationEmailHelper {
         registerEmailHelper.buildVerifyEmailMessage(
             email, verificationToken.accessToken(), verificationToken.expiresIn());
 
-    TransactionSynchronizationManager.registerSynchronization(
+    registerSynchronization(
         new TransactionSynchronization() {
           @Override
           public void afterCommit() {
-            try {
-              emailService.send(verificationEmailMessage);
-              onSuccess.run();
-            } catch (RuntimeException ex) {
-              restoreVerificationTokenExpiry(userId, previousVerificationTokenExpiresAt);
-              throw ex;
-            }
+            handleVerificationEmailAfterCommit(
+                userId, previousVerificationTokenExpiresAt, verificationEmailMessage, onSuccess);
           }
         });
   }
 
-  private void restoreVerificationTokenExpiry(
-      Long userId, Instant previousVerificationTokenExpiresAt) {
-    userRepository
-        .findById(userId)
-        .ifPresent(
-            user -> {
-              user.setVerificationTokenExpiresAt(previousVerificationTokenExpiresAt);
-              userRepository.save(user);
-            });
+  private void handleVerificationEmailAfterCommit(
+      Long userId,
+      Instant previousVerificationTokenExpiresAt,
+      EmailMessage verificationEmailMessage,
+      Runnable onSuccess) {
+    try {
+      emailService.send(verificationEmailMessage);
+      onSuccess.run();
+    } catch (RuntimeException ex) {
+      verificationTokenRecoveryHelper.restoreVerificationTokenExpiryWithErrorHandling(
+          userId, previousVerificationTokenExpiresAt);
+      throw ex;
+    }
   }
 }
