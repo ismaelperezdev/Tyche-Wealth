@@ -47,11 +47,12 @@ public class VerificationEmailHelper {
       Runnable onSuccess) {
     try {
       emailService.send(verificationEmailMessage);
-      onSuccess.run();
     } catch (RuntimeException ex) {
       verificationTokenRecoveryHelper.restoreVerificationTokenExpiryWithErrorHandling(
           userId, previousVerificationTokenExpiresAt);
       throw ex;
     }
+
+    onSuccess.run();
   }
 }
