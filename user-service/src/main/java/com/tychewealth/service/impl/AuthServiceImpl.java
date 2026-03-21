@@ -67,7 +67,9 @@ public class AuthServiceImpl implements AuthService {
     if (user.isVerified()) {
       return;
     }
+
     user.setVerified(true);
+    user.setVerificationTokenExpiresAt(null);
     userRepository.save(user);
   }
 

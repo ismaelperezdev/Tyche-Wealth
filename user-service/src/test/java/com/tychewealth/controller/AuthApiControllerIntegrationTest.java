@@ -41,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
@@ -162,6 +163,8 @@ class AuthApiControllerIntegrationTest {
     assertNotNull(created.getId());
     assertNotEquals(validRequest.getPassword(), created.getPassword());
     assertTrue(passwordEncoder.matches(validRequest.getPassword(), created.getPassword()));
+    assertNotNull(created.getVerificationTokenExpiresAt());
+    assertTrue(created.getVerificationTokenExpiresAt().isAfter(Instant.now()));
     assertEquals(requestsBefore + 1, counterValue(meterRegistry, METRIC_AUTH_REGISTER_REQUESTS));
     assertEquals(successBefore + 1, counterValue(meterRegistry, METRIC_AUTH_REGISTER_SUCCESS));
   }
@@ -189,6 +192,7 @@ class AuthApiControllerIntegrationTest {
     UserEntity verifiedUser =
         userRepository.findByEmailIncludingDeleted(validRequest.getEmail()).orElseThrow();
     assertTrue(verifiedUser.isVerified());
+    assertNull(verifiedUser.getVerificationTokenExpiresAt());
   }
 
   @Test
@@ -204,6 +208,7 @@ class AuthApiControllerIntegrationTest {
 
     UserEntity verifiedUser = userRepository.findById(user.getId()).orElseThrow();
     assertTrue(verifiedUser.isVerified());
+    assertNull(verifiedUser.getVerificationTokenExpiresAt());
   }
 
   @Test
@@ -225,6 +230,7 @@ class AuthApiControllerIntegrationTest {
 
     UserEntity verifiedUser = userRepository.findById(user.getId()).orElseThrow();
     assertTrue(verifiedUser.isVerified());
+    assertNull(verifiedUser.getVerificationTokenExpiresAt());
   }
 
   @Test
