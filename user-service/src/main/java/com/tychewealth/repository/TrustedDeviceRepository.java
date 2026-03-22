@@ -13,5 +13,7 @@ public interface TrustedDeviceRepository extends JpaRepository<TrustedDeviceEnti
 
   Optional<TrustedDeviceEntity> findByTokenHash(String tokenHash);
 
+  Optional<TrustedDeviceEntity> findByUserIdAndTokenHash(Long userId, String tokenHash);
+
   List<TrustedDeviceEntity> findByUserIdOrderByCreatedAtAsc(Long userId);
 }

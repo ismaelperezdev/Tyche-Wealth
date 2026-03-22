@@ -6,13 +6,18 @@ import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.TrustedDeviceRepository;
 import com.tychewealth.utils.Utils;
+import jakarta.servlet.http.Cookie;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Component
 @AllArgsConstructor
@@ -52,5 +57,36 @@ public class TrustedDeviceHelper {
     if (trustedDeviceRepository.countByUserId(userId) >= MAX_TRUSTED_DEVICES_PER_USER) {
       throw new AuthException(ErrorDefinition.CONFLICT, null, HttpStatus.CONFLICT);
     }
+  }
+
+  public boolean hasReachedTrustedDeviceLimit(Long userId) {
+    return trustedDeviceRepository.countByUserId(userId) >= MAX_TRUSTED_DEVICES_PER_USER;
+  }
+
+  public boolean isTrustedCurrentDevice(UserEntity user) {
+    return extractTrustedDeviceToken()
+        .map(Utils::sha256Hex)
+        .flatMap(
+            tokenHash -> trustedDeviceRepository.findByUserIdAndTokenHash(user.getId(), tokenHash))
+        .isPresent();
+  }
+
+  private Optional<String> extractTrustedDeviceToken() {
+    ServletRequestAttributes requestAttributes =
+        (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+    if (requestAttributes == null) {
+      return Optional.empty();
+    }
+
+    Cookie[] cookies = requestAttributes.getRequest().getCookies();
+    if (cookies == null) {
+      return Optional.empty();
+    }
+
+    return Arrays.stream(cookies)
+        .filter(cookie -> TRUSTED_DEVICE_COOKIE_NAME.equals(cookie.getName()))
+        .map(Cookie::getValue)
+        .filter(value -> value != null && !value.isBlank())
+        .findFirst();
   }
 }

@@ -19,6 +19,7 @@ import com.tychewealth.service.EmailService;
 import com.tychewealth.service.helper.auth.AuthLoginHelper;
 import com.tychewealth.service.helper.auth.AuthRegisterHelper;
 import com.tychewealth.service.helper.auth.AuthValidationHelper;
+import com.tychewealth.service.helper.email.LoginDeviceEmailHelper;
 import com.tychewealth.service.helper.email.RegisterEmailHelper;
 import com.tychewealth.service.helper.email.VerificationEmailHelper;
 import com.tychewealth.service.helper.token.AccessTokenHelper;
@@ -63,6 +64,7 @@ import org.springframework.data.redis.core.RedisTemplate;
   AuthValidationHelper.class,
   AuthRegisterHelper.class,
   AuthLoginHelper.class,
+  LoginDeviceEmailHelper.class,
   RegisterEmailHelper.class,
   VerificationEmailHelper.class,
   TrustedDeviceHelper.class,
@@ -118,6 +120,7 @@ public class RedisIntegrationTestConfig {
               "app.auth.jwt.secret=4AYI7d6GOEvFEcCJZkDA0hGFqI6SuF5RAsxAjqzTmaM=",
               "app.auth.jwt.refresh-token-pepper=" + TEST_REFRESH_TOKEN_PEPPER,
               "app.auth.verify-registration-url=http://localhost:8080/tyche-wealth/user-service/v1/auth/verify-registration",
+              "app.auth.verify-login-device-url=http://localhost:8080/tyche-wealth/user-service/v1/auth/verify-login-device",
               "app.email.resend.api-key=test-resend-api-key",
               "app.email.resend.from=Tyche Wealth <auth@tyche-wealth.test>",
               "app.auth.register-rate-limit.max-requests=2",

@@ -2,6 +2,7 @@ package com.tychewealth.service.helper.token;
 
 import static com.tychewealth.constants.AuthConstants.TOKEN_PURPOSE_CLAIM;
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER;
+import static com.tychewealth.constants.AuthConstants.VERIFY_LOGIN_DEVICE_TOKEN_PURPOSE;
 import static com.tychewealth.constants.AuthConstants.VERIFY_REGISTRATION_TOKEN_PURPOSE;
 import static com.tychewealth.constants.CommonConstants.FIELD_EMAIL;
 import static com.tychewealth.constants.CommonConstants.FIELD_USERNAME;
@@ -64,6 +65,10 @@ public class AccessTokenHelper {
 
   public AuthTokenPayload generateVerifyEmailToken(UserEntity user) {
     return generateToken(user, verifyEmailTokenTtlSeconds, VERIFY_REGISTRATION_TOKEN_PURPOSE);
+  }
+
+  public AuthTokenPayload generateVerifyLoginDeviceToken(UserEntity user) {
+    return generateToken(user, verifyEmailTokenTtlSeconds, VERIFY_LOGIN_DEVICE_TOKEN_PURPOSE);
   }
 
   public Long extractVerifyEmailUserId(String token) {

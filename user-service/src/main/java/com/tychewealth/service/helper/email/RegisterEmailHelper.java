@@ -1,5 +1,7 @@
 package com.tychewealth.service.helper.email;
 
+import static com.tychewealth.utils.Utils.formatExpirationText;
+
 import com.tychewealth.service.email.EmailMessage;
 import java.io.IOException;
 import java.net.URI;
@@ -62,15 +64,5 @@ public class RegisterEmailHelper {
         + ". This link will expire in "
         + expirationText
         + ".";
-  }
-
-  private String formatExpirationText(long expiresInSeconds) {
-    if (expiresInSeconds % 3600 == 0) {
-      long hours = expiresInSeconds / 3600;
-      return hours + (hours == 1 ? " hour" : " hours");
-    }
-
-    long expiresInMinutes = (expiresInSeconds + 59) / 60;
-    return expiresInMinutes + (expiresInMinutes == 1 ? " minute" : " minutes");
   }
 }

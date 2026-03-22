@@ -36,6 +36,12 @@ public enum ErrorDefinition {
       "TYCHE-105",
       "AUTH_VERIFICATION_EMAIL_STILL_AVAILABLE",
       "The previous verification email is still available"),
+  AUTH_TRUSTED_DEVICE_LIMIT_REACHED(
+      "TYCHE-106", "AUTH_TRUSTED_DEVICE_LIMIT_REACHED", "Trusted device limit reached"),
+  AUTH_LOGIN_DEVICE_VERIFICATION_REQUIRED(
+      "TYCHE-107",
+      "AUTH_LOGIN_DEVICE_VERIFICATION_REQUIRED",
+      "Login verification required for this device"),
 
   // USER
   USER_NOT_FOUND("TYCHE-200", "USER_NOT_FOUND", "The requested user was not found"),
