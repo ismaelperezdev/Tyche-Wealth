@@ -65,6 +65,7 @@ import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.RefreshTokenRepository;
+import com.tychewealth.repository.TrustedDeviceRepository;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.EmailService;
 import com.tychewealth.service.email.EmailMessage;
@@ -82,6 +83,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ContextConfiguration;
@@ -101,6 +103,7 @@ class AuthApiControllerIntegrationTest {
 
   @Autowired private UserRepository userRepository;
   @Autowired private RefreshTokenRepository refreshTokenRepository;
+  @Autowired private TrustedDeviceRepository trustedDeviceRepository;
   @Autowired private MeterRegistry meterRegistry;
   @Autowired private RefreshRateLimitConfig rateLimitConfig;
 
@@ -119,6 +122,7 @@ class AuthApiControllerIntegrationTest {
   @BeforeEach
   void setUp() {
     refreshTokenRepository.deleteAll();
+    trustedDeviceRepository.deleteAll();
     userRepository.deleteAll();
     rateLimitConfig.resetAll();
     reset(emailService);
@@ -191,12 +195,20 @@ class AuthApiControllerIntegrationTest {
 
     mockMvc
         .perform(get(AUTH_BASE_URL + "/verify-registration").param("token", token))
-        .andExpect(status().isNoContent());
+        .andExpect(status().isNoContent())
+        .andExpect(
+            result ->
+                assertTrue(
+                    result
+                        .getResponse()
+                        .getHeader(HttpHeaders.SET_COOKIE)
+                        .contains("trusted_device=")));
 
     UserEntity verifiedUser =
         userRepository.findByEmailIncludingDeleted(validRequest.getEmail()).orElseThrow();
     assertTrue(verifiedUser.isVerified());
     assertNull(verifiedUser.getVerificationTokenExpiresAt());
+    assertEquals(1, trustedDeviceRepository.count());
   }
 
   @Test

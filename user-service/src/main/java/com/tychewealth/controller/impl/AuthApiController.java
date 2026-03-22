@@ -15,6 +15,7 @@ import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER
 import static com.tychewealth.utils.LogContextFactory.mask;
 import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
 import static org.springframework.http.HttpHeaders.PRAGMA;
+import static org.springframework.http.HttpHeaders.SET_COOKIE;
 import static org.springframework.http.ResponseEntity.status;
 
 import com.tychewealth.controller.AuthApi;
@@ -47,10 +48,11 @@ public class AuthApiController implements AuthApi {
   public ResponseEntity<Void> verifyRegistration(@RequestParam("token") String token) {
     log.info(REQUEST_START, AUTH, VERIFY_REGISTRATION_ACTION);
 
-    authService.verifyEmail(token);
+    var trustedDeviceCookie = authService.verifyEmail(token);
     return ResponseEntity.noContent()
         .header(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
         .header(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE)
+        .header(SET_COOKIE, trustedDeviceCookie.toString())
         .build();
   }
 

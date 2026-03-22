@@ -8,10 +8,12 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tychewealth.controller.impl.AuthApiController;
 import com.tychewealth.controller.impl.UserApiController;
 import com.tychewealth.entity.RefreshTokenEntity;
+import com.tychewealth.entity.TrustedDeviceEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.handler.ErrorHandler;
 import com.tychewealth.mapper.user.UserMapperImpl;
 import com.tychewealth.repository.RefreshTokenRepository;
+import com.tychewealth.repository.TrustedDeviceRepository;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.EmailService;
 import com.tychewealth.service.helper.auth.AuthLoginHelper;
@@ -24,6 +26,7 @@ import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
 import com.tychewealth.service.helper.token.TokenStateHelper;
 import com.tychewealth.service.helper.token.TokenValidationHelper;
 import com.tychewealth.service.helper.token.VerificationTokenRecoveryHelper;
+import com.tychewealth.service.helper.trusteddevice.TrustedDeviceHelper;
 import com.tychewealth.service.helper.user.UserHelper;
 import com.tychewealth.service.helper.user.UserValidationHelper;
 import com.tychewealth.service.impl.AuthServiceImpl;
@@ -62,6 +65,7 @@ import org.springframework.data.redis.core.RedisTemplate;
   AuthLoginHelper.class,
   RegisterEmailHelper.class,
   VerificationEmailHelper.class,
+  TrustedDeviceHelper.class,
   AccessTokenHelper.class,
   TokenStateHelper.class,
   TokenValidationHelper.class,
@@ -74,8 +78,14 @@ import org.springframework.data.redis.core.RedisTemplate;
   ErrorHandler.class,
   UserMapperImpl.class
 })
-@EnableJpaRepositories(basePackageClasses = {UserRepository.class, RefreshTokenRepository.class})
-@EntityScan(basePackageClasses = {UserEntity.class, RefreshTokenEntity.class})
+@EnableJpaRepositories(
+    basePackageClasses = {
+      UserRepository.class,
+      RefreshTokenRepository.class,
+      TrustedDeviceRepository.class
+    })
+@EntityScan(
+    basePackageClasses = {UserEntity.class, RefreshTokenEntity.class, TrustedDeviceEntity.class})
 public class RedisIntegrationTestConfig {
 
   @Bean

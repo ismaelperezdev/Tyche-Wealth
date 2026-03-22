@@ -7,10 +7,11 @@ import com.tychewealth.dto.auth.request.RefreshTokenRequestDto;
 import com.tychewealth.dto.auth.request.RegisterRequestDto;
 import com.tychewealth.dto.auth.request.ResendVerificationEmailRequestDto;
 import com.tychewealth.dto.user.UserResponseDto;
+import org.springframework.http.ResponseCookie;
 
 public interface AuthService {
 
-  void verifyEmail(String token);
+  ResponseCookie verifyEmail(String token);
 
   UserResponseDto register(RegisterRequestDto register);
 
