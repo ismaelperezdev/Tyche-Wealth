@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="create-trusted-device-sequence" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <sequenceExists sequenceName="trusted_device_seq"/>
+            </not>
+        </preConditions>
+
+        <createSequence sequenceName="trusted_device_seq" startValue="1" incrementBy="1"/>
+
+        <rollback>
+            <dropSequence sequenceName="trusted_device_seq"/>
+        </rollback>
+
+    </changeSet>
+
+    <changeSet id="create-trusted-devices-table" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <tableExists tableName="trusted_devices"/>
+            </not>
+        </preConditions>
+
+        <createTable tableName="trusted_devices">
+            <column name="id" type="BIGINT" defaultValueSequenceNext="trusted_device_seq">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="token_hash" type="VARCHAR(128)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uk_trusted_devices_token_hash"/>
+            </column>
+            <column name="expires_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_used_at" type="TIMESTAMP"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="trusted_devices"
+                baseColumnNames="user_id"
+                constraintName="fk_trusted_devices_users"
+                referencedTableName="users"
+                referencedColumnNames="id"/>
+
+        <rollback>
+            <dropTable tableName="trusted_devices"/>
+        </rollback>
+
+    </changeSet>
+
+    <changeSet id="create-trusted-devices-user-id-index" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <indexExists indexName="idx_trusted_devices_user_id" tableName="trusted_devices"/>
+            </not>
+        </preConditions>
+
+        <createIndex indexName="idx_trusted_devices_user_id" tableName="trusted_devices">
+            <column name="user_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex indexName="idx_trusted_devices_user_id" tableName="trusted_devices"/>
+        </rollback>
+
+    </changeSet>
+
+    <changeSet id="create-trusted-devices-user-id-created-at-index" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <indexExists indexName="idx_trusted_devices_user_id_created_at" tableName="trusted_devices"/>
+            </not>
+        </preConditions>
+
+        <createIndex indexName="idx_trusted_devices_user_id_created_at" tableName="trusted_devices">
+            <column name="user_id"/>
+            <column name="created_at"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex indexName="idx_trusted_devices_user_id_created_at" tableName="trusted_devices"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>
