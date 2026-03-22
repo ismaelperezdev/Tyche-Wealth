@@ -21,6 +21,7 @@ import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_FAI
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_RATE_LIMITED;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_REQUESTS;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_SUCCESS;
+import static com.tychewealth.constants.RedisConstants.AUTH_LOGIN_DEVICE_EMAIL_COOLDOWN_NAMESPACE;
 import static com.tychewealth.constants.TestConstants.TEST_EMAIL_LAURA;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_INVALID;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
@@ -70,6 +71,7 @@ import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.EmailService;
 import com.tychewealth.service.email.EmailMessage;
 import com.tychewealth.service.helper.token.AccessTokenHelper;
+import com.tychewealth.service.ratelimit.RateLimitStore;
 import com.tychewealth.service.token.AuthTokenPayload;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
@@ -106,6 +108,7 @@ class AuthApiControllerIntegrationTest {
   @Autowired private TrustedDeviceRepository trustedDeviceRepository;
   @Autowired private MeterRegistry meterRegistry;
   @Autowired private RefreshRateLimitConfig rateLimitConfig;
+  @Autowired private RateLimitStore rateLimitStore;
 
   @Autowired private PasswordEncoder passwordEncoder;
   @Autowired private AccessTokenHelper accessTokenHelper;
@@ -125,6 +128,7 @@ class AuthApiControllerIntegrationTest {
     trustedDeviceRepository.deleteAll();
     userRepository.deleteAll();
     rateLimitConfig.resetAll();
+    rateLimitStore.resetNamespace(AUTH_LOGIN_DEVICE_EMAIL_COOLDOWN_NAMESPACE);
     reset(emailService);
     validRequest =
         new RegisterRequestDto(TEST_EMAIL_LAURA, TEST_USERNAME_LAURA, TEST_PASSWORD_VALID);
@@ -450,6 +454,33 @@ class AuthApiControllerIntegrationTest {
         .andExpect(
             jsonPath("$.description")
                 .value(ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS.getDescription()));
+  }
+
+  @Test
+  void loginSendsDeviceVerificationEmailWhenDeviceIsNotTrusted() throws Exception {
+    userRepository.save(existingLoginUser);
+
+    loginRequest(mockMvc, objectMapper, validLoginRequest)
+        .andExpect(status().isForbidden())
+        .andExpect(
+            jsonPath("$.code")
+                .value(ErrorDefinition.AUTH_LOGIN_DEVICE_VERIFICATION_REQUIRED.getCode()))
+        .andExpect(
+            jsonPath("$.type")
+                .value(ErrorDefinition.AUTH_LOGIN_DEVICE_VERIFICATION_REQUIRED.getType()));
+
+    verify(emailService).send(org.mockito.ArgumentMatchers.any(EmailMessage.class));
+  }
+
+  @Test
+  void loginDoesNotResendDeviceVerificationEmailWithinCooldown() throws Exception {
+    userRepository.save(existingLoginUser);
+
+    loginRequest(mockMvc, objectMapper, validLoginRequest).andExpect(status().isForbidden());
+    loginRequest(mockMvc, objectMapper, validLoginRequest).andExpect(status().isForbidden());
+
+    verify(emailService, org.mockito.Mockito.times(1))
+        .send(org.mockito.ArgumentMatchers.any(EmailMessage.class));
   }
 
   @Test
