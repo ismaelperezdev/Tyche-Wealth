@@ -72,11 +72,19 @@ public class AccessTokenHelper {
   }
 
   public Long extractVerifyEmailUserId(String token) {
+    return extractUserIdForPurpose(token, VERIFY_REGISTRATION_TOKEN_PURPOSE);
+  }
+
+  public Long extractVerifyLoginDeviceUserId(String token) {
+    return extractUserIdForPurpose(token, VERIFY_LOGIN_DEVICE_TOKEN_PURPOSE);
+  }
+
+  private Long extractUserIdForPurpose(String token, String expectedPurpose) {
     try {
       Claims claims = parseClaims(token);
       String purpose = claims.get(TOKEN_PURPOSE_CLAIM, String.class);
-      if (!VERIFY_REGISTRATION_TOKEN_PURPOSE.equals(purpose)) {
-        throw new IllegalArgumentException("Token is not intended for email verification");
+      if (!expectedPurpose.equals(purpose)) {
+        throw new IllegalArgumentException("Token is not intended for this verification flow");
       }
       return Long.valueOf(claims.getSubject());
     } catch (JwtException | IllegalArgumentException ex) {

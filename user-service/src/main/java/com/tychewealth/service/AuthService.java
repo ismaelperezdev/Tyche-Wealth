@@ -13,6 +13,8 @@ public interface AuthService {
 
   ResponseCookie verifyEmail(String token);
 
+  ResponseCookie verifyLoginDevice(String token);
+
   UserResponseDto register(RegisterRequestDto register);
 
   void resendVerificationEmail(ResendVerificationEmailRequestDto resendVerificationEmailRequestDto);

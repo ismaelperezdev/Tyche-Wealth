@@ -14,6 +14,7 @@ import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
 import static com.tychewealth.testhelper.AuthTestHelper.login;
 import static com.tychewealth.testhelper.AuthTestHelper.logout;
+import static com.tychewealth.testhelper.AuthTestHelper.seedTrustedDevice;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -30,8 +31,10 @@ import com.tychewealth.dto.auth.request.RefreshTokenRequestDto;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.RefreshTokenRepository;
+import com.tychewealth.repository.TrustedDeviceRepository;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
+import jakarta.servlet.http.Cookie;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,14 +55,17 @@ class RedisIntegrationTest {
   @Autowired private ObjectMapper objectMapper;
   @Autowired private UserRepository userRepository;
   @Autowired private RefreshTokenRepository refreshTokenRepository;
+  @Autowired private TrustedDeviceRepository trustedDeviceRepository;
   @Autowired private PasswordEncoder passwordEncoder;
   @Autowired private AuthRefreshTokenHelper authRefreshTokenHelper;
 
   private LoginRequestDto validLoginRequest;
+  private Cookie trustedDeviceCookie;
 
   @BeforeEach
   void setUp() {
     refreshTokenRepository.deleteAll();
+    trustedDeviceRepository.deleteAll();
     userRepository.deleteAll();
 
     UserEntity existingLoginUser = new UserEntity();
@@ -67,14 +73,16 @@ class RedisIntegrationTest {
     existingLoginUser.setUsername(TEST_USERNAME_LAURA);
     existingLoginUser.setPassword(passwordEncoder.encode(TEST_PASSWORD_VALID));
     existingLoginUser.setVerified(true);
-    userRepository.save(existingLoginUser);
+    UserEntity savedUser = userRepository.save(existingLoginUser);
+    trustedDeviceCookie = seedTrustedDevice(trustedDeviceRepository, savedUser);
 
     validLoginRequest = new LoginRequestDto(TEST_EMAIL_LAURA, TEST_PASSWORD_VALID);
   }
 
   @Test
   void logoutRevokesAccessTokenForProtectedRetrieveEndpoint() throws Exception {
-    LoginResponseDto loginResponse = login(mockMvc, objectMapper, validLoginRequest);
+    LoginResponseDto loginResponse =
+        login(mockMvc, objectMapper, validLoginRequest, trustedDeviceCookie);
 
     logout(mockMvc, objectMapper, loginResponse.getAccessToken(), loginResponse.getRefreshToken())
         .andExpect(status().isNoContent());
@@ -92,7 +100,8 @@ class RedisIntegrationTest {
 
   @Test
   void logoutRevokedAccessTokenIsRejectedByProtectedWriteEndpoint() throws Exception {
-    LoginResponseDto loginResponse = login(mockMvc, objectMapper, validLoginRequest);
+    LoginResponseDto loginResponse =
+        login(mockMvc, objectMapper, validLoginRequest, trustedDeviceCookie);
 
     logout(mockMvc, objectMapper, loginResponse.getAccessToken(), loginResponse.getRefreshToken())
         .andExpect(status().isNoContent());
@@ -117,7 +126,8 @@ class RedisIntegrationTest {
 
   @Test
   void logoutWithoutAuthorizationHeaderStillRevokesRefreshTokenAndAccessToken() throws Exception {
-    LoginResponseDto loginResponse = login(mockMvc, objectMapper, validLoginRequest);
+    LoginResponseDto loginResponse =
+        login(mockMvc, objectMapper, validLoginRequest, trustedDeviceCookie);
 
     logout(mockMvc, objectMapper, loginResponse.getRefreshToken())
         .andExpect(status().isNoContent());
@@ -141,7 +151,8 @@ class RedisIntegrationTest {
 
   @Test
   void logoutRejectsInvalidAuthorizationHeaderEvenWhenRefreshTokenIsValid() throws Exception {
-    LoginResponseDto loginResponse = login(mockMvc, objectMapper, validLoginRequest);
+    LoginResponseDto loginResponse =
+        login(mockMvc, objectMapper, validLoginRequest, trustedDeviceCookie);
 
     mockMvc
         .perform(
@@ -159,7 +170,8 @@ class RedisIntegrationTest {
 
   @Test
   void updatePasswordRevokesCurrentAccessToken() throws Exception {
-    LoginResponseDto loginResponse = login(mockMvc, objectMapper, validLoginRequest);
+    LoginResponseDto loginResponse =
+        login(mockMvc, objectMapper, validLoginRequest, trustedDeviceCookie);
 
     mockMvc
         .perform(
@@ -188,7 +200,8 @@ class RedisIntegrationTest {
 
   @Test
   void deleteRevokesCurrentAccessToken() throws Exception {
-    LoginResponseDto loginResponse = login(mockMvc, objectMapper, validLoginRequest);
+    LoginResponseDto loginResponse =
+        login(mockMvc, objectMapper, validLoginRequest, trustedDeviceCookie);
 
     mockMvc
         .perform(

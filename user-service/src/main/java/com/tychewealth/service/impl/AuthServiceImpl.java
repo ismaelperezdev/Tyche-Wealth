@@ -78,6 +78,24 @@ public class AuthServiceImpl implements AuthService {
 
   @Override
   @Transactional
+  public ResponseCookie verifyLoginDevice(String token) {
+    if (token == null || token.isBlank()) {
+      throw new AuthException(ErrorDefinition.GENERIC_BAD_REQUEST, null, HttpStatus.BAD_REQUEST);
+    }
+
+    Long userId = accessTokenHelper.extractVerifyLoginDeviceUserId(token);
+    UserEntity user =
+        userRepository
+            .findByIdAndDeletedAtIsNull(userId)
+            .orElseThrow(
+                () ->
+                    new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED));
+
+    return trustedDeviceHelper.createTrustedDeviceCookie(user);
+  }
+
+  @Override
+  @Transactional
   public UserResponseDto register(RegisterRequestDto register) {
     authValidationHelper.validateRegisterRequest(register);
 

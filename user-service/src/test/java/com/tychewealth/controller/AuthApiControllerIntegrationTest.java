@@ -38,6 +38,7 @@ import static com.tychewealth.testhelper.AuthTestHelper.loginRequest;
 import static com.tychewealth.testhelper.AuthTestHelper.logout;
 import static com.tychewealth.testhelper.AuthTestHelper.refresh;
 import static com.tychewealth.testhelper.AuthTestHelper.registerRequest;
+import static com.tychewealth.testhelper.AuthTestHelper.seedTrustedDevice;
 import static com.tychewealth.testhelper.MetricsTestHelper.counterValue;
 import static com.tychewealth.utils.Utils.sha256Hex;
 import static org.hamcrest.Matchers.containsString;
@@ -74,6 +75,7 @@ import com.tychewealth.service.helper.token.AccessTokenHelper;
 import com.tychewealth.service.ratelimit.RateLimitStore;
 import com.tychewealth.service.token.AuthTokenPayload;
 import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.servlet.http.Cookie;
 import java.time.Instant;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -121,6 +123,7 @@ class AuthApiControllerIntegrationTest {
   private UserEntity existingEmailUser;
   private UserEntity existingUsernameUser;
   private UserEntity existingLoginUser;
+  private Cookie trustedDeviceCookie;
 
   @BeforeEach
   void setUp() {
@@ -268,6 +271,70 @@ class AuthApiControllerIntegrationTest {
   }
 
   @Test
+  void verifyLoginDeviceReturnsNoContentAndCreatesTrustedDeviceWhenTokenIsValid() throws Exception {
+    UserEntity user = userRepository.save(existingLoginUser);
+    AuthTokenPayload verifyLoginDeviceToken =
+        accessTokenHelper.generateVerifyLoginDeviceToken(user);
+
+    mockMvc
+        .perform(
+            get(AUTH_BASE_URL + "/verify-login-device")
+                .param("token", verifyLoginDeviceToken.accessToken()))
+        .andExpect(status().isNoContent())
+        .andExpect(
+            result ->
+                assertTrue(
+                    result
+                        .getResponse()
+                        .getHeader(HttpHeaders.SET_COOKIE)
+                        .contains("trusted_device=")));
+
+    assertEquals(1, trustedDeviceRepository.count());
+  }
+
+  @Test
+  void verifyLoginDeviceAllowsNextLoginFromTrustedDevice() throws Exception {
+    UserEntity user = userRepository.save(existingLoginUser);
+    AuthTokenPayload verifyLoginDeviceToken =
+        accessTokenHelper.generateVerifyLoginDeviceToken(user);
+
+    String setCookieHeader =
+        mockMvc
+            .perform(
+                get(AUTH_BASE_URL + "/verify-login-device")
+                    .param("token", verifyLoginDeviceToken.accessToken()))
+            .andExpect(status().isNoContent())
+            .andReturn()
+            .getResponse()
+            .getHeader(HttpHeaders.SET_COOKIE);
+
+    String trustedDeviceValue = extractCookieValue(setCookieHeader, "trusted_device");
+
+    loginRequest(
+            mockMvc,
+            objectMapper,
+            validLoginRequest,
+            new Cookie("trusted_device", trustedDeviceValue))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.accessToken").isString())
+        .andExpect(jsonPath("$.refreshToken").isString());
+  }
+
+  @Test
+  void verifyLoginDeviceReturnsUnauthorizedWhenTokenIsRegularAccessToken() throws Exception {
+    UserEntity user = userRepository.save(existingLoginUser);
+    AuthTokenPayload accessToken = accessTokenHelper.generateAccessToken(user);
+
+    mockMvc
+        .perform(
+            get(AUTH_BASE_URL + "/verify-login-device").param("token", accessToken.accessToken()))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
+        .andExpect(jsonPath("$.description").value(ErrorDefinition.UNAUTHORIZED.getDescription()));
+  }
+
+  @Test
   void registerReturnsConflictWhenEmailAlreadyExists() throws Exception {
     userRepository.save(existingEmailUser);
     double failureBefore = counterValue(meterRegistry, METRIC_AUTH_REGISTER_FAILURE);
@@ -379,11 +446,12 @@ class AuthApiControllerIntegrationTest {
 
   @Test
   void loginReturnsTokenAndUserWhenCredentialsAreValid() throws Exception {
-    userRepository.save(existingLoginUser);
+    UserEntity savedUser = userRepository.save(existingLoginUser);
+    trustedDeviceCookie = seedTrustedDevice(trustedDeviceRepository, savedUser);
     double requestsBefore = counterValue(meterRegistry, METRIC_AUTH_LOGIN_REQUESTS);
     double successBefore = counterValue(meterRegistry, METRIC_AUTH_LOGIN_SUCCESS);
 
-    loginRequest(mockMvc, objectMapper, validLoginRequest)
+    loginRequest(mockMvc, objectMapper, validLoginRequest, trustedDeviceCookie)
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.tokenType").value(TOKEN_TYPE_BEARER))
         .andExpect(jsonPath("$.accessToken").isString())
@@ -509,10 +577,13 @@ class AuthApiControllerIntegrationTest {
 
   @Test
   void secondLoginRevokesPreviousRefreshToken() throws Exception {
-    userRepository.save(existingLoginUser);
+    UserEntity savedUser = userRepository.save(existingLoginUser);
+    trustedDeviceCookie = seedTrustedDevice(trustedDeviceRepository, savedUser);
 
-    LoginResponseDto firstLoginResponse = login(mockMvc, objectMapper, validLoginRequest);
-    LoginResponseDto secondLoginResponse = login(mockMvc, objectMapper, validLoginRequest);
+    LoginResponseDto firstLoginResponse =
+        login(mockMvc, objectMapper, validLoginRequest, trustedDeviceCookie);
+    LoginResponseDto secondLoginResponse =
+        login(mockMvc, objectMapper, validLoginRequest, trustedDeviceCookie);
     assertNotEquals(firstLoginResponse.getRefreshToken(), secondLoginResponse.getRefreshToken());
 
     refresh(mockMvc, objectMapper, firstLoginResponse.getRefreshToken())
@@ -708,6 +779,13 @@ class AuthApiControllerIntegrationTest {
 
   private String extractVerificationToken(String html) {
     Matcher matcher = VERIFY_REGISTRATION_TOKEN_PATTERN.matcher(html);
+    assertTrue(matcher.find());
+    return matcher.group(1);
+  }
+
+  private String extractCookieValue(String setCookieHeader, String cookieName) {
+    Pattern cookiePattern = Pattern.compile(cookieName + "=([^;]+)");
+    Matcher matcher = cookiePattern.matcher(setCookieHeader);
     assertTrue(matcher.find());
     return matcher.group(1);
   }

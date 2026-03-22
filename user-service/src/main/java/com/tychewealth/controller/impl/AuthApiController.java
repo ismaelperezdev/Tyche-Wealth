@@ -57,6 +57,18 @@ public class AuthApiController implements AuthApi {
   }
 
   @Override
+  public ResponseEntity<Void> verifyLoginDevice(@RequestParam("token") String token) {
+    log.info(REQUEST_START, AUTH, LOGIN_ACTION);
+
+    var trustedDeviceCookie = authService.verifyLoginDevice(token);
+    return ResponseEntity.noContent()
+        .header(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
+        .header(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE)
+        .header(SET_COOKIE, trustedDeviceCookie.toString())
+        .build();
+  }
+
+  @Override
   public ResponseEntity<UserResponseDto> register(@Valid @RequestBody RegisterRequestDto register) {
     log.info(
         REQUEST_START + REGISTER_REQUEST_FIELDS,

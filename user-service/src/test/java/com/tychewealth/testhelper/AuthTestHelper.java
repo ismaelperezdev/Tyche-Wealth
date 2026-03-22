@@ -13,6 +13,13 @@ import com.tychewealth.dto.auth.LoginResponseDto;
 import com.tychewealth.dto.auth.request.LoginRequestDto;
 import com.tychewealth.dto.auth.request.RefreshTokenRequestDto;
 import com.tychewealth.dto.auth.request.RegisterRequestDto;
+import com.tychewealth.entity.TrustedDeviceEntity;
+import com.tychewealth.entity.UserEntity;
+import com.tychewealth.repository.TrustedDeviceRepository;
+import com.tychewealth.utils.Utils;
+import jakarta.servlet.http.Cookie;
+import java.time.Instant;
+import java.util.UUID;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -23,8 +30,14 @@ public final class AuthTestHelper {
 
   public static LoginResponseDto login(
       MockMvc mockMvc, ObjectMapper objectMapper, LoginRequestDto request) throws Exception {
+    return login(mockMvc, objectMapper, request, null);
+  }
+
+  public static LoginResponseDto login(
+      MockMvc mockMvc, ObjectMapper objectMapper, LoginRequestDto request, Cookie trustedDevice)
+      throws Exception {
     String responseBody =
-        loginRequest(mockMvc, objectMapper, request)
+        loginRequest(mockMvc, objectMapper, request, trustedDevice)
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -43,10 +56,22 @@ public final class AuthTestHelper {
 
   public static ResultActions loginRequest(
       MockMvc mockMvc, ObjectMapper objectMapper, LoginRequestDto request) throws Exception {
-    return mockMvc.perform(
+    return loginRequest(mockMvc, objectMapper, request, null);
+  }
+
+  public static ResultActions loginRequest(
+      MockMvc mockMvc, ObjectMapper objectMapper, LoginRequestDto request, Cookie trustedDevice)
+      throws Exception {
+    var requestBuilder =
         post(AUTH_LOGIN_URL)
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)));
+            .content(objectMapper.writeValueAsString(request));
+
+    if (trustedDevice != null) {
+      requestBuilder.cookie(trustedDevice);
+    }
+
+    return mockMvc.perform(requestBuilder);
   }
 
   public static ResultActions refresh(
@@ -82,5 +107,19 @@ public final class AuthTestHelper {
     String label63 = "b".repeat(63);
     String domain = label63 + "." + label63 + "." + label63 + ".es";
     return local + "@" + domain;
+  }
+
+  public static Cookie seedTrustedDevice(
+      TrustedDeviceRepository trustedDeviceRepository, UserEntity user) {
+    String trustedDeviceToken = "trusted-device-" + UUID.randomUUID();
+
+    TrustedDeviceEntity trustedDevice = new TrustedDeviceEntity();
+    trustedDevice.setUser(user);
+    trustedDevice.setTokenHash(Utils.sha256Hex(trustedDeviceToken));
+    trustedDevice.setExpiresAt(Instant.now().plusSeconds(Integer.MAX_VALUE));
+    trustedDevice.setLastUsedAt(Instant.now());
+    trustedDeviceRepository.save(trustedDevice);
+
+    return new Cookie("trusted_device", trustedDeviceToken);
   }
 }
