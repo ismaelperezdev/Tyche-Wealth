@@ -85,6 +85,7 @@ public class AuthLoginHelper {
   }
 
   private void sendLoginVerificationEmailIfAllowed(UserEntity user) {
+    String userId = String.valueOf(user.getId());
     if (!canSendLoginVerificationEmail(user)) {
       log.info(
           LogConstants.REQUEST_CONFLICT + LogConstants.USER_ID,
@@ -100,7 +101,12 @@ public class AuthLoginHelper {
         loginDeviceEmailHelper.buildVerifyLoginDeviceEmailMessage(
             user.getEmail(), verificationToken.accessToken(), verificationToken.expiresIn());
 
-    emailService.send(loginDeviceEmailMessage);
+    try {
+      emailService.send(loginDeviceEmailMessage);
+    } catch (RuntimeException ex) {
+      rollbackLoginVerificationEmailCooldown(userId, user.getId(), ex);
+      throw ex;
+    }
     log.info(
         LogConstants.REQUEST_START + LogConstants.USER_ID,
         LogConstants.AUTH,
@@ -126,5 +132,30 @@ public class AuthLoginHelper {
           ex);
       return true;
     }
+  }
+
+  private void rollbackLoginVerificationEmailCooldown(
+      String userId, Long logUserId, RuntimeException emailSendException) {
+    try {
+      rateLimitStore.clear(RedisConstants.AUTH_LOGIN_DEVICE_EMAIL_COOLDOWN_NAMESPACE, userId);
+    } catch (RuntimeException rollbackException) {
+      rollbackException.addSuppressed(emailSendException);
+      log.warn(
+          LogConstants.REQUEST_CONFLICT + LogConstants.USER_ID,
+          LogConstants.AUTH,
+          LogConstants.LOGIN_ACTION,
+          "failed to roll back login verification email cooldown after send failure",
+          logUserId,
+          rollbackException);
+      return;
+    }
+
+    log.warn(
+        LogConstants.REQUEST_CONFLICT + LogConstants.USER_ID,
+        LogConstants.AUTH,
+        LogConstants.LOGIN_ACTION,
+        "rolled back login verification email cooldown after send failure",
+        logUserId,
+        emailSendException);
   }
 }

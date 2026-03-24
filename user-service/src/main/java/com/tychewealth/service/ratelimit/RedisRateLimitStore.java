@@ -32,6 +32,11 @@ public class RedisRateLimitStore implements RateLimitStore {
   }
 
   @Override
+  public void clear(String namespace, String clientKey) {
+    redisTemplate.delete(buildKey(namespace, clientKey));
+  }
+
+  @Override
   public void resetNamespace(String namespace) {
     Set<String> keys = redisTemplate.keys(namespace + ":*");
     if (keys != null && !keys.isEmpty()) {

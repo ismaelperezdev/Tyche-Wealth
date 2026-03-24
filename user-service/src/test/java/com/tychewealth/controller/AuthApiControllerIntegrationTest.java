@@ -48,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -548,6 +549,22 @@ class AuthApiControllerIntegrationTest {
     loginRequest(mockMvc, objectMapper, validLoginRequest).andExpect(status().isForbidden());
 
     verify(emailService, org.mockito.Mockito.times(1))
+        .send(org.mockito.ArgumentMatchers.any(EmailMessage.class));
+  }
+
+  @Test
+  void loginRetriesDeviceVerificationEmailWhenPreviousSendFails() throws Exception {
+    userRepository.save(existingLoginUser);
+    doThrow(new IllegalStateException("email send failed"))
+        .when(emailService)
+        .send(org.mockito.ArgumentMatchers.any(EmailMessage.class));
+
+    loginRequest(mockMvc, objectMapper, validLoginRequest)
+        .andExpect(status().isInternalServerError());
+    loginRequest(mockMvc, objectMapper, validLoginRequest)
+        .andExpect(status().isInternalServerError());
+
+    verify(emailService, org.mockito.Mockito.times(2))
         .send(org.mockito.ArgumentMatchers.any(EmailMessage.class));
   }
 
