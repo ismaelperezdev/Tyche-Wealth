@@ -38,12 +38,15 @@ public class AccessTokenHelper {
   private final SecretKey signingKey;
   private final long accessTokenTtlSeconds;
   private final long verifyEmailTokenTtlSeconds;
+  private final long verifyLoginDeviceTokenTtlSeconds;
 
   public AccessTokenHelper(
       @Value("${app.auth.jwt.secret}") String jwtSecret,
       @Value("${app.auth.jwt.access-token-ttl-seconds:900}") long accessTokenTtlSeconds,
       @Value("${app.auth.jwt.verify-email-token-ttl-seconds:86400}")
-          long verifyEmailTokenTtlSeconds) {
+          long verifyEmailTokenTtlSeconds,
+      @Value("${app.auth.jwt.verify-login-device-token-ttl-seconds:86400}")
+          long verifyLoginDeviceTokenTtlSeconds) {
 
     if (accessTokenTtlSeconds <= 0) {
       throw new IllegalArgumentException(
@@ -53,10 +56,15 @@ public class AccessTokenHelper {
       throw new IllegalArgumentException(
           "app.auth.jwt.verify-email-token-ttl-seconds must be greater than 0");
     }
+    if (verifyLoginDeviceTokenTtlSeconds <= 0) {
+      throw new IllegalArgumentException(
+          "app.auth.jwt.verify-login-device-token-ttl-seconds must be greater than 0");
+    }
 
     this.signingKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     this.accessTokenTtlSeconds = accessTokenTtlSeconds;
     this.verifyEmailTokenTtlSeconds = verifyEmailTokenTtlSeconds;
+    this.verifyLoginDeviceTokenTtlSeconds = verifyLoginDeviceTokenTtlSeconds;
   }
 
   public AuthTokenPayload generateAccessToken(UserEntity user) {
@@ -68,7 +76,7 @@ public class AccessTokenHelper {
   }
 
   public AuthTokenPayload generateVerifyLoginDeviceToken(UserEntity user) {
-    return generateToken(user, verifyEmailTokenTtlSeconds, VERIFY_LOGIN_DEVICE_TOKEN_PURPOSE);
+    return generateToken(user, verifyLoginDeviceTokenTtlSeconds, VERIFY_LOGIN_DEVICE_TOKEN_PURPOSE);
   }
 
   public Long extractVerifyEmailUserId(String token) {

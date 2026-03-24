@@ -84,7 +84,8 @@ public class TrustedDeviceHelper {
 
     if (trustedDeviceRepository.countByUserIdAndExpiresAtAfter(userId, now)
         >= MAX_TRUSTED_DEVICES_PER_USER) {
-      throw new AuthException(ErrorDefinition.CONFLICT, null, HttpStatus.CONFLICT);
+      throw new AuthException(
+          ErrorDefinition.AUTH_TRUSTED_DEVICE_LIMIT_REACHED, null, HttpStatus.CONFLICT);
     }
   }
 

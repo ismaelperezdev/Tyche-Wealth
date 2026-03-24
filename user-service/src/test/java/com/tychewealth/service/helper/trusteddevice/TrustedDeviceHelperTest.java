@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import com.tychewealth.entity.TrustedDeviceEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.exception.AuthException;
+import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.TrustedDeviceRepository;
 import com.tychewealth.repository.UserRepository;
 import java.time.Instant;
@@ -90,6 +91,7 @@ class TrustedDeviceHelperTest {
             AuthException.class, () -> trustedDeviceHelper.createTrustedDeviceCookie(user));
 
     assertEquals(HttpStatus.CONFLICT, exception.getHttpStatus());
+    assertEquals(ErrorDefinition.AUTH_TRUSTED_DEVICE_LIMIT_REACHED, exception.getErrorDefinition());
     verify(trustedDeviceRepository, never()).save(any(TrustedDeviceEntity.class));
   }
 }

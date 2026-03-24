@@ -108,7 +108,7 @@ public class AuthLoginHelper {
       throw ex;
     }
     log.info(
-        LogConstants.REQUEST_START + LogConstants.USER_ID,
+        LogConstants.REQUEST_SUCCESS + LogConstants.USER_ID,
         LogConstants.AUTH,
         LogConstants.LOGIN_ACTION,
         user.getId());

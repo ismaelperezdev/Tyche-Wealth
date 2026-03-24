@@ -98,4 +98,37 @@
 
     </changeSet>
 
+    <changeSet id="set-trusted-devices-user-fk-on-delete-cascade" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <foreignKeyConstraintExists foreignKeyName="fk_trusted_devices_users"/>
+        </preConditions>
+
+        <dropForeignKeyConstraint
+                baseTableName="trusted_devices"
+                constraintName="fk_trusted_devices_users"/>
+
+        <addForeignKeyConstraint
+                baseTableName="trusted_devices"
+                baseColumnNames="user_id"
+                constraintName="fk_trusted_devices_users"
+                referencedTableName="users"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <rollback>
+            <dropForeignKeyConstraint
+                    baseTableName="trusted_devices"
+                    constraintName="fk_trusted_devices_users"/>
+
+            <addForeignKeyConstraint
+                    baseTableName="trusted_devices"
+                    baseColumnNames="user_id"
+                    constraintName="fk_trusted_devices_users"
+                    referencedTableName="users"
+                    referencedColumnNames="id"/>
+        </rollback>
+
+    </changeSet>
+
 </databaseChangeLog>
