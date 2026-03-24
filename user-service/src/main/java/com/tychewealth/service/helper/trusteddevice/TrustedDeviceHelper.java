@@ -16,6 +16,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -30,14 +31,31 @@ public class TrustedDeviceHelper {
   private final TrustedDeviceRepository trustedDeviceRepository;
 
   public ResponseCookie createTrustedDeviceCookie(UserEntity user) {
-    validateTrustedDeviceLimit(user.getId());
+    Instant now = Instant.now();
+    String trustedDeviceToken = extractTrustedDeviceToken().orElse(null);
 
-    String trustedDeviceToken = UUID.randomUUID().toString();
+    if (StringUtils.hasText(trustedDeviceToken)) {
+      Optional<TrustedDeviceEntity> existingTrustedDevice =
+          trustedDeviceRepository.findByUserIdAndTokenHash(
+              user.getId(), Utils.sha256Hex(trustedDeviceToken));
+
+      if (existingTrustedDevice.isPresent()) {
+        TrustedDeviceEntity trustedDevice = existingTrustedDevice.get();
+        trustedDevice.setExpiresAt(now.plus(TRUSTED_DEVICE_MAX_AGE));
+        trustedDevice.setLastUsedAt(now);
+        trustedDeviceRepository.save(trustedDevice);
+        return buildTrustedDeviceCookie(trustedDeviceToken, TRUSTED_DEVICE_MAX_AGE);
+      }
+    }
+
+    validateTrustedDeviceLimit(user.getId(), now);
+
+    trustedDeviceToken = UUID.randomUUID().toString();
     TrustedDeviceEntity trustedDevice = new TrustedDeviceEntity();
     trustedDevice.setUser(user);
     trustedDevice.setTokenHash(Utils.sha256Hex(trustedDeviceToken));
-    trustedDevice.setExpiresAt(Instant.now().plus(TRUSTED_DEVICE_MAX_AGE));
-    trustedDevice.setLastUsedAt(Instant.now());
+    trustedDevice.setExpiresAt(now.plus(TRUSTED_DEVICE_MAX_AGE));
+    trustedDevice.setLastUsedAt(now);
     trustedDeviceRepository.save(trustedDevice);
 
     return buildTrustedDeviceCookie(trustedDeviceToken, TRUSTED_DEVICE_MAX_AGE);
@@ -53,14 +71,20 @@ public class TrustedDeviceHelper {
         .build();
   }
 
-  public void validateTrustedDeviceLimit(Long userId) {
-    if (trustedDeviceRepository.countByUserId(userId) >= MAX_TRUSTED_DEVICES_PER_USER) {
+  public void validateTrustedDeviceLimit(Long userId, Instant now) {
+    trustedDeviceRepository.deleteByUserIdAndExpiresAtBefore(userId, now);
+
+    if (trustedDeviceRepository.countByUserIdAndExpiresAtAfter(userId, now)
+        >= MAX_TRUSTED_DEVICES_PER_USER) {
       throw new AuthException(ErrorDefinition.CONFLICT, null, HttpStatus.CONFLICT);
     }
   }
 
   public boolean hasReachedTrustedDeviceLimit(Long userId) {
-    return trustedDeviceRepository.countByUserId(userId) >= MAX_TRUSTED_DEVICES_PER_USER;
+    Instant now = Instant.now();
+    trustedDeviceRepository.deleteByUserIdAndExpiresAtBefore(userId, now);
+    return trustedDeviceRepository.countByUserIdAndExpiresAtAfter(userId, now)
+        >= MAX_TRUSTED_DEVICES_PER_USER;
   }
 
   public boolean isTrustedCurrentDevice(UserEntity user) {
