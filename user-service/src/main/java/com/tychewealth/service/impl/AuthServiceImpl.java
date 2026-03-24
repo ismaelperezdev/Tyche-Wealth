@@ -101,6 +101,7 @@ public class AuthServiceImpl implements AuthService {
 
     try {
       var registeredUser = authRegisterHelper.createUser(register);
+
       verificationEmailHelper.scheduleVerificationEmail(
           registeredUser.response().getId(),
           registeredUser.response().getEmail(),

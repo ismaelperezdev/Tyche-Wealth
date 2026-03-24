@@ -5,6 +5,7 @@ import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.TrustedDeviceRepository;
+import com.tychewealth.repository.UserRepository;
 import com.tychewealth.utils.Utils;
 import jakarta.servlet.http.Cookie;
 import java.time.Duration;
@@ -16,6 +17,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -29,15 +31,17 @@ public class TrustedDeviceHelper {
   private static final Duration TRUSTED_DEVICE_MAX_AGE = Duration.ofSeconds(Integer.MAX_VALUE);
 
   private final TrustedDeviceRepository trustedDeviceRepository;
+  private final UserRepository userRepository;
 
+  @Transactional
   public ResponseCookie createTrustedDeviceCookie(UserEntity user) {
     Instant now = Instant.now();
     String trustedDeviceToken = extractTrustedDeviceToken().orElse(null);
 
     if (StringUtils.hasText(trustedDeviceToken)) {
       Optional<TrustedDeviceEntity> existingTrustedDevice =
-          trustedDeviceRepository.findByUserIdAndTokenHash(
-              user.getId(), Utils.sha256Hex(trustedDeviceToken));
+          trustedDeviceRepository.findByUserIdAndTokenHashAndExpiresAtAfter(
+              user.getId(), Utils.sha256Hex(trustedDeviceToken), now);
 
       if (existingTrustedDevice.isPresent()) {
         TrustedDeviceEntity trustedDevice = existingTrustedDevice.get();
@@ -48,6 +52,10 @@ public class TrustedDeviceHelper {
       }
     }
 
+    userRepository
+        .findByIdForUpdate(user.getId())
+        .orElseThrow(
+            () -> new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED));
     validateTrustedDeviceLimit(user.getId(), now);
 
     trustedDeviceToken = UUID.randomUUID().toString();
@@ -88,10 +96,13 @@ public class TrustedDeviceHelper {
   }
 
   public boolean isTrustedCurrentDevice(UserEntity user) {
+    Instant now = Instant.now();
     return extractTrustedDeviceToken()
         .map(Utils::sha256Hex)
         .flatMap(
-            tokenHash -> trustedDeviceRepository.findByUserIdAndTokenHash(user.getId(), tokenHash))
+            tokenHash ->
+                trustedDeviceRepository.findByUserIdAndTokenHashAndExpiresAtAfter(
+                    user.getId(), tokenHash, now))
         .isPresent();
   }
 

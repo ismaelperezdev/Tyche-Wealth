@@ -20,6 +20,10 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
   Optional<UserEntity> findByIdAndDeletedAtIsNull(Long id);
 
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("SELECT u FROM UserEntity u WHERE u.id = :id")
+  Optional<UserEntity> findByIdForUpdate(@Param("id") Long id);
+
   Optional<UserEntity> findByEmailAndDeletedAtIsNull(String email);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)

@@ -31,7 +31,9 @@ import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_METRICS
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_MISSING;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_REVOKED;
+import static com.tychewealth.constants.TestConstants.TEST_TRUSTED_DEVICE_COOKIE_NAME;
 import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
+import static com.tychewealth.constants.TestConstants.TEST_VERIFY_REGISTRATION_PATH;
 import static com.tychewealth.testdata.EntityBuilder.buildRefreshToken;
 import static com.tychewealth.testhelper.AuthTestHelper.login;
 import static com.tychewealth.testhelper.AuthTestHelper.loginRequest;
@@ -39,6 +41,8 @@ import static com.tychewealth.testhelper.AuthTestHelper.logout;
 import static com.tychewealth.testhelper.AuthTestHelper.refresh;
 import static com.tychewealth.testhelper.AuthTestHelper.registerRequest;
 import static com.tychewealth.testhelper.AuthTestHelper.seedTrustedDevice;
+import static com.tychewealth.testhelper.AuthTestHelper.verifyLoginDeviceRequest;
+import static com.tychewealth.testhelper.AuthTestHelper.verifyRegistrationRequest;
 import static com.tychewealth.testhelper.MetricsTestHelper.counterValue;
 import static com.tychewealth.utils.Utils.sha256Hex;
 import static org.hamcrest.Matchers.containsString;
@@ -51,7 +55,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -195,14 +198,13 @@ class AuthApiControllerIntegrationTest {
     EmailMessage sentEmail = emailCaptor.getValue();
     assertEquals(validRequest.getEmail(), sentEmail.to());
     assertEquals("Verify your email", sentEmail.subject());
-    assertTrue(sentEmail.html().contains("/auth/verify-registration"));
+    assertTrue(sentEmail.html().contains("/auth" + TEST_VERIFY_REGISTRATION_PATH));
     assertTrue(sentEmail.html().contains("24 hours"));
     assertTrue(sentEmail.text().contains("24 hours"));
 
     String token = extractVerificationToken(sentEmail.html());
 
-    mockMvc
-        .perform(get(AUTH_BASE_URL + "/verify-registration").param("token", token))
+    verifyRegistrationRequest(mockMvc, token)
         .andExpect(status().isNoContent())
         .andExpect(
             result ->
@@ -210,7 +212,7 @@ class AuthApiControllerIntegrationTest {
                     result
                         .getResponse()
                         .getHeader(HttpHeaders.SET_COOKIE)
-                        .contains("trusted_device=")));
+                        .contains(TEST_TRUSTED_DEVICE_COOKIE_NAME + "=")));
 
     UserEntity verifiedUser =
         userRepository.findByEmailIncludingDeleted(validRequest.getEmail()).orElseThrow();
@@ -224,10 +226,7 @@ class AuthApiControllerIntegrationTest {
     UserEntity user = userRepository.save(existingLoginUser);
     AuthTokenPayload verifyEmailToken = accessTokenHelper.generateVerifyEmailToken(user);
 
-    mockMvc
-        .perform(
-            get(AUTH_BASE_URL + "/verify-registration")
-                .param("token", verifyEmailToken.accessToken()))
+    verifyRegistrationRequest(mockMvc, verifyEmailToken.accessToken())
         .andExpect(status().isNoContent());
 
     UserEntity verifiedUser = userRepository.findById(user.getId()).orElseThrow();
@@ -241,22 +240,19 @@ class AuthApiControllerIntegrationTest {
     AuthTokenPayload verifyEmailToken = accessTokenHelper.generateVerifyEmailToken(user);
 
     String setCookieHeader =
-        mockMvc
-            .perform(
-                get(AUTH_BASE_URL + "/verify-registration")
-                    .param("token", verifyEmailToken.accessToken()))
+        verifyRegistrationRequest(mockMvc, verifyEmailToken.accessToken())
             .andExpect(status().isNoContent())
             .andReturn()
             .getResponse()
             .getHeader(HttpHeaders.SET_COOKIE);
 
-    String trustedDeviceValue = extractCookieValue(setCookieHeader, "trusted_device");
+    String trustedDeviceValue =
+        extractCookieValue(setCookieHeader, TEST_TRUSTED_DEVICE_COOKIE_NAME);
 
-    mockMvc
-        .perform(
-            get(AUTH_BASE_URL + "/verify-registration")
-                .param("token", verifyEmailToken.accessToken())
-                .cookie(new Cookie("trusted_device", trustedDeviceValue)))
+    verifyRegistrationRequest(
+            mockMvc,
+            verifyEmailToken.accessToken(),
+            new Cookie(TEST_TRUSTED_DEVICE_COOKIE_NAME, trustedDeviceValue))
         .andExpect(status().isNoContent());
 
     UserEntity verifiedUser = userRepository.findById(user.getId()).orElseThrow();
@@ -270,9 +266,7 @@ class AuthApiControllerIntegrationTest {
     UserEntity user = userRepository.save(existingLoginUser);
     AuthTokenPayload accessToken = accessTokenHelper.generateAccessToken(user);
 
-    mockMvc
-        .perform(
-            get(AUTH_BASE_URL + "/verify-registration").param("token", accessToken.accessToken()))
+    verifyRegistrationRequest(mockMvc, accessToken.accessToken())
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
@@ -285,10 +279,7 @@ class AuthApiControllerIntegrationTest {
     AuthTokenPayload verifyLoginDeviceToken =
         accessTokenHelper.generateVerifyLoginDeviceToken(user);
 
-    mockMvc
-        .perform(
-            get(AUTH_BASE_URL + "/verify-login-device")
-                .param("token", verifyLoginDeviceToken.accessToken()))
+    verifyLoginDeviceRequest(mockMvc, verifyLoginDeviceToken.accessToken())
         .andExpect(status().isNoContent())
         .andExpect(
             result ->
@@ -296,7 +287,7 @@ class AuthApiControllerIntegrationTest {
                     result
                         .getResponse()
                         .getHeader(HttpHeaders.SET_COOKIE)
-                        .contains("trusted_device=")));
+                        .contains(TEST_TRUSTED_DEVICE_COOKIE_NAME + "=")));
 
     assertEquals(1, trustedDeviceRepository.count());
   }
@@ -308,22 +299,20 @@ class AuthApiControllerIntegrationTest {
         accessTokenHelper.generateVerifyLoginDeviceToken(user);
 
     String setCookieHeader =
-        mockMvc
-            .perform(
-                get(AUTH_BASE_URL + "/verify-login-device")
-                    .param("token", verifyLoginDeviceToken.accessToken()))
+        verifyLoginDeviceRequest(mockMvc, verifyLoginDeviceToken.accessToken())
             .andExpect(status().isNoContent())
             .andReturn()
             .getResponse()
             .getHeader(HttpHeaders.SET_COOKIE);
 
-    String trustedDeviceValue = extractCookieValue(setCookieHeader, "trusted_device");
+    String trustedDeviceValue =
+        extractCookieValue(setCookieHeader, TEST_TRUSTED_DEVICE_COOKIE_NAME);
 
     loginRequest(
             mockMvc,
             objectMapper,
             validLoginRequest,
-            new Cookie("trusted_device", trustedDeviceValue))
+            new Cookie(TEST_TRUSTED_DEVICE_COOKIE_NAME, trustedDeviceValue))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.accessToken").isString())
         .andExpect(jsonPath("$.refreshToken").isString());
@@ -336,25 +325,58 @@ class AuthApiControllerIntegrationTest {
         accessTokenHelper.generateVerifyLoginDeviceToken(user);
 
     String setCookieHeader =
-        mockMvc
-            .perform(
-                get(AUTH_BASE_URL + "/verify-login-device")
-                    .param("token", verifyLoginDeviceToken.accessToken()))
+        verifyLoginDeviceRequest(mockMvc, verifyLoginDeviceToken.accessToken())
             .andExpect(status().isNoContent())
             .andReturn()
             .getResponse()
             .getHeader(HttpHeaders.SET_COOKIE);
 
-    String trustedDeviceValue = extractCookieValue(setCookieHeader, "trusted_device");
+    String trustedDeviceValue =
+        extractCookieValue(setCookieHeader, TEST_TRUSTED_DEVICE_COOKIE_NAME);
 
-    mockMvc
-        .perform(
-            get(AUTH_BASE_URL + "/verify-login-device")
-                .param("token", verifyLoginDeviceToken.accessToken())
-                .cookie(new Cookie("trusted_device", trustedDeviceValue)))
+    verifyLoginDeviceRequest(
+            mockMvc,
+            verifyLoginDeviceToken.accessToken(),
+            new Cookie(TEST_TRUSTED_DEVICE_COOKIE_NAME, trustedDeviceValue))
         .andExpect(status().isNoContent());
 
     assertEquals(1, trustedDeviceRepository.count());
+  }
+
+  @Test
+  void verifyLoginDeviceDoesNotReuseExpiredTrustedDeviceWhenCookieAlreadyExists() throws Exception {
+    UserEntity user = userRepository.save(existingLoginUser);
+    AuthTokenPayload verifyLoginDeviceToken =
+        accessTokenHelper.generateVerifyLoginDeviceToken(user);
+
+    String setCookieHeader =
+        verifyLoginDeviceRequest(mockMvc, verifyLoginDeviceToken.accessToken())
+            .andExpect(status().isNoContent())
+            .andReturn()
+            .getResponse()
+            .getHeader(HttpHeaders.SET_COOKIE);
+
+    String trustedDeviceValue =
+        extractCookieValue(setCookieHeader, TEST_TRUSTED_DEVICE_COOKIE_NAME);
+    var existingTrustedDevice = trustedDeviceRepository.findAll().getFirst();
+    existingTrustedDevice.setExpiresAt(Instant.now().minusSeconds(5));
+    trustedDeviceRepository.save(existingTrustedDevice);
+
+    String renewedSetCookieHeader =
+        verifyLoginDeviceRequest(
+                mockMvc,
+                verifyLoginDeviceToken.accessToken(),
+                new Cookie(TEST_TRUSTED_DEVICE_COOKIE_NAME, trustedDeviceValue))
+            .andExpect(status().isNoContent())
+            .andReturn()
+            .getResponse()
+            .getHeader(HttpHeaders.SET_COOKIE);
+
+    String renewedTrustedDeviceValue =
+        extractCookieValue(renewedSetCookieHeader, TEST_TRUSTED_DEVICE_COOKIE_NAME);
+
+    assertEquals(1, trustedDeviceRepository.count());
+    assertNotEquals(trustedDeviceValue, renewedTrustedDeviceValue);
   }
 
   @Test
@@ -362,9 +384,7 @@ class AuthApiControllerIntegrationTest {
     UserEntity user = userRepository.save(existingLoginUser);
     AuthTokenPayload accessToken = accessTokenHelper.generateAccessToken(user);
 
-    mockMvc
-        .perform(
-            get(AUTH_BASE_URL + "/verify-login-device").param("token", accessToken.accessToken()))
+    verifyLoginDeviceRequest(mockMvc, accessToken.accessToken())
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
@@ -440,7 +460,7 @@ class AuthApiControllerIntegrationTest {
 
     EmailMessage sentEmail = emailCaptor.getValue();
     assertEquals(existingLoginUser.getEmail(), sentEmail.to());
-    assertTrue(sentEmail.html().contains("/auth/verify-registration"));
+    assertTrue(sentEmail.html().contains("/auth" + TEST_VERIFY_REGISTRATION_PATH));
 
     UserEntity updatedUser = userRepository.findById(user.getId()).orElseThrow();
     assertNotNull(updatedUser.getVerificationTokenExpiresAt());

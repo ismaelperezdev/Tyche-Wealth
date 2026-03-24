@@ -13,5 +13,6 @@ public interface TrustedDeviceRepository extends JpaRepository<TrustedDeviceEnti
 
   void deleteByUserIdAndExpiresAtBefore(Long userId, Instant expiresAt);
 
-  Optional<TrustedDeviceEntity> findByUserIdAndTokenHash(Long userId, String tokenHash);
+  Optional<TrustedDeviceEntity> findByUserIdAndTokenHashAndExpiresAtAfter(
+      Long userId, String tokenHash, Instant expiresAt);
 }
