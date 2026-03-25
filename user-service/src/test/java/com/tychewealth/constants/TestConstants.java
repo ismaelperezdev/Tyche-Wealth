@@ -49,6 +49,10 @@ public final class TestConstants {
   public static final String TEST_HEADER_STRICT_TRANSPORT_SECURITY = "Strict-Transport-Security";
   public static final String TEST_ATTACKER_BASIC_TOKEN = "Basic attacker-token";
   public static final String TEST_TAMPERED_TOKEN_SUFFIX = "tampered";
+  public static final String TEST_AUTH_TOKEN_PARAM = "token";
+  public static final String TEST_VERIFY_REGISTRATION_PATH = "/verify-registration";
+  public static final String TEST_VERIFY_LOGIN_DEVICE_PATH = "/verify-login-device";
+  public static final String TEST_TRUSTED_DEVICE_COOKIE_NAME = "trusted_device";
 
   private TestConstants() {}
 }

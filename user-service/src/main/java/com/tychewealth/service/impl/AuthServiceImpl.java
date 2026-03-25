@@ -22,6 +22,7 @@ import com.tychewealth.service.helper.token.AccessTokenHelper;
 import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
 import com.tychewealth.service.helper.token.TokenStateHelper;
 import com.tychewealth.service.helper.token.TokenValidationHelper;
+import com.tychewealth.service.helper.trusteddevice.TrustedDeviceHelper;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.AuthTokenPayload;
 import com.tychewealth.utils.Utils;
@@ -30,6 +31,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,12 +48,13 @@ public class AuthServiceImpl implements AuthService {
   private final AuthRefreshTokenHelper authRefreshTokenHelper;
   private final AccessTokenHelper accessTokenHelper;
   private final TokenValidationHelper tokenValidationHelper;
+  private final TrustedDeviceHelper trustedDeviceHelper;
   private final AuthMetrics authMetrics;
   private final UserRepository userRepository;
 
   @Override
   @Transactional
-  public void verifyEmail(String token) {
+  public ResponseCookie verifyEmail(String token) {
     if (token == null || token.isBlank()) {
       throw new AuthException(ErrorDefinition.GENERIC_BAD_REQUEST, null, HttpStatus.BAD_REQUEST);
     }
@@ -64,12 +67,31 @@ public class AuthServiceImpl implements AuthService {
                 () ->
                     new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED));
     if (user.isVerified()) {
-      return;
+      return trustedDeviceHelper.createTrustedDeviceCookie(user);
     }
 
     user.setVerified(true);
     user.setVerificationTokenExpiresAt(null);
     userRepository.save(user);
+    return trustedDeviceHelper.createTrustedDeviceCookie(user);
+  }
+
+  @Override
+  @Transactional
+  public ResponseCookie verifyLoginDevice(String token) {
+    if (token == null || token.isBlank()) {
+      throw new AuthException(ErrorDefinition.GENERIC_BAD_REQUEST, null, HttpStatus.BAD_REQUEST);
+    }
+
+    Long userId = accessTokenHelper.extractVerifyLoginDeviceUserId(token);
+    UserEntity user =
+        userRepository
+            .findByIdAndDeletedAtIsNull(userId)
+            .orElseThrow(
+                () ->
+                    new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED));
+
+    return trustedDeviceHelper.createTrustedDeviceCookie(user);
   }
 
   @Override
@@ -79,6 +101,7 @@ public class AuthServiceImpl implements AuthService {
 
     try {
       var registeredUser = authRegisterHelper.createUser(register);
+
       verificationEmailHelper.scheduleVerificationEmail(
           registeredUser.response().getId(),
           registeredUser.response().getEmail(),

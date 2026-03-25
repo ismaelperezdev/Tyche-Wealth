@@ -2,6 +2,7 @@ package com.tychewealth.service.helper.token;
 
 import static com.tychewealth.constants.AuthConstants.TOKEN_PURPOSE_CLAIM;
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER;
+import static com.tychewealth.constants.AuthConstants.VERIFY_LOGIN_DEVICE_TOKEN_PURPOSE;
 import static com.tychewealth.constants.AuthConstants.VERIFY_REGISTRATION_TOKEN_PURPOSE;
 import static com.tychewealth.constants.CommonConstants.FIELD_EMAIL;
 import static com.tychewealth.constants.CommonConstants.FIELD_USERNAME;
@@ -37,12 +38,15 @@ public class AccessTokenHelper {
   private final SecretKey signingKey;
   private final long accessTokenTtlSeconds;
   private final long verifyEmailTokenTtlSeconds;
+  private final long verifyLoginDeviceTokenTtlSeconds;
 
   public AccessTokenHelper(
       @Value("${app.auth.jwt.secret}") String jwtSecret,
       @Value("${app.auth.jwt.access-token-ttl-seconds:900}") long accessTokenTtlSeconds,
       @Value("${app.auth.jwt.verify-email-token-ttl-seconds:86400}")
-          long verifyEmailTokenTtlSeconds) {
+          long verifyEmailTokenTtlSeconds,
+      @Value("${app.auth.jwt.verify-login-device-token-ttl-seconds:86400}")
+          long verifyLoginDeviceTokenTtlSeconds) {
 
     if (accessTokenTtlSeconds <= 0) {
       throw new IllegalArgumentException(
@@ -52,10 +56,15 @@ public class AccessTokenHelper {
       throw new IllegalArgumentException(
           "app.auth.jwt.verify-email-token-ttl-seconds must be greater than 0");
     }
+    if (verifyLoginDeviceTokenTtlSeconds <= 0) {
+      throw new IllegalArgumentException(
+          "app.auth.jwt.verify-login-device-token-ttl-seconds must be greater than 0");
+    }
 
     this.signingKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     this.accessTokenTtlSeconds = accessTokenTtlSeconds;
     this.verifyEmailTokenTtlSeconds = verifyEmailTokenTtlSeconds;
+    this.verifyLoginDeviceTokenTtlSeconds = verifyLoginDeviceTokenTtlSeconds;
   }
 
   public AuthTokenPayload generateAccessToken(UserEntity user) {
@@ -66,12 +75,24 @@ public class AccessTokenHelper {
     return generateToken(user, verifyEmailTokenTtlSeconds, VERIFY_REGISTRATION_TOKEN_PURPOSE);
   }
 
+  public AuthTokenPayload generateVerifyLoginDeviceToken(UserEntity user) {
+    return generateToken(user, verifyLoginDeviceTokenTtlSeconds, VERIFY_LOGIN_DEVICE_TOKEN_PURPOSE);
+  }
+
   public Long extractVerifyEmailUserId(String token) {
+    return extractUserIdForPurpose(token, VERIFY_REGISTRATION_TOKEN_PURPOSE);
+  }
+
+  public Long extractVerifyLoginDeviceUserId(String token) {
+    return extractUserIdForPurpose(token, VERIFY_LOGIN_DEVICE_TOKEN_PURPOSE);
+  }
+
+  private Long extractUserIdForPurpose(String token, String expectedPurpose) {
     try {
       Claims claims = parseClaims(token);
       String purpose = claims.get(TOKEN_PURPOSE_CLAIM, String.class);
-      if (!VERIFY_REGISTRATION_TOKEN_PURPOSE.equals(purpose)) {
-        throw new IllegalArgumentException("Token is not intended for email verification");
+      if (!expectedPurpose.equals(purpose)) {
+        throw new IllegalArgumentException("Token is not intended for this verification flow");
       }
       return Long.valueOf(claims.getSubject());
     } catch (JwtException | IllegalArgumentException ex) {

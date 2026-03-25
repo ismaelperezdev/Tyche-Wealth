@@ -53,4 +53,14 @@ public final class Utils {
     LocalDate tomorrow = now.atZone(ZoneOffset.UTC).toLocalDate().plusDays(1);
     return Duration.between(now, tomorrow.atStartOfDay().toInstant(ZoneOffset.UTC));
   }
+
+  public static String formatExpirationText(long expiresInSeconds) {
+    if (expiresInSeconds % 3600 == 0) {
+      long hours = expiresInSeconds / 3600;
+      return hours + (hours == 1 ? " hour" : " hours");
+    }
+
+    long expiresInMinutes = (expiresInSeconds + 59) / 60;
+    return expiresInMinutes + (expiresInMinutes == 1 ? " minute" : " minutes");
+  }
 }

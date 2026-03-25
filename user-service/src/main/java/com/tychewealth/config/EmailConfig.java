@@ -46,15 +46,25 @@ public class EmailConfig {
   public URI verifyRegistrationUri(
       @Value("${app.auth.verify-registration-url}") String verifyRegistrationUrl) {
     Assert.hasText(verifyRegistrationUrl, "app.auth.verify-registration-url must be configured");
+    return parseAbsoluteUri(verifyRegistrationUrl, "app.auth.verify-registration-url");
+  }
 
+  @Bean
+  public URI verifyLoginDeviceUri(
+      @Value("${app.auth.verify-login-device-url}") String verifyLoginDeviceUrl) {
+    Assert.hasText(verifyLoginDeviceUrl, "app.auth.verify-login-device-url must be configured");
+    return parseAbsoluteUri(verifyLoginDeviceUrl, "app.auth.verify-login-device-url");
+  }
+
+  private URI parseAbsoluteUri(String value, String propertyName) {
     try {
-      URI uri = new URI(verifyRegistrationUrl);
-      Assert.isTrue(uri.isAbsolute(), "app.auth.verify-registration-url must be an absolute URL");
-      Assert.hasText(uri.getScheme(), "app.auth.verify-registration-url must include a scheme");
-      Assert.hasText(uri.getHost(), "app.auth.verify-registration-url must include a host");
+      URI uri = new URI(value);
+      Assert.isTrue(uri.isAbsolute(), propertyName + " must be an absolute URL");
+      Assert.hasText(uri.getScheme(), propertyName + " must include a scheme");
+      Assert.hasText(uri.getHost(), propertyName + " must include a host");
       return uri;
     } catch (URISyntaxException ex) {
-      throw new IllegalStateException("app.auth.verify-registration-url must be a valid URL", ex);
+      throw new IllegalStateException(propertyName + " must be a valid URL", ex);
     }
   }
 }

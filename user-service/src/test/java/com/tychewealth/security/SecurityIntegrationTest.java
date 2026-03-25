@@ -25,6 +25,7 @@ import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
 import static com.tychewealth.testhelper.AuthTestHelper.login;
 import static com.tychewealth.testhelper.AuthTestHelper.logout;
 import static com.tychewealth.testhelper.AuthTestHelper.refresh;
+import static com.tychewealth.testhelper.AuthTestHelper.seedTrustedDevice;
 import static com.tychewealth.testhelper.UserTestHelper.passwordUpdateRequestBody;
 import static com.tychewealth.utils.Utils.sha256Hex;
 import static org.hamcrest.Matchers.containsString;
@@ -48,8 +49,10 @@ import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.RefreshTokenRepository;
+import com.tychewealth.repository.TrustedDeviceRepository;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.helper.token.AccessTokenHelper;
+import jakarta.servlet.http.Cookie;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -73,15 +76,18 @@ class SecurityIntegrationTest {
   @Autowired private ObjectMapper objectMapper;
   @Autowired private UserRepository userRepository;
   @Autowired private RefreshTokenRepository refreshTokenRepository;
+  @Autowired private TrustedDeviceRepository trustedDeviceRepository;
   @Autowired private PasswordEncoder passwordEncoder;
   @Autowired private AccessTokenHelper accessTokenHelper;
   @Autowired private RefreshRateLimitConfig rateLimitConfig;
 
   private LoginRequestDto validLoginRequest;
+  private Cookie trustedDeviceCookie;
 
   @BeforeEach
   void setUp() {
     refreshTokenRepository.deleteAll();
+    trustedDeviceRepository.deleteAll();
     userRepository.deleteAll();
     rateLimitConfig.resetAll();
 
@@ -90,7 +96,8 @@ class SecurityIntegrationTest {
     existingUser.setUsername(TEST_USERNAME_LAURA);
     existingUser.setPassword(passwordEncoder.encode(TEST_PASSWORD_VALID));
     existingUser.setVerified(true);
-    userRepository.save(existingUser);
+    UserEntity savedUser = userRepository.save(existingUser);
+    trustedDeviceCookie = seedTrustedDevice(trustedDeviceRepository, savedUser);
 
     validLoginRequest = new LoginRequestDto(TEST_EMAIL_LAURA, TEST_PASSWORD_VALID);
   }
@@ -102,6 +109,7 @@ class SecurityIntegrationTest {
             post(AUTH_LOGIN_URL)
                 .secure(true)
                 .contentType(MediaType.APPLICATION_JSON)
+                .cookie(trustedDeviceCookie)
                 .content(objectMapper.writeValueAsString(validLoginRequest)))
         .andExpect(status().isOk())
         .andExpect(header().string(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
@@ -127,6 +135,7 @@ class SecurityIntegrationTest {
             .perform(
                 post(AUTH_LOGIN_URL)
                     .contentType(MediaType.APPLICATION_JSON)
+                    .cookie(trustedDeviceCookie)
                     .content(objectMapper.writeValueAsString(validLoginRequest)))
             .andExpect(status().isOk())
             .andReturn();
@@ -211,7 +220,8 @@ class SecurityIntegrationTest {
 
   @Test
   void rotatedRefreshTokenCannotBeReused() throws Exception {
-    LoginResponseDto loginResponse = login(mockMvc, objectMapper, validLoginRequest);
+    LoginResponseDto loginResponse =
+        login(mockMvc, objectMapper, validLoginRequest, trustedDeviceCookie);
 
     String rotatedBody =
         refresh(mockMvc, objectMapper, loginResponse.getRefreshToken())
@@ -233,7 +243,8 @@ class SecurityIntegrationTest {
 
   @Test
   void loggedOutRefreshTokenCannotBeReused() throws Exception {
-    LoginResponseDto loginResponse = login(mockMvc, objectMapper, validLoginRequest);
+    LoginResponseDto loginResponse =
+        login(mockMvc, objectMapper, validLoginRequest, trustedDeviceCookie);
 
     logout(mockMvc, objectMapper, loginResponse.getRefreshToken())
         .andExpect(status().isNoContent());
@@ -245,7 +256,8 @@ class SecurityIntegrationTest {
 
   @Test
   void updatePasswordInvalidatesExistingRefreshTokenForAttacker() throws Exception {
-    LoginResponseDto loginResponse = login(mockMvc, objectMapper, validLoginRequest);
+    LoginResponseDto loginResponse =
+        login(mockMvc, objectMapper, validLoginRequest, trustedDeviceCookie);
 
     mockMvc
         .perform(

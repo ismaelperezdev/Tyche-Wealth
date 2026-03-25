@@ -5,6 +5,7 @@ import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
 import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.entity.RefreshTokenEntity;
+import com.tychewealth.entity.TrustedDeviceEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.enums.AssetTypeEnum;
 import com.tychewealth.enums.CurrencyCodeEnum;
@@ -54,6 +55,16 @@ public final class EntityBuilder {
     refreshToken.setExpiresAt(expiresAt);
     refreshToken.setRevoked(revoked);
     return refreshToken;
+  }
+
+  public static TrustedDeviceEntity buildTrustedDevice(
+      String token, UserEntity user, Instant expiresAt, Instant lastUsedAt) {
+    TrustedDeviceEntity trustedDevice = new TrustedDeviceEntity();
+    trustedDevice.setUser(user);
+    trustedDevice.setTokenHash(Utils.sha256Hex(token));
+    trustedDevice.setExpiresAt(expiresAt);
+    trustedDevice.setLastUsedAt(lastUsedAt);
+    return trustedDevice;
   }
 
   public static AssetEntity buildAsset(

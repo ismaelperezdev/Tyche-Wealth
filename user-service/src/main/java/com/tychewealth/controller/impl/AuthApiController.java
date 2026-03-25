@@ -9,12 +9,14 @@ import static com.tychewealth.constants.LogConstants.REFRESH_TOKEN_ACTION;
 import static com.tychewealth.constants.LogConstants.REGISTER_ACTION;
 import static com.tychewealth.constants.LogConstants.REGISTER_REQUEST_FIELDS;
 import static com.tychewealth.constants.LogConstants.REQUEST_START;
+import static com.tychewealth.constants.LogConstants.VERIFY_LOGIN_DEVICE_ACTION;
 import static com.tychewealth.constants.LogConstants.VERIFY_REGISTRATION_ACTION;
 import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
 import static com.tychewealth.utils.LogContextFactory.mask;
 import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
 import static org.springframework.http.HttpHeaders.PRAGMA;
+import static org.springframework.http.HttpHeaders.SET_COOKIE;
 import static org.springframework.http.ResponseEntity.status;
 
 import com.tychewealth.controller.AuthApi;
@@ -47,10 +49,23 @@ public class AuthApiController implements AuthApi {
   public ResponseEntity<Void> verifyRegistration(@RequestParam("token") String token) {
     log.info(REQUEST_START, AUTH, VERIFY_REGISTRATION_ACTION);
 
-    authService.verifyEmail(token);
+    var trustedDeviceCookie = authService.verifyEmail(token);
     return ResponseEntity.noContent()
         .header(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
         .header(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE)
+        .header(SET_COOKIE, trustedDeviceCookie.toString())
+        .build();
+  }
+
+  @Override
+  public ResponseEntity<Void> verifyLoginDevice(@RequestParam("token") String token) {
+    log.info(REQUEST_START, AUTH, VERIFY_LOGIN_DEVICE_ACTION);
+
+    var trustedDeviceCookie = authService.verifyLoginDevice(token);
+    return ResponseEntity.noContent()
+        .header(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
+        .header(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE)
+        .header(SET_COOKIE, trustedDeviceCookie.toString())
         .build();
   }
 

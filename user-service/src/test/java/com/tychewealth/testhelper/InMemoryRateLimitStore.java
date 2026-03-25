@@ -34,6 +34,11 @@ public class InMemoryRateLimitStore implements RateLimitStore {
   }
 
   @Override
+  public void clear(String namespace, String clientKey) {
+    counters.remove(buildKey(namespace, clientKey));
+  }
+
+  @Override
   public void resetNamespace(String namespace) {
     String prefix = namespace + ":";
     counters.keySet().removeIf(key -> key.startsWith(prefix));

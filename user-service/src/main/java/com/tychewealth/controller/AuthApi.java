@@ -28,6 +28,9 @@ public interface AuthApi {
   @GetMapping(value = "/verify-registration", produces = REQUEST_PRODUCES)
   ResponseEntity<Void> verifyRegistration(@RequestParam("token") String token);
 
+  @GetMapping(value = "/verify-login-device", produces = REQUEST_PRODUCES)
+  ResponseEntity<Void> verifyLoginDevice(@RequestParam("token") String token);
+
   @PostMapping(value = "/register", consumes = REQUEST_CONSUMES, produces = REQUEST_PRODUCES)
   ResponseEntity<UserResponseDto> register(@Valid @RequestBody RegisterRequestDto register);
 

@@ -16,6 +16,7 @@ class AccessTokenHelperTest {
       "0123456789012345678901234567890123456789012345678901234567890123";
   private static final long TEST_ACCESS_TOKEN_TTL_SECONDS = 900;
   private static final long TEST_VERIFY_EMAIL_TOKEN_TTL_SECONDS = 86400;
+  private static final long TEST_VERIFY_LOGIN_DEVICE_TOKEN_TTL_SECONDS = 1800;
 
   private AccessTokenHelper accessTokenHelper;
 
@@ -23,7 +24,10 @@ class AccessTokenHelperTest {
   void setUp() {
     accessTokenHelper =
         new AccessTokenHelper(
-            TEST_JWT_SECRET, TEST_ACCESS_TOKEN_TTL_SECONDS, TEST_VERIFY_EMAIL_TOKEN_TTL_SECONDS);
+            TEST_JWT_SECRET,
+            TEST_ACCESS_TOKEN_TTL_SECONDS,
+            TEST_VERIFY_EMAIL_TOKEN_TTL_SECONDS,
+            TEST_VERIFY_LOGIN_DEVICE_TOKEN_TTL_SECONDS);
   }
 
   @Test
@@ -56,5 +60,16 @@ class AccessTokenHelperTest {
     AuthTokenPayload verifyRegistrationToken = accessTokenHelper.generateVerifyEmailToken(user);
 
     assertEquals(TEST_VERIFY_EMAIL_TOKEN_TTL_SECONDS, verifyRegistrationToken.expiresIn());
+  }
+
+  @Test
+  void generateVerifyLoginDeviceTokenUsesDedicatedTtl() {
+    UserEntity user = EntityBuilder.buildUser("valid@tychewealth.com", "valid-user", "password");
+    user.setId(42L);
+
+    AuthTokenPayload verifyLoginDeviceToken =
+        accessTokenHelper.generateVerifyLoginDeviceToken(user);
+
+    assertEquals(TEST_VERIFY_LOGIN_DEVICE_TOKEN_TTL_SECONDS, verifyLoginDeviceToken.expiresIn());
   }
 }

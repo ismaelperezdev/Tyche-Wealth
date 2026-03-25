@@ -11,6 +11,7 @@ public final class LogConstants {
   public static final String REGISTER_ACTION = "[register]";
   public static final String LOGIN_ACTION = "[login]";
   public static final String VERIFY_REGISTRATION_ACTION = "[verify-registration]";
+  public static final String VERIFY_LOGIN_DEVICE_ACTION = "[verify-login-device]";
   public static final String REFRESH_TOKEN_ACTION = "[refresh-token]";
   public static final String RATE_LIMIT_ACTION = "[rate-limit]";
   public static final String LOGOUT_ACTION = "[logout]";
