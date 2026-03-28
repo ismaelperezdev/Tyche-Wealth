@@ -8,8 +8,8 @@ import com.tychewealth.dto.email.request.EmailMessageDto;
 import com.tychewealth.email.EmailSender;
 import com.tychewealth.repository.UserRepository;
 import java.time.Instant;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,12 +17,23 @@ import org.springframework.transaction.support.TransactionSynchronization;
 
 @Slf4j
 @Component
-@AllArgsConstructor
 public class VerificationEmailWorkflow {
 
   private final AuthEmailFactory authEmailFactory;
   private final EmailSender emailSender;
   private final UserRepository userRepository;
+  private final VerificationEmailWorkflow self;
+
+  public VerificationEmailWorkflow(
+      AuthEmailFactory authEmailFactory,
+      EmailSender emailSender,
+      UserRepository userRepository,
+      @Lazy VerificationEmailWorkflow self) {
+    this.authEmailFactory = authEmailFactory;
+    this.emailSender = emailSender;
+    this.userRepository = userRepository;
+    this.self = self;
+  }
 
   public void scheduleVerificationEmail(
       Long userId,
@@ -53,7 +64,8 @@ public class VerificationEmailWorkflow {
     try {
       emailSender.send(verificationEmailMessageDto);
     } catch (RuntimeException ex) {
-      restoreVerificationTokenExpiryWithErrorHandling(userId, previousVerificationTokenExpiresAt);
+      self.restoreVerificationTokenExpiryWithErrorHandling(
+          userId, previousVerificationTokenExpiresAt);
       throw ex;
     }
 

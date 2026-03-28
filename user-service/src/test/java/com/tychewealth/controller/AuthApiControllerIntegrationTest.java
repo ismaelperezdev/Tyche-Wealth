@@ -55,6 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -468,6 +469,18 @@ class AuthApiControllerIntegrationTest {
     UserEntity updatedUser = userRepository.findById(user.getId()).orElseThrow();
     assertNotNull(updatedUser.getVerificationTokenExpiresAt());
     assertTrue(updatedUser.getVerificationTokenExpiresAt().isAfter(Instant.now()));
+  }
+
+  @Test
+  void forgotPasswordReturnsNoContentWhenUserDoesNotExist() throws Exception {
+    mockMvc
+        .perform(
+            get(AUTH_BASE_URL + "/forgot-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    objectMapper.writeValueAsString(
+                        new ResendVerificationEmailRequestDto("missing@tychewealth.com"))))
+        .andExpect(status().isNoContent());
   }
 
   @Test

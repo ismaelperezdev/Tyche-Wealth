@@ -20,11 +20,11 @@ import com.tychewealth.repository.UserRepository;
 import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -39,7 +39,12 @@ class TrustedDeviceManagerTest {
   @Mock private TrustedDeviceRepository trustedDeviceRepository;
   @Mock private UserRepository userRepository;
 
-  @InjectMocks private TrustedDeviceManager trustedDeviceManager;
+  private TrustedDeviceManager trustedDeviceManager;
+
+  @BeforeEach
+  void setUp() {
+    trustedDeviceManager = new TrustedDeviceManager(trustedDeviceRepository, userRepository, true);
+  }
 
   @AfterEach
   void tearDown() {

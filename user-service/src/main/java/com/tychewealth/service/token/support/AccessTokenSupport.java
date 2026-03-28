@@ -17,6 +17,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Date;
 import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -55,15 +56,10 @@ public class AccessTokenSupport {
     String purpose = claims.get(TOKEN_PURPOSE_CLAIM, String.class);
 
     if (StringUtils.hasText(purpose)) {
-      throwUnauthorized();
+      throw unauthorizedException();
     }
 
-    try {
-      return Long.valueOf(claims.getSubject());
-    } catch (IllegalArgumentException ex) {
-      throwUnauthorized();
-      return null;
-    }
+    return parseSubjectAsLong(claims);
   }
 
   public Long extractVerifyEmailUserId(String token) {
@@ -75,19 +71,19 @@ public class AccessTokenSupport {
   }
 
   public Instant extractExpiration(String token) {
-    try {
-      return parseClaimsOrThrowUnauthorized(token).getExpiration().toInstant();
-    } catch (IllegalArgumentException ex) {
-      throwUnauthorized();
-      return null;
+    Date expiration = parseClaimsOrThrowUnauthorized(token).getExpiration();
+    if (expiration == null) {
+      throw unauthorizedException();
     }
+
+    return expiration.toInstant();
   }
 
   public String extractTokenId(String token) {
     String tokenId = parseClaimsOrThrowUnauthorized(token).getId();
 
     if (!StringUtils.hasText(tokenId)) {
-      throwUnauthorized();
+      throw unauthorizedException();
     }
     return tokenId;
   }
@@ -97,14 +93,13 @@ public class AccessTokenSupport {
     String purpose = claims.get(TOKEN_PURPOSE_CLAIM, String.class);
 
     if (!expectedPurpose.equals(purpose)) {
-      throwUnauthorized();
+      throw unauthorizedException();
     }
 
     try {
       return Long.valueOf(claims.getSubject());
     } catch (IllegalArgumentException ex) {
-      throwUnauthorized();
-      return null;
+      throw unauthorizedException();
     }
   }
 
@@ -112,13 +107,20 @@ public class AccessTokenSupport {
     try {
       return parseClaims(token);
     } catch (JwtException | IllegalArgumentException ex) {
-      throwUnauthorized();
-      return null;
+      throw unauthorizedException();
     }
   }
 
-  private void throwUnauthorized() {
+  private Long parseSubjectAsLong(Claims claims) {
+    try {
+      return Long.valueOf(claims.getSubject());
+    } catch (IllegalArgumentException ex) {
+      throw unauthorizedException();
+    }
+  }
+
+  private AuthException unauthorizedException() {
     log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_ACCESS_TOKEN_MESSAGE);
-    throw new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);
+    return new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);
   }
 }
