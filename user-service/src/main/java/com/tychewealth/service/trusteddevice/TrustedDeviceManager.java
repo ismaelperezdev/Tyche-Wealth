@@ -1,4 +1,4 @@
-package com.tychewealth.service.helper.trusteddevice;
+package com.tychewealth.service.trusteddevice;
 
 import com.tychewealth.entity.TrustedDeviceEntity;
 import com.tychewealth.entity.UserEntity;
@@ -13,7 +13,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
-import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
@@ -23,8 +23,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Component
-@AllArgsConstructor
-public class TrustedDeviceHelper {
+public class TrustedDeviceManager {
 
   private static final String TRUSTED_DEVICE_COOKIE_NAME = "trusted_device";
   private static final int MAX_TRUSTED_DEVICES_PER_USER = 3;
@@ -32,6 +31,16 @@ public class TrustedDeviceHelper {
 
   private final TrustedDeviceRepository trustedDeviceRepository;
   private final UserRepository userRepository;
+  private final boolean secureCookies;
+
+  public TrustedDeviceManager(
+      TrustedDeviceRepository trustedDeviceRepository,
+      UserRepository userRepository,
+      @Value("${app.security.cookies.secure:true}") boolean secureCookies) {
+    this.trustedDeviceRepository = trustedDeviceRepository;
+    this.userRepository = userRepository;
+    this.secureCookies = secureCookies;
+  }
 
   @Transactional
   public ResponseCookie createTrustedDeviceCookie(UserEntity user) {
@@ -72,7 +81,7 @@ public class TrustedDeviceHelper {
   public ResponseCookie buildTrustedDeviceCookie(String trustedDeviceToken, Duration maxAge) {
     return ResponseCookie.from(TRUSTED_DEVICE_COOKIE_NAME, trustedDeviceToken)
         .httpOnly(true)
-        .secure(true)
+        .secure(secureCookies)
         .sameSite("Lax")
         .path("/")
         .maxAge(maxAge)

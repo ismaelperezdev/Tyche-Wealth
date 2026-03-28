@@ -15,6 +15,8 @@ public interface AuthService {
 
   ResponseCookie verifyLoginDevice(String token);
 
+  void forgotPassword(ResendVerificationEmailRequestDto resendVerificationEmailRequestDto);
+
   UserResponseDto register(RegisterRequestDto register);
 
   void resendVerificationEmail(ResendVerificationEmailRequestDto resendVerificationEmailRequestDto);

@@ -31,6 +31,10 @@ public interface AuthApi {
   @GetMapping(value = "/verify-login-device", produces = REQUEST_PRODUCES)
   ResponseEntity<Void> verifyLoginDevice(@RequestParam("token") String token);
 
+  @GetMapping(value = "/forgot-password", produces = REQUEST_PRODUCES)
+  ResponseEntity<Void> forgotPassword(
+      @Valid @RequestBody ResendVerificationEmailRequestDto resendVerificationEmailRequestDto);
+
   @PostMapping(value = "/register", consumes = REQUEST_CONSUMES, produces = REQUEST_PRODUCES)
   ResponseEntity<UserResponseDto> register(@Valid @RequestBody RegisterRequestDto register);
 

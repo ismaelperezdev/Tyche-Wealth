@@ -153,9 +153,9 @@ public class SecurityConfig {
 
   @Bean
   public JwtAuthenticationFilter jwtAuthenticationFilter(
-      com.tychewealth.service.helper.token.TokenValidationHelper tokenValidationHelper,
+      com.tychewealth.service.token.TokenValidator tokenValidator,
       AuthenticationEntryPoint authenticationEntryPoint) {
-    return new JwtAuthenticationFilter(tokenValidationHelper, authenticationEntryPoint);
+    return new JwtAuthenticationFilter(tokenValidator, authenticationEntryPoint);
   }
 
   @Bean

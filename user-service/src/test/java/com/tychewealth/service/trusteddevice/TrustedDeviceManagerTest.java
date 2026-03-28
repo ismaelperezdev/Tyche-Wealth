@@ -1,4 +1,4 @@
-package com.tychewealth.service.helper.trusteddevice;
+package com.tychewealth.service.trusteddevice;
 
 import static com.tychewealth.constants.TestConstants.TEST_TRUSTED_DEVICE_COOKIE_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,7 +31,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.context.request.RequestContextHolder;
 
 @ExtendWith(MockitoExtension.class)
-class TrustedDeviceHelperTest {
+class TrustedDeviceManagerTest {
 
   private static final Long TRUSTED_DEVICE_USER_ID = 7L;
   private static final Long TRUSTED_DEVICE_LIMIT_USER_ID = 9L;
@@ -39,7 +39,7 @@ class TrustedDeviceHelperTest {
   @Mock private TrustedDeviceRepository trustedDeviceRepository;
   @Mock private UserRepository userRepository;
 
-  @InjectMocks private TrustedDeviceHelper trustedDeviceHelper;
+  @InjectMocks private TrustedDeviceManager trustedDeviceManager;
 
   @AfterEach
   void tearDown() {
@@ -55,7 +55,7 @@ class TrustedDeviceHelperTest {
     when(trustedDeviceRepository.countByUserIdAndExpiresAtAfter(anyLong(), any(Instant.class)))
         .thenReturn(0L);
 
-    var cookie = trustedDeviceHelper.createTrustedDeviceCookie(user);
+    var cookie = trustedDeviceManager.createTrustedDeviceCookie(user);
 
     ArgumentCaptor<TrustedDeviceEntity> trustedDeviceCaptor =
         ArgumentCaptor.forClass(TrustedDeviceEntity.class);
@@ -88,7 +88,7 @@ class TrustedDeviceHelperTest {
 
     AuthException exception =
         assertThrows(
-            AuthException.class, () -> trustedDeviceHelper.createTrustedDeviceCookie(user));
+            AuthException.class, () -> trustedDeviceManager.createTrustedDeviceCookie(user));
 
     assertEquals(HttpStatus.CONFLICT, exception.getHttpStatus());
     assertEquals(ErrorDefinition.AUTH_TRUSTED_DEVICE_LIMIT_REACHED, exception.getErrorDefinition());

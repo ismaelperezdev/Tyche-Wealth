@@ -20,9 +20,8 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
 import com.tychewealth.dto.email.ResendEmailPropertiesDto;
+import com.tychewealth.dto.email.request.EmailMessageDto;
 import com.tychewealth.error.exception.EmailException;
-import com.tychewealth.service.email.EmailMessage;
-import com.tychewealth.service.helper.email.EmailServiceHelper;
 import com.tychewealth.testhelper.InMemoryRateLimitStore;
 import com.tychewealth.testhelper.RateLimitWebTestHelper.MutableClock;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,7 +35,7 @@ import org.springframework.web.client.RestClient;
 class EmailServiceHelperTest {
 
   private MockRestServiceServer mockRestServiceServer;
-  private EmailServiceHelper emailServiceHelper;
+  private EmailSender emailSender;
   private MutableClock clock;
 
   @BeforeEach
@@ -51,8 +50,8 @@ class EmailServiceHelperTest {
     clock = new MutableClock();
 
     RestClient restClient = restClientBuilder.baseUrl(TEST_RESEND_BASE_URL).build();
-    emailServiceHelper =
-        new EmailServiceHelper(
+    emailSender =
+        new EmailSender(
             restClient,
             resendEmailProperties,
             TEST_EMAIL_DAILY_LIMIT,
@@ -81,8 +80,8 @@ class EmailServiceHelperTest {
                     """))
         .andRespond(withStatus(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON).body("{}"));
 
-    emailServiceHelper.send(
-        new EmailMessage(
+    emailSender.send(
+        new EmailMessageDto(
             TEST_EMAIL_VALID,
             TEST_EMAIL_SUBJECT_VERIFY,
             TEST_EMAIL_HTML_BODY,
@@ -96,10 +95,11 @@ class EmailServiceHelperTest {
     mockRestServiceServer
         .expect(requestTo(TEST_RESEND_BASE_URL + RESEND_EMAILS_PATH))
         .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
-    EmailMessage emailMessage =
-        new EmailMessage(TEST_EMAIL_VALID, TEST_EMAIL_SUBJECT_VERIFY, TEST_EMAIL_HTML_BODY, null);
+    EmailMessageDto emailMessageDto =
+        new EmailMessageDto(
+            TEST_EMAIL_VALID, TEST_EMAIL_SUBJECT_VERIFY, TEST_EMAIL_HTML_BODY, null);
 
-    assertThrows(EmailException.class, () -> emailServiceHelper.send(emailMessage));
+    assertThrows(EmailException.class, () -> emailSender.send(emailMessageDto));
   }
 
   @Test
@@ -113,18 +113,18 @@ class EmailServiceHelperTest {
 
     assertDoesNotThrow(
         () ->
-            emailServiceHelper.send(
-                new EmailMessage(
+            emailSender.send(
+                new EmailMessageDto(
                     TEST_EMAIL_VALID, TEST_EMAIL_SUBJECT_VERIFY, TEST_EMAIL_HTML_BODY, null)));
     assertDoesNotThrow(
         () ->
-            emailServiceHelper.send(
-                new EmailMessage(
+            emailSender.send(
+                new EmailMessageDto(
                     TEST_EMAIL_VALID, TEST_EMAIL_SUBJECT_VERIFY, TEST_EMAIL_HTML_BODY, null)));
     assertDoesNotThrow(
         () ->
-            emailServiceHelper.send(
-                new EmailMessage(
+            emailSender.send(
+                new EmailMessageDto(
                     TEST_EMAIL_VALID, TEST_EMAIL_SUBJECT_VERIFY, TEST_EMAIL_HTML_BODY, null)));
 
     mockRestServiceServer.verify();
