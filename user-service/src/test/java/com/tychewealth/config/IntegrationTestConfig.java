@@ -3,6 +3,7 @@ package com.tychewealth.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.tychewealth.security.SecurityTestConfig;
 import com.tychewealth.service.ratelimit.RateLimitStore;
 import com.tychewealth.testhelper.InMemoryRateLimitStore;
 import java.time.Clock;

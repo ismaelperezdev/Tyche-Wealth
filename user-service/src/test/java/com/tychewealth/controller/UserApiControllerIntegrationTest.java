@@ -31,6 +31,7 @@ import static com.tychewealth.constants.ValidationConstants.NEW_PASSWORD_AND_CON
 import static com.tychewealth.testdata.EntityBuilder.buildRefreshToken;
 import static com.tychewealth.testdata.EntityBuilder.buildUser;
 import static com.tychewealth.testhelper.MetricsTestHelper.counterValue;
+import static com.tychewealth.testhelper.UserTestHelper.createAccessToken;
 import static com.tychewealth.testhelper.UserTestHelper.deleteRequest;
 import static com.tychewealth.testhelper.UserTestHelper.deleteRequestUnauthorized;
 import static com.tychewealth.testhelper.UserTestHelper.passwordUpdateRequestBody;
@@ -56,7 +57,7 @@ import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.UserRepository;
-import com.tychewealth.service.helper.token.AccessTokenHelper;
+import com.tychewealth.service.token.AccessTokenCodec;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,7 +82,7 @@ class UserApiControllerIntegrationTest {
   @Autowired private MeterRegistry meterRegistry;
   @Autowired private RefreshTokenRepository refreshTokenRepository;
   @Autowired private UserRepository userRepository;
-  @Autowired private AccessTokenHelper accessTokenHelper;
+  @Autowired private AccessTokenCodec accessTokenCodec;
   @Autowired private PasswordEncoder passwordEncoder;
 
   private UserEntity existingUser;
@@ -99,7 +100,7 @@ class UserApiControllerIntegrationTest {
   @Test
   void retrieveReturnsUserWhenUserExists() throws Exception {
     UserEntity saved = userRepository.save(existingUser);
-    String accessToken = accessTokenHelper.generateAccessToken(saved).accessToken();
+    String accessToken = createAccessToken(accessTokenCodec, saved);
     double requestsBefore = counterValue(meterRegistry, METRIC_USER_RETRIEVE_REQUESTS);
     double successBefore = counterValue(meterRegistry, METRIC_USER_RETRIEVE_SUCCESS);
 
@@ -127,7 +128,7 @@ class UserApiControllerIntegrationTest {
   @Test
   void retrieveAcceptsLowercaseBearerScheme() throws Exception {
     UserEntity saved = userRepository.save(existingUser);
-    String accessToken = accessTokenHelper.generateAccessToken(saved).accessToken();
+    String accessToken = createAccessToken(accessTokenCodec, saved);
 
     mockMvc
         .perform(get(USER_ME_URL).header(AUTHORIZATION_HEADER, "bearer " + accessToken))
@@ -148,7 +149,7 @@ class UserApiControllerIntegrationTest {
   @Test
   void updateChangesUsernameWhenUserIsAuthenticated() throws Exception {
     UserEntity saved = userRepository.save(existingUser);
-    String accessToken = accessTokenHelper.generateAccessToken(saved).accessToken();
+    String accessToken = createAccessToken(accessTokenCodec, saved);
 
     updateRequest(mockMvc, objectMapper, accessToken, TEST_UPDATE_USERNAME_REQUEST)
         .andExpect(status().isOk())
@@ -178,7 +179,7 @@ class UserApiControllerIntegrationTest {
   void updateReturnsBadRequestForInvalidPayload(String requestBody, String expectedMessage)
       throws Exception {
     UserEntity saved = userRepository.saveAndFlush(existingUser);
-    String accessToken = accessTokenHelper.generateAccessToken(saved).accessToken();
+    String accessToken = createAccessToken(accessTokenCodec, saved);
 
     mockMvc
         .perform(
@@ -197,7 +198,7 @@ class UserApiControllerIntegrationTest {
     UserEntity saved = userRepository.save(existingUser);
     saved.setDeletedAt(java.time.LocalDateTime.now());
     userRepository.save(saved);
-    String accessToken = accessTokenHelper.generateAccessToken(saved).accessToken();
+    String accessToken = createAccessToken(accessTokenCodec, saved);
     double notFoundBefore = counterValue(meterRegistry, METRIC_USER_NOT_FOUND);
 
     updateRequest(mockMvc, objectMapper, accessToken, TEST_UPDATE_USERNAME_NORMALIZED)
@@ -218,7 +219,7 @@ class UserApiControllerIntegrationTest {
             TEST_OTHER_EMAIL, TEST_OCCUPIED_USERNAME, passwordEncoder.encode(TEST_PASSWORD_VALID));
     anotherUser.setVerified(true);
     userRepository.saveAndFlush(anotherUser);
-    String accessToken = accessTokenHelper.generateAccessToken(saved).accessToken();
+    String accessToken = createAccessToken(accessTokenCodec, saved);
     double conflictBefore = counterValue(meterRegistry, METRIC_USER_USERNAME_CONFLICT);
 
     updateRequest(mockMvc, objectMapper, accessToken, TEST_OCCUPIED_USERNAME)
@@ -238,7 +239,7 @@ class UserApiControllerIntegrationTest {
     String refreshTokenValue = "user-password-change-token";
     refreshTokenRepository.saveAndFlush(
         buildRefreshToken(refreshTokenValue, saved, Instant.now().plusSeconds(300), false));
-    String accessToken = accessTokenHelper.generateAccessToken(saved).accessToken();
+    String accessToken = createAccessToken(accessTokenCodec, saved);
 
     updatePasswordRequest(
             mockMvc,
@@ -272,7 +273,7 @@ class UserApiControllerIntegrationTest {
   void updatePasswordReturnsBadRequestForInvalidPayload(String requestBody, String expectedMessage)
       throws Exception {
     UserEntity saved = userRepository.saveAndFlush(existingUser);
-    String accessToken = accessTokenHelper.generateAccessToken(saved).accessToken();
+    String accessToken = createAccessToken(accessTokenCodec, saved);
 
     mockMvc
         .perform(
@@ -289,7 +290,7 @@ class UserApiControllerIntegrationTest {
   @Test
   void updatePasswordReturnsCleanValidationMessageWhenConfirmationDoesNotMatch() throws Exception {
     UserEntity saved = userRepository.saveAndFlush(existingUser);
-    String accessToken = accessTokenHelper.generateAccessToken(saved).accessToken();
+    String accessToken = createAccessToken(accessTokenCodec, saved);
 
     mockMvc
         .perform(
@@ -310,7 +311,7 @@ class UserApiControllerIntegrationTest {
   @Test
   void updatePasswordReturnsUnauthorizedWhenCurrentPasswordIsInvalid() throws Exception {
     UserEntity saved = userRepository.saveAndFlush(existingUser);
-    String accessToken = accessTokenHelper.generateAccessToken(saved).accessToken();
+    String accessToken = createAccessToken(accessTokenCodec, saved);
     double invalidCurrentPasswordBefore =
         counterValue(meterRegistry, METRIC_USER_CURRENT_PASSWORD_INVALID);
 
@@ -339,7 +340,7 @@ class UserApiControllerIntegrationTest {
     UserEntity saved = userRepository.saveAndFlush(existingUser);
     saved.setDeletedAt(java.time.LocalDateTime.now());
     userRepository.saveAndFlush(saved);
-    String accessToken = accessTokenHelper.generateAccessToken(saved).accessToken();
+    String accessToken = createAccessToken(accessTokenCodec, saved);
 
     updatePasswordRequest(
             mockMvc,
@@ -357,7 +358,7 @@ class UserApiControllerIntegrationTest {
   @Test
   void updatePasswordReturnsBadRequestWhenNewPasswordMatchesCurrentPassword() throws Exception {
     UserEntity saved = userRepository.saveAndFlush(existingUser);
-    String accessToken = accessTokenHelper.generateAccessToken(saved).accessToken();
+    String accessToken = createAccessToken(accessTokenCodec, saved);
     double reusedBefore = counterValue(meterRegistry, METRIC_USER_NEW_PASSWORD_REUSED);
 
     updatePasswordRequest(
@@ -377,7 +378,7 @@ class UserApiControllerIntegrationTest {
   @Test
   void deleteSoftDeletesUserWhenUserIsAuthenticated() throws Exception {
     UserEntity saved = userRepository.save(existingUser);
-    String accessToken = accessTokenHelper.generateAccessToken(saved).accessToken();
+    String accessToken = createAccessToken(accessTokenCodec, saved);
     double requestsBefore = counterValue(meterRegistry, METRIC_USER_DELETE_REQUESTS);
     double successBefore = counterValue(meterRegistry, METRIC_USER_DELETE_SUCCESS);
 
@@ -404,7 +405,7 @@ class UserApiControllerIntegrationTest {
     UserEntity saved = userRepository.save(existingUser);
     saved.setDeletedAt(java.time.LocalDateTime.now());
     userRepository.save(saved);
-    String accessToken = accessTokenHelper.generateAccessToken(saved).accessToken();
+    String accessToken = createAccessToken(accessTokenCodec, saved);
 
     deleteRequest(mockMvc, accessToken)
         .andExpect(status().isNotFound())

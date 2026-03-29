@@ -2,20 +2,22 @@ package com.tychewealth.service.helper.auth;
 
 import com.tychewealth.constants.LogConstants;
 import com.tychewealth.constants.RedisConstants;
+import com.tychewealth.dto.auth.AuthTokenDto;
 import com.tychewealth.dto.auth.LoginResponseDto;
 import com.tychewealth.dto.user.UserResponseDto;
+import com.tychewealth.email.EmailSendResult;
+import com.tychewealth.email.EmailSender;
 import com.tychewealth.entity.UserEntity;
+import com.tychewealth.enums.AccessTokenType;
 import com.tychewealth.error.exception.AuthException;
+import com.tychewealth.error.exception.EmailException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.mapper.user.UserMapper;
-import com.tychewealth.service.EmailService;
-import com.tychewealth.service.helper.email.LoginDeviceEmailHelper;
-import com.tychewealth.service.helper.token.AccessTokenHelper;
-import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
-import com.tychewealth.service.helper.trusteddevice.TrustedDeviceHelper;
+import com.tychewealth.service.email.AuthEmailFactory;
 import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.ratelimit.RateLimitStore;
-import com.tychewealth.service.token.AuthTokenPayload;
+import com.tychewealth.service.token.AccessTokenCodec;
+import com.tychewealth.service.trusteddevice.TrustedDeviceManager;
 import java.time.Duration;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,11 +31,11 @@ public class AuthLoginHelper {
 
   private static final Duration LOGIN_DEVICE_EMAIL_COOLDOWN = Duration.ofDays(1);
 
-  private final AccessTokenHelper accessTokenHelper;
+  private final AccessTokenCodec accessTokenCodec;
   private final AuthRefreshTokenHelper refreshTokenHelper;
-  private final TrustedDeviceHelper trustedDeviceHelper;
-  private final LoginDeviceEmailHelper loginDeviceEmailHelper;
-  private final EmailService emailService;
+  private final TrustedDeviceManager trustedDeviceManager;
+  private final AuthEmailFactory authEmailFactory;
+  private final EmailSender emailSender;
   private final RateLimitStore rateLimitStore;
   private final UserMapper userMapper;
   private final AuthMetrics authMetrics;
@@ -43,7 +45,7 @@ public class AuthLoginHelper {
     handleUntrustedDeviceLogin(user);
 
     UserResponseDto response = userMapper.toDto(user);
-    AuthTokenPayload tokenPayload = accessTokenHelper.generateAccessToken(user);
+    AuthTokenDto tokenPayload = accessTokenCodec.generateToken(user, AccessTokenType.ACCESS);
     refreshTokenHelper.revokeActiveTokensByUserId(user.getId());
     AuthRefreshTokenHelper.LinkedRefreshToken refreshToken =
         refreshTokenHelper.saveToken(user, tokenPayload.jti(), LogConstants.LOGIN_ACTION);
@@ -57,18 +59,18 @@ public class AuthLoginHelper {
 
     return new LoginResponseDto(
         tokenPayload.tokenType(),
-        tokenPayload.accessToken(),
+        tokenPayload.token(),
         refreshToken.token(),
         tokenPayload.expiresIn(),
         response);
   }
 
   private void handleUntrustedDeviceLogin(UserEntity user) {
-    if (trustedDeviceHelper.isTrustedCurrentDevice(user)) {
+    if (trustedDeviceManager.isTrustedCurrentDevice(user)) {
       return;
     }
 
-    if (trustedDeviceHelper.hasReachedTrustedDeviceLimit(user.getId())) {
+    if (trustedDeviceManager.hasReachedTrustedDeviceLimit(user.getId())) {
       log.warn(
           LogConstants.REQUEST_CONFLICT + LogConstants.USER_ID,
           LogConstants.AUTH,
@@ -96,13 +98,17 @@ public class AuthLoginHelper {
       return;
     }
 
-    AuthTokenPayload verificationToken = accessTokenHelper.generateVerifyLoginDeviceToken(user);
-    var loginDeviceEmailMessage =
-        loginDeviceEmailHelper.buildVerifyLoginDeviceEmailMessage(
-            user.getEmail(), verificationToken.accessToken(), verificationToken.expiresIn());
-
     try {
-      emailService.send(loginDeviceEmailMessage);
+      AuthTokenDto verificationToken =
+          accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_LOGIN_DEVICE);
+      var loginDeviceEmailMessage =
+          authEmailFactory.buildVerifyLoginDeviceEmailMessage(
+              user.getEmail(), verificationToken.token(), verificationToken.expiresIn());
+      EmailSendResult sendResult = emailSender.send(loginDeviceEmailMessage);
+      if (sendResult == EmailSendResult.SKIPPED_DAILY_QUOTA) {
+        throw EmailException.of(
+            ErrorDefinition.EMAIL_DELIVERY_FAILED, null, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
     } catch (RuntimeException ex) {
       rollbackLoginVerificationEmailCooldown(userId, user.getId(), ex);
       throw ex;

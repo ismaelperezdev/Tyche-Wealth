@@ -1,13 +1,14 @@
 package com.tychewealth.service.helper.auth;
 
+import com.tychewealth.dto.auth.AuthTokenDto;
 import com.tychewealth.dto.auth.RegisteredUserResultDto;
 import com.tychewealth.dto.auth.request.RegisterRequestDto;
 import com.tychewealth.dto.user.UserResponseDto;
 import com.tychewealth.entity.UserEntity;
+import com.tychewealth.enums.AccessTokenType;
 import com.tychewealth.mapper.user.UserMapper;
 import com.tychewealth.repository.UserRepository;
-import com.tychewealth.service.helper.token.AccessTokenHelper;
-import com.tychewealth.service.token.AuthTokenPayload;
+import com.tychewealth.service.token.AccessTokenCodec;
 import java.time.Instant;
 import lombok.AllArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,16 +21,17 @@ public class AuthRegisterHelper {
   private final UserRepository userRepository;
   private final UserMapper userMapper;
   private final PasswordEncoder passwordEncoder;
-  private final AccessTokenHelper accessTokenHelper;
+  private final AccessTokenCodec accessTokenCodec;
 
   public RegisteredUserResultDto createUser(RegisterRequestDto register) {
     UserEntity toCreate = userMapper.create(register);
     toCreate.setPassword(passwordEncoder.encode(register.getPassword()));
     UserEntity created = userRepository.save(toCreate);
 
-    AuthTokenPayload verificationToken = accessTokenHelper.generateVerifyEmailToken(created);
+    AuthTokenDto verificationToken =
+        accessTokenCodec.generateToken(created, AccessTokenType.VERIFY_EMAIL);
     Instant verificationTokenExpiresAt =
-        accessTokenHelper.extractExpiration(verificationToken.accessToken());
+        accessTokenCodec.extractExpiration(verificationToken.token());
     created.setVerificationTokenExpiresAt(verificationTokenExpiresAt);
 
     UserResponseDto response = userMapper.toDto(created);

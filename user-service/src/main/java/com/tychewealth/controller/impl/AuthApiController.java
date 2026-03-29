@@ -1,16 +1,7 @@
 package com.tychewealth.controller.impl;
 
 import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
-import static com.tychewealth.constants.LogConstants.AUTH;
-import static com.tychewealth.constants.LogConstants.LOGIN_ACTION;
-import static com.tychewealth.constants.LogConstants.LOGIN_REQUEST_FIELDS;
-import static com.tychewealth.constants.LogConstants.LOGOUT_ACTION;
-import static com.tychewealth.constants.LogConstants.REFRESH_TOKEN_ACTION;
-import static com.tychewealth.constants.LogConstants.REGISTER_ACTION;
-import static com.tychewealth.constants.LogConstants.REGISTER_REQUEST_FIELDS;
-import static com.tychewealth.constants.LogConstants.REQUEST_START;
-import static com.tychewealth.constants.LogConstants.VERIFY_LOGIN_DEVICE_ACTION;
-import static com.tychewealth.constants.LogConstants.VERIFY_REGISTRATION_ACTION;
+import static com.tychewealth.constants.LogConstants.*;
 import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
 import static com.tychewealth.utils.LogContextFactory.mask;
@@ -22,6 +13,7 @@ import static org.springframework.http.ResponseEntity.status;
 import com.tychewealth.controller.AuthApi;
 import com.tychewealth.dto.auth.LoginResponseDto;
 import com.tychewealth.dto.auth.RefreshTokenResponseDto;
+import com.tychewealth.dto.auth.request.ForgotPasswordRequestDto;
 import com.tychewealth.dto.auth.request.LoginRequestDto;
 import com.tychewealth.dto.auth.request.RefreshTokenRequestDto;
 import com.tychewealth.dto.auth.request.RegisterRequestDto;
@@ -66,6 +58,17 @@ public class AuthApiController implements AuthApi {
         .header(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
         .header(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE)
         .header(SET_COOKIE, trustedDeviceCookie.toString())
+        .build();
+  }
+
+  @Override
+  public ResponseEntity<Void> forgotPassword(ForgotPasswordRequestDto requestDto) {
+    log.info(REQUEST_START, AUTH, FORGOT_PASSWORD_ACTION);
+
+    authService.forgotPassword(requestDto);
+    return ResponseEntity.noContent()
+        .header(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
+        .header(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE)
         .build();
   }
 

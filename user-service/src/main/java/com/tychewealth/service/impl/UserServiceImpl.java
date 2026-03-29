@@ -6,15 +6,17 @@ import com.tychewealth.dto.user.request.UserUpdateRequestDto;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.mapper.user.UserMapper;
 import com.tychewealth.service.UserService;
-import com.tychewealth.service.helper.token.TokenStateHelper;
 import com.tychewealth.service.helper.user.UserHelper;
 import com.tychewealth.service.helper.user.UserValidationHelper;
+import com.tychewealth.service.token.TokenStateStore;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+@Slf4j
 @Service
 @AllArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -22,7 +24,7 @@ public class UserServiceImpl implements UserService {
   private final UserMapper userMapper;
   private final UserHelper userHelper;
   private final UserValidationHelper userValidationHelper;
-  private final TokenStateHelper tokenStateHelper;
+  private final TokenStateStore tokenStateStore;
 
   @Override
   public UserResponseDto retrieve(Long userId) {
@@ -61,7 +63,7 @@ public class UserServiceImpl implements UserService {
 
   private void revokeAccessTokenAfterCommit(String authorizationHeader) {
     if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-      tokenStateHelper.revokeAccessTokenIfPresent(authorizationHeader);
+      tokenStateStore.revokeAccessTokenIfPresent(authorizationHeader);
       return;
     }
 
@@ -69,7 +71,11 @@ public class UserServiceImpl implements UserService {
         new TransactionSynchronization() {
           @Override
           public void afterCommit() {
-            tokenStateHelper.revokeAccessTokenIfPresent(authorizationHeader);
+            try {
+              tokenStateStore.revokeAccessTokenIfPresent(authorizationHeader);
+            } catch (Exception ex) {
+              log.error("Failed to revoke access token after commit", ex);
+            }
           }
         });
   }

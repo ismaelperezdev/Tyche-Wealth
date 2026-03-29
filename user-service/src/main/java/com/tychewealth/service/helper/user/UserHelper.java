@@ -8,7 +8,7 @@ import com.tychewealth.error.exception.UserException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.mapper.user.UserMapper;
 import com.tychewealth.repository.UserRepository;
-import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
+import com.tychewealth.service.helper.auth.AuthRefreshTokenHelper;
 import com.tychewealth.service.monitoring.UserMetrics;
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;

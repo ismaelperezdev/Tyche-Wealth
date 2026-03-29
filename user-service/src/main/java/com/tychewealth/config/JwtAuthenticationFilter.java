@@ -3,7 +3,7 @@ package com.tychewealth.config;
 import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 
 import com.tychewealth.error.exception.AuthException;
-import com.tychewealth.service.helper.token.TokenValidationHelper;
+import com.tychewealth.service.token.TokenValidator;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,7 +21,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-  private final TokenValidationHelper tokenValidationHelper;
+  private final TokenValidator tokenValidator;
   private final AuthenticationEntryPoint authenticationEntryPoint;
 
   @Override
@@ -41,7 +41,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     try {
-      Long userId = tokenValidationHelper.validateAndExtractUserId(authorizationHeader);
+      Long userId = tokenValidator.validateAndExtractUserId(authorizationHeader);
       UsernamePasswordAuthenticationToken authenticatedUser =
           new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
       SecurityContextHolder.getContext().setAuthentication(authenticatedUser);

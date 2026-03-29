@@ -1,8 +1,10 @@
 package com.tychewealth.service.impl;
 
 import com.tychewealth.constants.LogConstants;
+import com.tychewealth.dto.auth.AuthTokenDto;
 import com.tychewealth.dto.auth.LoginResponseDto;
 import com.tychewealth.dto.auth.RefreshTokenResponseDto;
+import com.tychewealth.dto.auth.request.ForgotPasswordRequestDto;
 import com.tychewealth.dto.auth.request.LoginRequestDto;
 import com.tychewealth.dto.auth.request.RefreshTokenRequestDto;
 import com.tychewealth.dto.auth.request.RegisterRequestDto;
@@ -10,27 +12,26 @@ import com.tychewealth.dto.auth.request.ResendVerificationEmailRequestDto;
 import com.tychewealth.dto.user.UserResponseDto;
 import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
-import com.tychewealth.error.exception.AuthException;
-import com.tychewealth.error.handler.ErrorDefinition;
+import com.tychewealth.enums.AccessTokenType;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.AuthService;
+import com.tychewealth.service.email.VerificationEmailWorkflow;
+import com.tychewealth.service.helper.auth.AuthForgotPasswordHelper;
 import com.tychewealth.service.helper.auth.AuthLoginHelper;
+import com.tychewealth.service.helper.auth.AuthRefreshTokenHelper;
 import com.tychewealth.service.helper.auth.AuthRegisterHelper;
+import com.tychewealth.service.helper.auth.AuthResendVerificationEmailHelper;
 import com.tychewealth.service.helper.auth.AuthValidationHelper;
-import com.tychewealth.service.helper.email.VerificationEmailHelper;
-import com.tychewealth.service.helper.token.AccessTokenHelper;
-import com.tychewealth.service.helper.token.AuthRefreshTokenHelper;
-import com.tychewealth.service.helper.token.TokenStateHelper;
-import com.tychewealth.service.helper.token.TokenValidationHelper;
-import com.tychewealth.service.helper.trusteddevice.TrustedDeviceHelper;
+import com.tychewealth.service.helper.auth.AuthVerifyEmailHelper;
+import com.tychewealth.service.helper.auth.AuthVerifyLoginDeviceHelper;
 import com.tychewealth.service.monitoring.AuthMetrics;
-import com.tychewealth.service.token.AuthTokenPayload;
-import com.tychewealth.utils.Utils;
+import com.tychewealth.service.token.AccessTokenCodec;
+import com.tychewealth.service.token.TokenStateStore;
+import com.tychewealth.service.token.TokenValidator;
 import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,55 +44,33 @@ public class AuthServiceImpl implements AuthService {
   private final AuthValidationHelper authValidationHelper;
   private final AuthRegisterHelper authRegisterHelper;
   private final AuthLoginHelper authLoginHelper;
-  private final VerificationEmailHelper verificationEmailHelper;
-  private final TokenStateHelper tokenStateHelper;
+  private final AuthResendVerificationEmailHelper authResendVerificationEmailHelper;
+  private final AuthVerifyEmailHelper authVerifyEmailHelper;
+  private final AuthVerifyLoginDeviceHelper authVerifyLoginDeviceHelper;
+  private final VerificationEmailWorkflow verificationEmailWorkflow;
+  private final TokenStateStore tokenStateStore;
   private final AuthRefreshTokenHelper authRefreshTokenHelper;
-  private final AccessTokenHelper accessTokenHelper;
-  private final TokenValidationHelper tokenValidationHelper;
-  private final TrustedDeviceHelper trustedDeviceHelper;
+  private final AccessTokenCodec accessTokenCodec;
+  private final TokenValidator tokenValidator;
+  private final AuthForgotPasswordHelper authForgotPasswordHelper;
   private final AuthMetrics authMetrics;
   private final UserRepository userRepository;
 
   @Override
   @Transactional
   public ResponseCookie verifyEmail(String token) {
-    if (token == null || token.isBlank()) {
-      throw new AuthException(ErrorDefinition.GENERIC_BAD_REQUEST, null, HttpStatus.BAD_REQUEST);
-    }
-
-    Long userId = accessTokenHelper.extractVerifyEmailUserId(token);
-    UserEntity user =
-        userRepository
-            .findByIdAndDeletedAtIsNull(userId)
-            .orElseThrow(
-                () ->
-                    new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED));
-    if (user.isVerified()) {
-      return trustedDeviceHelper.createTrustedDeviceCookie(user);
-    }
-
-    user.setVerified(true);
-    user.setVerificationTokenExpiresAt(null);
-    userRepository.save(user);
-    return trustedDeviceHelper.createTrustedDeviceCookie(user);
+    return authVerifyEmailHelper.verify(token);
   }
 
   @Override
   @Transactional
   public ResponseCookie verifyLoginDevice(String token) {
-    if (token == null || token.isBlank()) {
-      throw new AuthException(ErrorDefinition.GENERIC_BAD_REQUEST, null, HttpStatus.BAD_REQUEST);
-    }
+    return authVerifyLoginDeviceHelper.verify(token);
+  }
 
-    Long userId = accessTokenHelper.extractVerifyLoginDeviceUserId(token);
-    UserEntity user =
-        userRepository
-            .findByIdAndDeletedAtIsNull(userId)
-            .orElseThrow(
-                () ->
-                    new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED));
-
-    return trustedDeviceHelper.createTrustedDeviceCookie(user);
+  @Override
+  public void forgotPassword(ForgotPasswordRequestDto requestDto) {
+    authForgotPasswordHelper.forgotPassword(requestDto);
   }
 
   @Override
@@ -101,11 +80,14 @@ public class AuthServiceImpl implements AuthService {
 
     try {
       var registeredUser = authRegisterHelper.createUser(register);
+      Instant failedAttemptExpiry =
+          accessTokenCodec.extractExpiration(registeredUser.verificationToken().token());
 
-      verificationEmailHelper.scheduleVerificationEmail(
+      verificationEmailWorkflow.scheduleVerificationEmail(
           registeredUser.response().getId(),
           registeredUser.response().getEmail(),
           registeredUser.verificationToken(),
+          failedAttemptExpiry,
           null,
           () -> {
             authMetrics.recordRegisterSuccess();
@@ -126,24 +108,7 @@ public class AuthServiceImpl implements AuthService {
   @Transactional
   public void resendVerificationEmail(
       ResendVerificationEmailRequestDto resendVerificationEmailRequestDto) {
-    String normalizedEmail = Utils.normalizeIdentity(resendVerificationEmailRequestDto.getEmail());
-    UserEntity user =
-        userRepository.findByEmailAndDeletedAtIsNullForUpdate(normalizedEmail).orElse(null);
-
-    if (user == null || !authValidationHelper.canResendVerificationEmail(user)) {
-      return;
-    }
-
-    Instant previousVerificationTokenExpiresAt = user.getVerificationTokenExpiresAt();
-    AuthTokenPayload verificationToken = accessTokenHelper.generateVerifyEmailToken(user);
-    user.setVerificationTokenExpiresAt(
-        accessTokenHelper.extractExpiration(verificationToken.accessToken()));
-    verificationEmailHelper.scheduleVerificationEmail(
-        user.getId(),
-        user.getEmail(),
-        verificationToken,
-        previousVerificationTokenExpiresAt,
-        () -> {});
+    authResendVerificationEmailHelper.resendVerificationEmail(resendVerificationEmailRequestDto);
   }
 
   @Override
@@ -155,15 +120,15 @@ public class AuthServiceImpl implements AuthService {
   @Override
   @Transactional
   public RefreshTokenResponseDto refresh(RefreshTokenRequestDto refreshTokenRequestDto) {
-    tokenValidationHelper.validateRefreshTokenRequest(refreshTokenRequestDto);
+    tokenValidator.validateRefreshTokenRequest(refreshTokenRequestDto);
 
     RefreshTokenEntity currentRefreshToken =
         authRefreshTokenHelper.validateRefreshToken(refreshTokenRequestDto.getRefreshToken());
 
     UserEntity user = currentRefreshToken.getUser();
-    AuthTokenPayload accessTokenPayload = accessTokenHelper.generateAccessToken(user);
+    AuthTokenDto accessTokenPayload = accessTokenCodec.generateToken(user, AccessTokenType.ACCESS);
 
-    tokenStateHelper.unlinkRefreshToken(refreshTokenRequestDto.getRefreshToken());
+    tokenStateStore.unlinkRefreshToken(refreshTokenRequestDto.getRefreshToken());
     AuthRefreshTokenHelper.LinkedRefreshToken newRefreshToken =
         authRefreshTokenHelper.saveToken(
             user, accessTokenPayload.jti(), LogConstants.REFRESH_TOKEN_ACTION);
@@ -171,7 +136,7 @@ public class AuthServiceImpl implements AuthService {
 
     return new RefreshTokenResponseDto(
         accessTokenPayload.tokenType(),
-        accessTokenPayload.accessToken(),
+        accessTokenPayload.token(),
         accessTokenPayload.expiresIn(),
         newRefreshToken.token());
   }
@@ -179,16 +144,16 @@ public class AuthServiceImpl implements AuthService {
   @Override
   @Transactional
   public void logout(String authorizationHeader, RefreshTokenRequestDto refreshTokenRequestDto) {
-    tokenValidationHelper.validateRefreshTokenRequest(refreshTokenRequestDto);
+    tokenValidator.validateRefreshTokenRequest(refreshTokenRequestDto);
     String refreshTokenValue = refreshTokenRequestDto.getRefreshToken();
     RefreshTokenEntity refreshToken =
         authRefreshTokenHelper.validateRefreshToken(refreshTokenValue);
-    tokenStateHelper.revokeAccessTokenIfPresent(authorizationHeader);
-    tokenStateHelper
+    tokenStateStore.revokeAccessTokenIfPresent(authorizationHeader);
+    tokenStateStore
         .findAccessTokenJtiByRefreshToken(refreshTokenValue)
         .ifPresent(
-            tokenId -> tokenStateHelper.revokeAccessToken(tokenId, refreshToken.getExpiresAt()));
-    tokenStateHelper.unlinkRefreshToken(refreshTokenValue);
+            tokenId -> tokenStateStore.revokeAccessToken(tokenId, refreshToken.getExpiresAt()));
+    tokenStateStore.unlinkRefreshToken(refreshTokenValue);
 
     log.info(
         LogConstants.REQUEST_SUCCESS + LogConstants.USER_ID,

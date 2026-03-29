@@ -1,7 +1,7 @@
 package com.tychewealth.config;
 
 import com.tychewealth.dto.email.ResendEmailPropertiesDto;
-import com.tychewealth.service.helper.email.EmailServiceHelper;
+import com.tychewealth.email.EmailSender;
 import com.tychewealth.service.ratelimit.RateLimitStore;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -23,7 +23,7 @@ public class EmailConfig {
   }
 
   @Bean
-  public EmailServiceHelper emailServiceHelper(
+  public EmailSender emailSender(
       RestClient.Builder restClientBuilder,
       ResendEmailPropertiesDto resendEmailProperties,
       @Value("${app.email.daily-limit:80}") int emailDailyLimit,
@@ -38,7 +38,7 @@ public class EmailConfig {
     Assert.isTrue(emailDailyLimit > 0, "app.email.daily-limit must be a positive integer");
 
     RestClient restClient = restClientBuilder.baseUrl(resendEmailProperties.getBaseUrl()).build();
-    return new EmailServiceHelper(
+    return new EmailSender(
         restClient, resendEmailProperties, emailDailyLimit, rateLimitStore, emailClock);
   }
 
@@ -54,6 +54,12 @@ public class EmailConfig {
       @Value("${app.auth.verify-login-device-url}") String verifyLoginDeviceUrl) {
     Assert.hasText(verifyLoginDeviceUrl, "app.auth.verify-login-device-url must be configured");
     return parseAbsoluteUri(verifyLoginDeviceUrl, "app.auth.verify-login-device-url");
+  }
+
+  @Bean
+  public URI forgotPasswordUri(@Value("${app.auth.forgot-password-url}") String forgotPasswordUrl) {
+    Assert.hasText(forgotPasswordUrl, "app.auth.forgot-password-url must be configured");
+    return parseAbsoluteUri(forgotPasswordUrl, "app.auth.forgot-password-url");
   }
 
   private URI parseAbsoluteUri(String value, String propertyName) {

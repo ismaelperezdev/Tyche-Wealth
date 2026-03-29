@@ -1,4 +1,4 @@
-package com.tychewealth.service.helper.token;
+package com.tychewealth.service.token;
 
 import static com.tychewealth.constants.LogConstants.ACCESS_TOKEN_ACTION;
 import static com.tychewealth.constants.LogConstants.AUTH;
@@ -20,25 +20,25 @@ import org.springframework.util.StringUtils;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class TokenValidationHelper {
+public class TokenValidator {
 
-  private final AccessTokenHelper accessTokenHelper;
-  private final TokenStateHelper tokenStateHelper;
+  private final AccessTokenCodec accessTokenCodec;
+  private final TokenStateStore tokenStateStore;
   private final AuthMetrics authMetrics;
 
   public Long validateAndExtractUserId(String authorizationHeader) {
     String token = extractBearerToken(authorizationHeader);
-    String tokenId = accessTokenHelper.extractTokenId(token);
-    if (tokenStateHelper.isAccessTokenRevoked(tokenId)) {
+    AccessTokenCodec.ParsedAccessToken parsedToken = accessTokenCodec.parseAccessToken(token);
+    if (tokenStateStore.isAccessTokenRevoked(parsedToken.tokenId())) {
       log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_ACCESS_TOKEN_MESSAGE);
       throw new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);
     }
 
-    return accessTokenHelper.extractUserId(token);
+    return parsedToken.userId();
   }
 
   public String extractBearerToken(String authorizationHeader) {
-    return tokenStateHelper.extractBearerToken(authorizationHeader);
+    return tokenStateStore.extractBearerToken(authorizationHeader);
   }
 
   public void validateRefreshTokenRequest(RefreshTokenRequestDto refreshTokenRequestDto) {

@@ -1,4 +1,4 @@
-package com.tychewealth.service.helper.token;
+package com.tychewealth.service.helper.auth;
 
 import static com.tychewealth.constants.AuthConstants.REFRESH_TOKEN_BYTE_LENGTH;
 import static com.tychewealth.constants.AuthConstants.TOKEN_LINK_MAX_ATTEMPTS;
@@ -15,6 +15,7 @@ import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.service.monitoring.AuthMetrics;
+import com.tychewealth.service.token.TokenStateStore;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
@@ -31,7 +32,7 @@ import org.springframework.util.StringUtils;
 public class AuthRefreshTokenHelper {
 
   private final RefreshTokenRepository refreshTokenRepository;
-  private final TokenStateHelper tokenStateHelper;
+  private final TokenStateStore tokenStateStore;
   private final AuthMetrics authMetrics;
   private final SecureRandom secureRandom = new SecureRandom();
   private final long refreshTokenTtlSeconds;
@@ -39,7 +40,7 @@ public class AuthRefreshTokenHelper {
 
   public AuthRefreshTokenHelper(
       RefreshTokenRepository refreshTokenRepository,
-      TokenStateHelper tokenStateHelper,
+      TokenStateStore tokenStateStore,
       AuthMetrics authMetrics,
       @Value("${app.auth.jwt.refresh-token-ttl-seconds:1209600}") long refreshTokenTtlSeconds,
       @Value("${app.auth.jwt.refresh-token-pepper}") String refreshTokenPepper) {
@@ -50,7 +51,7 @@ public class AuthRefreshTokenHelper {
       throw new IllegalArgumentException("Refresh token pepper must be configured");
     }
     this.refreshTokenRepository = refreshTokenRepository;
-    this.tokenStateHelper = tokenStateHelper;
+    this.tokenStateStore = tokenStateStore;
     this.authMetrics = authMetrics;
     this.refreshTokenTtlSeconds = refreshTokenTtlSeconds;
     this.refreshTokenPepper = refreshTokenPepper;
@@ -139,7 +140,7 @@ public class AuthRefreshTokenHelper {
     RuntimeException lastFailure = null;
     for (int attempt = 1; attempt <= TOKEN_LINK_MAX_ATTEMPTS; attempt++) {
       try {
-        tokenStateHelper.linkRefreshTokenToAccessToken(
+        tokenStateStore.linkRefreshTokenToAccessToken(
             refreshToken, accessTokenJti, refreshTokenExpiresAt);
         return;
       } catch (RuntimeException ex) {

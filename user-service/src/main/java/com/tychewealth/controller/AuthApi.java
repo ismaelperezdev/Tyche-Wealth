@@ -6,6 +6,7 @@ import static com.tychewealth.constants.ApiConstants.URL_FOLDER_V1;
 
 import com.tychewealth.dto.auth.LoginResponseDto;
 import com.tychewealth.dto.auth.RefreshTokenResponseDto;
+import com.tychewealth.dto.auth.request.ForgotPasswordRequestDto;
 import com.tychewealth.dto.auth.request.LoginRequestDto;
 import com.tychewealth.dto.auth.request.RefreshTokenRequestDto;
 import com.tychewealth.dto.auth.request.RegisterRequestDto;
@@ -30,6 +31,10 @@ public interface AuthApi {
 
   @GetMapping(value = "/verify-login-device", produces = REQUEST_PRODUCES)
   ResponseEntity<Void> verifyLoginDevice(@RequestParam("token") String token);
+
+  @GetMapping(value = "/forgot-password", produces = REQUEST_PRODUCES)
+  ResponseEntity<Void> forgotPassword(
+      @Valid @RequestBody ForgotPasswordRequestDto forgotPasswordRequestDto);
 
   @PostMapping(value = "/register", consumes = REQUEST_CONSUMES, produces = REQUEST_PRODUCES)
   ResponseEntity<UserResponseDto> register(@Valid @RequestBody RegisterRequestDto register);

@@ -1,10 +1,11 @@
-package com.tychewealth.config;
+package com.tychewealth.security;
 
 import static com.tychewealth.constants.SecurityConstants.ACTUATOR_PROMETHEUS_PATH;
 import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tychewealth.config.JwtAuthenticationFilter;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.error.handler.ErrorResponse;
 import com.tychewealth.service.monitoring.UserMetrics;
@@ -150,9 +151,9 @@ public class SecurityTestConfig {
 
   @Bean
   public JwtAuthenticationFilter jwtAuthenticationFilter(
-      com.tychewealth.service.helper.token.TokenValidationHelper tokenValidationHelper,
+      com.tychewealth.service.token.TokenValidator tokenValidator,
       AuthenticationEntryPoint authenticationEntryPoint) {
-    return new JwtAuthenticationFilter(tokenValidationHelper, authenticationEntryPoint);
+    return new JwtAuthenticationFilter(tokenValidator, authenticationEntryPoint);
   }
 
   @Bean

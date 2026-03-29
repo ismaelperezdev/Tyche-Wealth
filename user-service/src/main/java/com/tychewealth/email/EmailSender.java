@@ -1,4 +1,4 @@
-package com.tychewealth.service.helper.email;
+package com.tychewealth.email;
 
 import static com.tychewealth.constants.ApiConstants.RESEND_EMAILS_PATH;
 import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
@@ -14,10 +14,10 @@ import static com.tychewealth.utils.Utils.currentUtcDate;
 import static com.tychewealth.utils.Utils.durationUntilNextUtcMidnight;
 
 import com.tychewealth.dto.email.ResendEmailPropertiesDto;
+import com.tychewealth.dto.email.request.EmailMessageDto;
 import com.tychewealth.dto.email.request.ResendSendEmailRequestDto;
 import com.tychewealth.error.exception.EmailException;
 import com.tychewealth.error.handler.ErrorDefinition;
-import com.tychewealth.service.email.EmailMessage;
 import com.tychewealth.service.ratelimit.RateLimitStore;
 import java.time.Clock;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +29,7 @@ import org.springframework.web.client.RestClientException;
 
 @Slf4j
 @RequiredArgsConstructor
-public class EmailServiceHelper {
+public class EmailSender {
 
   private final RestClient restClient;
   private final ResendEmailPropertiesDto resendEmailProperties;
@@ -37,9 +37,9 @@ public class EmailServiceHelper {
   private final RateLimitStore rateLimitStore;
   private final Clock clock;
 
-  public void send(EmailMessage emailMessage) {
+  public EmailSendResult send(EmailMessageDto emailMessageDto) {
     if (!canSendWithinDailyQuota()) {
-      return;
+      return EmailSendResult.SKIPPED_DAILY_QUOTA;
     }
 
     try {
@@ -49,9 +49,10 @@ public class EmailServiceHelper {
           .contentType(MediaType.APPLICATION_JSON)
           .header(
               AUTHORIZATION_HEADER, TOKEN_TYPE_BEARER_PREFIX + resendEmailProperties.getApiKey())
-          .body(toResendRequest(emailMessage))
+          .body(toResendRequest(emailMessageDto))
           .retrieve()
           .toBodilessEntity();
+      return EmailSendResult.DELIVERED;
     } catch (RestClientException ex) {
       log.error(REQUEST_CONFLICT, EMAIL, SEND_ACTION, RESEND_DELIVERY_FAILED_MESSAGE, ex);
       throw EmailException.of(
@@ -73,12 +74,12 @@ public class EmailServiceHelper {
     return true;
   }
 
-  private ResendSendEmailRequestDto toResendRequest(EmailMessage emailMessage) {
+  private ResendSendEmailRequestDto toResendRequest(EmailMessageDto emailMessageDto) {
     return new ResendSendEmailRequestDto(
         resendEmailProperties.getFrom(),
-        emailMessage.to(),
-        emailMessage.subject(),
-        emailMessage.html(),
-        emailMessage.text());
+        emailMessageDto.to(),
+        emailMessageDto.subject(),
+        emailMessageDto.html(),
+        emailMessageDto.text());
   }
 }

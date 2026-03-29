@@ -50,8 +50,6 @@ services:
   redis:
     image: redis:8-alpine
     container_name: tyche-redis
-    profiles:
-      - cache
     ports:
       - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     command: ["redis-server", "--appendonly", "yes"]
