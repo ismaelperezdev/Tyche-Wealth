@@ -5,10 +5,12 @@ import com.tychewealth.constants.RedisConstants;
 import com.tychewealth.dto.auth.AuthTokenDto;
 import com.tychewealth.dto.auth.LoginResponseDto;
 import com.tychewealth.dto.user.UserResponseDto;
+import com.tychewealth.email.EmailSendResult;
 import com.tychewealth.email.EmailSender;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.enums.AccessTokenType;
 import com.tychewealth.error.exception.AuthException;
+import com.tychewealth.error.exception.EmailException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.mapper.user.UserMapper;
 import com.tychewealth.service.email.AuthEmailFactory;
@@ -96,14 +98,17 @@ public class AuthLoginHelper {
       return;
     }
 
-    AuthTokenDto verificationToken =
-        accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_LOGIN_DEVICE);
-    var loginDeviceEmailMessage =
-        authEmailFactory.buildVerifyLoginDeviceEmailMessage(
-            user.getEmail(), verificationToken.token(), verificationToken.expiresIn());
-
     try {
-      emailSender.send(loginDeviceEmailMessage);
+      AuthTokenDto verificationToken =
+          accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_LOGIN_DEVICE);
+      var loginDeviceEmailMessage =
+          authEmailFactory.buildVerifyLoginDeviceEmailMessage(
+              user.getEmail(), verificationToken.token(), verificationToken.expiresIn());
+      EmailSendResult sendResult = emailSender.send(loginDeviceEmailMessage);
+      if (sendResult == EmailSendResult.SKIPPED_DAILY_QUOTA) {
+        throw EmailException.of(
+            ErrorDefinition.EMAIL_DELIVERY_FAILED, null, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
     } catch (RuntimeException ex) {
       rollbackLoginVerificationEmailCooldown(userId, user.getId(), ex);
       throw ex;

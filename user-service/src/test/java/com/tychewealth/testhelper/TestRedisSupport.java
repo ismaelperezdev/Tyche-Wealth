@@ -11,10 +11,15 @@ import org.springframework.data.redis.core.script.RedisScript;
 
 public final class TestRedisSupport {
 
+  private static final String UNCHECKED = "unchecked";
+
   private TestRedisSupport() {}
 
   public static StringRedisTemplate stringRedisTemplate() {
-    InMemoryRedisState state = new InMemoryRedisState();
+    return stringRedisTemplate(new InMemoryRedisState());
+  }
+
+  public static StringRedisTemplate stringRedisTemplate(InMemoryRedisState state) {
     StringRedisTemplate redisTemplate = Mockito.mock(StringRedisTemplate.class);
     ValueOperations<String, String> valueOperations = valueOperations(state);
 
@@ -52,7 +57,7 @@ public final class TestRedisSupport {
         .delete(Mockito.anyString());
     Mockito.doAnswer(
             invocation -> {
-              @SuppressWarnings("unchecked")
+              @SuppressWarnings(UNCHECKED)
               Collection<String> keys = invocation.getArgument(0);
               state.deleteAll(keys);
               return (long) keys.size();
@@ -64,7 +69,7 @@ public final class TestRedisSupport {
                 Mockito.<RedisScript<Long>>any(), Mockito.<List<String>>any(), Mockito.anyString()))
         .thenAnswer(
             invocation -> {
-              @SuppressWarnings("unchecked")
+              @SuppressWarnings(UNCHECKED)
               java.util.List<String> keys = invocation.getArgument(1);
               long ttlMillis = Long.parseLong(invocation.getArgument(2));
               return state.increment(keys.getFirst(), ttlMillis);
@@ -74,7 +79,7 @@ public final class TestRedisSupport {
   }
 
   private static ValueOperations<String, String> valueOperations(InMemoryRedisState state) {
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings(UNCHECKED)
     ValueOperations<String, String> valueOperations = Mockito.mock(ValueOperations.class);
 
     Mockito.doAnswer(

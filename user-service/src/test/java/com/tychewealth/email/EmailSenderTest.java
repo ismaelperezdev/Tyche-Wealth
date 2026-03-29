@@ -11,7 +11,7 @@ import static com.tychewealth.constants.TestConstants.TEST_EMAIL_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_RESEND_API_KEY;
 import static com.tychewealth.constants.TestConstants.TEST_RESEND_BASE_URL;
 import static com.tychewealth.constants.TestConstants.TEST_RESEND_FROM;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
@@ -80,12 +80,14 @@ class EmailSenderTest {
                     """))
         .andRespond(withStatus(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON).body("{}"));
 
-    emailSender.send(
-        new EmailMessageDto(
-            TEST_EMAIL_VALID,
-            TEST_EMAIL_SUBJECT_VERIFY,
-            TEST_EMAIL_HTML_BODY,
-            TEST_EMAIL_TEXT_BODY));
+    assertSame(
+        EmailSendResult.DELIVERED,
+        emailSender.send(
+            new EmailMessageDto(
+                TEST_EMAIL_VALID,
+                TEST_EMAIL_SUBJECT_VERIFY,
+                TEST_EMAIL_HTML_BODY,
+                TEST_EMAIL_TEXT_BODY)));
 
     mockRestServiceServer.verify();
   }
@@ -103,7 +105,7 @@ class EmailSenderTest {
   }
 
   @Test
-  void sendSkipsDeliveryWhenDailyQuotaIsExceeded() {
+  void sendFailsWhenDailyQuotaIsExceeded() {
     mockRestServiceServer
         .expect(requestTo(TEST_RESEND_BASE_URL + RESEND_EMAILS_PATH))
         .andRespond(withStatus(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON).body("{}"));
@@ -111,21 +113,21 @@ class EmailSenderTest {
         .expect(requestTo(TEST_RESEND_BASE_URL + RESEND_EMAILS_PATH))
         .andRespond(withStatus(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON).body("{}"));
 
-    assertDoesNotThrow(
-        () ->
-            emailSender.send(
-                new EmailMessageDto(
-                    TEST_EMAIL_VALID, TEST_EMAIL_SUBJECT_VERIFY, TEST_EMAIL_HTML_BODY, null)));
-    assertDoesNotThrow(
-        () ->
-            emailSender.send(
-                new EmailMessageDto(
-                    TEST_EMAIL_VALID, TEST_EMAIL_SUBJECT_VERIFY, TEST_EMAIL_HTML_BODY, null)));
-    assertDoesNotThrow(
-        () ->
-            emailSender.send(
-                new EmailMessageDto(
-                    TEST_EMAIL_VALID, TEST_EMAIL_SUBJECT_VERIFY, TEST_EMAIL_HTML_BODY, null)));
+    assertSame(
+        EmailSendResult.DELIVERED,
+        emailSender.send(
+            new EmailMessageDto(
+                TEST_EMAIL_VALID, TEST_EMAIL_SUBJECT_VERIFY, TEST_EMAIL_HTML_BODY, null)));
+    assertSame(
+        EmailSendResult.DELIVERED,
+        emailSender.send(
+            new EmailMessageDto(
+                TEST_EMAIL_VALID, TEST_EMAIL_SUBJECT_VERIFY, TEST_EMAIL_HTML_BODY, null)));
+    assertSame(
+        EmailSendResult.SKIPPED_DAILY_QUOTA,
+        emailSender.send(
+            new EmailMessageDto(
+                TEST_EMAIL_VALID, TEST_EMAIL_SUBJECT_VERIFY, TEST_EMAIL_HTML_BODY, null)));
 
     mockRestServiceServer.verify();
   }

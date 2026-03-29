@@ -69,6 +69,7 @@ import com.tychewealth.dto.auth.RefreshTokenResponseDto;
 import com.tychewealth.dto.auth.request.ForgotPasswordRequestDto;
 import com.tychewealth.dto.auth.request.LoginRequestDto;
 import com.tychewealth.dto.auth.request.RegisterRequestDto;
+import com.tychewealth.dto.auth.request.ResendVerificationEmailRequestDto;
 import com.tychewealth.dto.email.request.EmailMessageDto;
 import com.tychewealth.email.EmailSender;
 import com.tychewealth.entity.RefreshTokenEntity;
@@ -139,6 +140,9 @@ class AuthApiControllerIntegrationTest {
     rateLimitConfig.resetAll();
     rateLimitStore.resetNamespace(AUTH_LOGIN_DEVICE_EMAIL_COOLDOWN_NAMESPACE);
     reset(emailSender);
+    org.mockito.Mockito.when(
+            emailSender.send(org.mockito.ArgumentMatchers.any(EmailMessageDto.class)))
+        .thenReturn(com.tychewealth.email.EmailSendResult.DELIVERED);
     validRequest =
         new RegisterRequestDto(TEST_EMAIL_LAURA, TEST_USERNAME_LAURA, TEST_PASSWORD_VALID);
     conflictByEmailRequest =
@@ -438,7 +442,7 @@ class AuthApiControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     objectMapper.writeValueAsString(
-                        new ForgotPasswordRequestDto(existingLoginUser.getEmail()))))
+                        new ResendVerificationEmailRequestDto(existingLoginUser.getEmail()))))
         .andExpect(status().isNoContent());
   }
 
@@ -455,7 +459,7 @@ class AuthApiControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     objectMapper.writeValueAsString(
-                        new ForgotPasswordRequestDto(existingLoginUser.getEmail()))))
+                        new ResendVerificationEmailRequestDto(existingLoginUser.getEmail()))))
         .andExpect(status().isNoContent());
 
     ArgumentCaptor<EmailMessageDto> emailCaptor = ArgumentCaptor.forClass(EmailMessageDto.class);

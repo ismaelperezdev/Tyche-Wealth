@@ -5,6 +5,7 @@ import static org.springframework.transaction.support.TransactionSynchronization
 import com.tychewealth.constants.LogConstants;
 import com.tychewealth.dto.auth.AuthTokenDto;
 import com.tychewealth.dto.email.request.EmailMessageDto;
+import com.tychewealth.email.EmailSendResult;
 import com.tychewealth.email.EmailSender;
 import com.tychewealth.repository.UserRepository;
 import java.time.Instant;
@@ -68,7 +69,12 @@ public class VerificationEmailWorkflow {
       EmailMessageDto verificationEmailMessageDto,
       Runnable onSuccess) {
     try {
-      emailSender.send(verificationEmailMessageDto);
+      EmailSendResult sendResult = emailSender.send(verificationEmailMessageDto);
+      if (sendResult != EmailSendResult.DELIVERED) {
+        self.restoreVerificationTokenExpiryWithErrorHandling(
+            userId, failedAttemptExpiry, previousVerificationTokenExpiresAt);
+        return;
+      }
     } catch (RuntimeException ex) {
       self.restoreVerificationTokenExpiryWithErrorHandling(
           userId, failedAttemptExpiry, previousVerificationTokenExpiresAt);

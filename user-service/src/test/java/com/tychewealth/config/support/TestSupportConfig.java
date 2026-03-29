@@ -9,6 +9,7 @@ import com.tychewealth.config.RefreshRateLimitConfig;
 import com.tychewealth.config.TestDatabaseConfig;
 import com.tychewealth.controller.impl.AuthApiController;
 import com.tychewealth.controller.impl.UserApiController;
+import com.tychewealth.email.EmailSendResult;
 import com.tychewealth.email.EmailSender;
 import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.TrustedDeviceEntity;
@@ -103,17 +104,26 @@ public class TestSupportConfig {
 
   @Bean
   public EmailSender emailSender() {
-    return Mockito.mock(EmailSender.class);
+    EmailSender emailSender = Mockito.mock(EmailSender.class);
+    Mockito.when(emailSender.send(Mockito.any())).thenReturn(EmailSendResult.DELIVERED);
+    return emailSender;
   }
 
   @Bean
-  public StringRedisTemplate stringRedisTemplate() {
-    return TestRedisSupport.stringRedisTemplate();
+  public TestRedisSupport.InMemoryRedisState testRedisState() {
+    return new TestRedisSupport.InMemoryRedisState();
   }
 
   @Bean
-  public RedisTemplate<String, String> redisTemplate() {
-    return TestRedisSupport.redisTemplate();
+  public StringRedisTemplate stringRedisTemplate(
+      TestRedisSupport.InMemoryRedisState testRedisState) {
+    return TestRedisSupport.stringRedisTemplate(testRedisState);
+  }
+
+  @Bean
+  public RedisTemplate<String, String> redisTemplate(
+      TestRedisSupport.InMemoryRedisState testRedisState) {
+    return TestRedisSupport.redisTemplate(testRedisState);
   }
 
   @Bean

@@ -1,9 +1,14 @@
 package com.tychewealth.service.helper.auth;
 
 import static com.tychewealth.constants.AuthConstants.FORGOT_PASSWORD_TOKEN_PURPOSE;
+import static com.tychewealth.constants.LogConstants.AUTH;
+import static com.tychewealth.constants.LogConstants.FORGOT_PASSWORD_ACTION;
+import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
+import static com.tychewealth.constants.LogConstants.USER_ID;
 
 import com.tychewealth.dto.auth.AuthTokenDto;
 import com.tychewealth.dto.auth.request.ForgotPasswordRequestDto;
+import com.tychewealth.email.EmailSendResult;
 import com.tychewealth.email.EmailSender;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.enums.AccessTokenType;
@@ -49,11 +54,15 @@ public class AuthForgotPasswordHelper {
     }
 
     try {
-      emailSender.send(
-          authEmailFactory.buildForgotPasswordEmailMessage(
-              user.getEmail(), forgotPasswordToken.token(), forgotPasswordToken.expiresIn()));
+      EmailSendResult sendResult =
+          emailSender.send(
+              authEmailFactory.buildForgotPasswordEmailMessage(
+                  user.getEmail(), forgotPasswordToken.token(), forgotPasswordToken.expiresIn()));
+      if (sendResult == EmailSendResult.SKIPPED_DAILY_QUOTA) {
+        rollbackStoredTokenAfterNonDelivery(user.getId());
+      }
     } catch (RuntimeException ex) {
-      deleteToken(user.getId());
+      rollbackStoredTokenAfterSendFailure(user.getId(), ex);
       throw ex;
     }
   }
@@ -65,6 +74,35 @@ public class AuthForgotPasswordHelper {
 
   public void deleteToken(Long userId) {
     redisTemplate.delete(forgotPasswordKey(userId));
+  }
+
+  private void rollbackStoredTokenAfterNonDelivery(Long userId) {
+    try {
+      deleteToken(userId);
+    } catch (RuntimeException ex) {
+      log.warn(
+          REQUEST_CONFLICT + USER_ID,
+          AUTH,
+          FORGOT_PASSWORD_ACTION,
+          "failed to delete forgot-password token after non-delivery",
+          userId,
+          ex);
+    }
+  }
+
+  private void rollbackStoredTokenAfterSendFailure(Long userId, RuntimeException sendException) {
+    try {
+      deleteToken(userId);
+    } catch (RuntimeException rollbackException) {
+      sendException.addSuppressed(rollbackException);
+      log.warn(
+          REQUEST_CONFLICT + USER_ID,
+          AUTH,
+          FORGOT_PASSWORD_ACTION,
+          "failed to delete forgot-password token after send failure",
+          userId,
+          rollbackException);
+    }
   }
 
   private String forgotPasswordKey(Long userId) {

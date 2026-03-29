@@ -37,9 +37,9 @@ public class EmailSender {
   private final RateLimitStore rateLimitStore;
   private final Clock clock;
 
-  public void send(EmailMessageDto emailMessageDto) {
+  public EmailSendResult send(EmailMessageDto emailMessageDto) {
     if (!canSendWithinDailyQuota()) {
-      return;
+      return EmailSendResult.SKIPPED_DAILY_QUOTA;
     }
 
     try {
@@ -52,6 +52,7 @@ public class EmailSender {
           .body(toResendRequest(emailMessageDto))
           .retrieve()
           .toBodilessEntity();
+      return EmailSendResult.DELIVERED;
     } catch (RestClientException ex) {
       log.error(REQUEST_CONFLICT, EMAIL, SEND_ACTION, RESEND_DELIVERY_FAILED_MESSAGE, ex);
       throw EmailException.of(
