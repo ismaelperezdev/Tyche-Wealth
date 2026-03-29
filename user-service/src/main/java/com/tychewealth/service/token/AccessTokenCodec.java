@@ -45,7 +45,7 @@ public class AccessTokenCodec {
       @Value("${app.auth.jwt.access-token-ttl-seconds:900}") long accessTokenTtlSeconds,
       @Value("${app.auth.jwt.verify-email-token-ttl-seconds:86400}")
           long verifyEmailTokenTtlSeconds,
-      @Value("${app.auth.jwt.verify-login-device-token-ttl-seconds:900}")
+      @Value("${app.auth.jwt.verify-login-device-token-ttl-seconds:86400}")
           long verifyLoginDeviceTokenTtlSeconds,
       @Value("${app.auth.jwt.forgot-password-token-ttl-seconds:1800}")
           long forgotPasswordTokenTtlSeconds) {
