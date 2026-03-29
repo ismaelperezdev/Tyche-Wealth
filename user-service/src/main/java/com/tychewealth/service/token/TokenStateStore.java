@@ -76,7 +76,11 @@ public class TokenStateStore {
         new TransactionSynchronization() {
           @Override
           public void afterCommit() {
-            redisTemplate.delete(redisKey);
+            try {
+              redisTemplate.delete(redisKey);
+            } catch (RuntimeException ex) {
+              authMetrics.recordTokenStateUnavailable();
+            }
           }
         });
   }

@@ -34,12 +34,13 @@ public class AuthResendVerificationEmailHelper {
     Instant previousVerificationTokenExpiresAt = user.getVerificationTokenExpiresAt();
     AuthTokenDto verificationToken =
         accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_EMAIL);
-    user.setVerificationTokenExpiresAt(
-        accessTokenCodec.extractExpiration(verificationToken.accessToken()));
+    Instant failedAttemptExpiry = accessTokenCodec.extractExpiration(verificationToken.token());
+    user.setVerificationTokenExpiresAt(failedAttemptExpiry);
     verificationEmailWorkflow.scheduleVerificationEmail(
         user.getId(),
         user.getEmail(),
         verificationToken,
+        failedAttemptExpiry,
         previousVerificationTokenExpiresAt,
         () -> {});
   }

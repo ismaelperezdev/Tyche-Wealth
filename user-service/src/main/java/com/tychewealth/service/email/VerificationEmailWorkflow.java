@@ -39,25 +39,31 @@ public class VerificationEmailWorkflow {
       Long userId,
       String email,
       AuthTokenDto verificationToken,
+      Instant failedAttemptExpiry,
       Instant previousVerificationTokenExpiresAt,
       Runnable onSuccess) {
 
     var verificationEmailMessage =
         authEmailFactory.buildVerifyEmailMessage(
-            email, verificationToken.accessToken(), verificationToken.expiresIn());
+            email, verificationToken.token(), verificationToken.expiresIn());
 
     registerSynchronization(
         new TransactionSynchronization() {
           @Override
           public void afterCommit() {
             handleVerificationEmailAfterCommit(
-                userId, previousVerificationTokenExpiresAt, verificationEmailMessage, onSuccess);
+                userId,
+                failedAttemptExpiry,
+                previousVerificationTokenExpiresAt,
+                verificationEmailMessage,
+                onSuccess);
           }
         });
   }
 
   private void handleVerificationEmailAfterCommit(
       Long userId,
+      Instant failedAttemptExpiry,
       Instant previousVerificationTokenExpiresAt,
       EmailMessageDto verificationEmailMessageDto,
       Runnable onSuccess) {
@@ -65,7 +71,7 @@ public class VerificationEmailWorkflow {
       emailSender.send(verificationEmailMessageDto);
     } catch (RuntimeException ex) {
       self.restoreVerificationTokenExpiryWithErrorHandling(
-          userId, previousVerificationTokenExpiresAt);
+          userId, failedAttemptExpiry, previousVerificationTokenExpiresAt);
       throw ex;
     }
 
@@ -74,12 +80,18 @@ public class VerificationEmailWorkflow {
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void restoreVerificationTokenExpiryWithErrorHandling(
-      Long userId, Instant previousVerificationTokenExpiresAt) {
+      Long userId, Instant failedAttemptExpiry, Instant previousVerificationTokenExpiresAt) {
     try {
       userRepository
           .findById(userId)
           .ifPresent(
               user -> {
+                if (failedAttemptExpiry == null) {
+                  return;
+                }
+                if (!failedAttemptExpiry.equals(user.getVerificationTokenExpiresAt())) {
+                  return;
+                }
                 user.setVerificationTokenExpiresAt(previousVerificationTokenExpiresAt);
                 userRepository.save(user);
               });

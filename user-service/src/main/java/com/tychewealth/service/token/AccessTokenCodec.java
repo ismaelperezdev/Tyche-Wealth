@@ -7,20 +7,30 @@ import static com.tychewealth.constants.AuthConstants.VERIFY_LOGIN_DEVICE_TOKEN_
 import static com.tychewealth.constants.AuthConstants.VERIFY_REGISTRATION_TOKEN_PURPOSE;
 import static com.tychewealth.constants.CommonConstants.FIELD_EMAIL;
 import static com.tychewealth.constants.CommonConstants.FIELD_USERNAME;
+import static com.tychewealth.constants.LogConstants.ACCESS_TOKEN_ACTION;
+import static com.tychewealth.constants.LogConstants.AUTH;
+import static com.tychewealth.constants.LogConstants.INVALID_ACCESS_TOKEN_MESSAGE;
+import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 
 import com.tychewealth.dto.auth.AuthTokenDto;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.enums.AccessTokenType;
+import com.tychewealth.error.exception.AuthException;
+import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.service.token.support.AccessTokenSupport;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import java.time.Instant;
 import java.util.Date;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+@Slf4j
 @Component
 public class AccessTokenCodec {
 
@@ -60,9 +70,10 @@ public class AccessTokenCodec {
     String purpose = resolvePurpose(tokenType);
     Instant issuedAt = Instant.now();
     String jti = createTokenId();
+    boolean includeSensitiveClaims = tokenType == AccessTokenType.ACCESS;
 
     String token =
-        buildJwtBuilder(user, issuedAt, ttlSeconds, jti, purpose)
+        buildJwtBuilder(user, issuedAt, ttlSeconds, jti, purpose, includeSensitiveClaims)
             .signWith(accessTokenSupport.signingKey(), Jwts.SIG.HS256)
             .compact();
 
@@ -70,7 +81,7 @@ public class AccessTokenCodec {
   }
 
   public Long extractUserId(String token) {
-    return accessTokenSupport.extractUserId(token);
+    return parseAccessToken(token).userId();
   }
 
   public Long extractVerifyEmailUserId(String token) {
@@ -86,7 +97,26 @@ public class AccessTokenCodec {
   }
 
   public String extractTokenId(String token) {
-    return accessTokenSupport.extractTokenId(token);
+    return parseAccessToken(token).tokenId();
+  }
+
+  public ParsedAccessToken parseAccessToken(String token) {
+    Claims claims = accessTokenSupport.parseValidatedClaims(token);
+    String purpose = claims.get(TOKEN_PURPOSE_CLAIM, String.class);
+    if (StringUtils.hasText(purpose)) {
+      throw unauthorizedException();
+    }
+
+    String tokenId = claims.getId();
+    if (!StringUtils.hasText(tokenId)) {
+      throw unauthorizedException();
+    }
+
+    try {
+      return new ParsedAccessToken(Long.valueOf(claims.getSubject()), tokenId);
+    } catch (IllegalArgumentException ex) {
+      throw unauthorizedException();
+    }
   }
 
   private long resolveTtlSeconds(AccessTokenType tokenType) {
@@ -108,7 +138,12 @@ public class AccessTokenCodec {
   }
 
   private JwtBuilder buildJwtBuilder(
-      UserEntity user, Instant issuedAt, long ttlSeconds, String jti, String purpose) {
+      UserEntity user,
+      Instant issuedAt,
+      long ttlSeconds,
+      String jti,
+      String purpose,
+      boolean includeSensitiveClaims) {
     Instant expiresAt = issuedAt.plusSeconds(ttlSeconds);
     JwtBuilder builder =
         Jwts.builder()
@@ -117,10 +152,12 @@ public class AccessTokenCodec {
             .and()
             .subject(String.valueOf(user.getId()))
             .id(jti)
-            .claim(FIELD_EMAIL, user.getEmail())
-            .claim(FIELD_USERNAME, user.getUsername())
             .issuedAt(Date.from(issuedAt))
             .expiration(Date.from(expiresAt));
+
+    if (includeSensitiveClaims) {
+      builder.claim(FIELD_EMAIL, user.getEmail()).claim(FIELD_USERNAME, user.getUsername());
+    }
 
     if (StringUtils.hasText(purpose)) {
       builder.claim(TOKEN_PURPOSE_CLAIM, purpose);
@@ -132,4 +169,11 @@ public class AccessTokenCodec {
   private String createTokenId() {
     return UUID.randomUUID().toString();
   }
+
+  private AuthException unauthorizedException() {
+    log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_ACCESS_TOKEN_MESSAGE);
+    return new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);
+  }
+
+  public record ParsedAccessToken(Long userId, String tokenId) {}
 }

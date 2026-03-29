@@ -3,7 +3,7 @@ package com.tychewealth.service.helper.auth;
 import static com.tychewealth.constants.AuthConstants.FORGOT_PASSWORD_TOKEN_PURPOSE;
 
 import com.tychewealth.dto.auth.AuthTokenDto;
-import com.tychewealth.dto.auth.request.ResendVerificationEmailRequestDto;
+import com.tychewealth.dto.auth.request.ForgotPasswordRequestDto;
 import com.tychewealth.email.EmailSender;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.enums.AccessTokenType;
@@ -28,7 +28,7 @@ public class AuthForgotPasswordHelper {
   private final EmailSender emailSender;
   private final StringRedisTemplate redisTemplate;
 
-  public void forgotPassword(ResendVerificationEmailRequestDto requestDto) {
+  public void forgotPassword(ForgotPasswordRequestDto requestDto) {
     String normalizedEmail = Utils.normalizeIdentity(requestDto.getEmail());
     UserEntity user = userRepository.findByEmailAndDeletedAtIsNull(normalizedEmail).orElse(null);
 
@@ -41,7 +41,7 @@ public class AuthForgotPasswordHelper {
     boolean stored =
         storeTokenIfAbsent(
             user.getId(),
-            forgotPasswordToken.accessToken(),
+            forgotPasswordToken.token(),
             Duration.ofSeconds(forgotPasswordToken.expiresIn()));
 
     if (!stored) {
@@ -51,7 +51,7 @@ public class AuthForgotPasswordHelper {
     try {
       emailSender.send(
           authEmailFactory.buildForgotPasswordEmailMessage(
-              user.getEmail(), forgotPasswordToken.accessToken(), forgotPasswordToken.expiresIn()));
+              user.getEmail(), forgotPasswordToken.token(), forgotPasswordToken.expiresIn()));
     } catch (RuntimeException ex) {
       deleteToken(user.getId());
       throw ex;
@@ -68,6 +68,6 @@ public class AuthForgotPasswordHelper {
   }
 
   private String forgotPasswordKey(Long userId) {
-    return FORGOT_PASSWORD_TOKEN_PURPOSE + ": " + userId;
+    return FORGOT_PASSWORD_TOKEN_PURPOSE + ":" + userId;
   }
 }

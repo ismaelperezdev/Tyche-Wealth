@@ -47,12 +47,20 @@ public class AccessTokenSupport {
     return jwtParser.parseSignedClaims(token).getPayload();
   }
 
+  public Claims parseValidatedClaims(String token) {
+    try {
+      return parseClaims(token);
+    } catch (JwtException | IllegalArgumentException ex) {
+      throw unauthorizedException();
+    }
+  }
+
   public SecretKey signingKey() {
     return signingKey;
   }
 
   public Long extractUserId(String token) {
-    Claims claims = parseClaimsOrThrowUnauthorized(token);
+    Claims claims = parseValidatedClaims(token);
     String purpose = claims.get(TOKEN_PURPOSE_CLAIM, String.class);
 
     if (StringUtils.hasText(purpose)) {
@@ -71,7 +79,7 @@ public class AccessTokenSupport {
   }
 
   public Instant extractExpiration(String token) {
-    Date expiration = parseClaimsOrThrowUnauthorized(token).getExpiration();
+    Date expiration = parseValidatedClaims(token).getExpiration();
     if (expiration == null) {
       throw unauthorizedException();
     }
@@ -80,7 +88,7 @@ public class AccessTokenSupport {
   }
 
   public String extractTokenId(String token) {
-    String tokenId = parseClaimsOrThrowUnauthorized(token).getId();
+    String tokenId = parseValidatedClaims(token).getId();
 
     if (!StringUtils.hasText(tokenId)) {
       throw unauthorizedException();
@@ -89,7 +97,7 @@ public class AccessTokenSupport {
   }
 
   private Long extractUserIdForPurpose(String token, String expectedPurpose) {
-    Claims claims = parseClaimsOrThrowUnauthorized(token);
+    Claims claims = parseValidatedClaims(token);
     String purpose = claims.get(TOKEN_PURPOSE_CLAIM, String.class);
 
     if (!expectedPurpose.equals(purpose)) {
@@ -99,14 +107,6 @@ public class AccessTokenSupport {
     try {
       return Long.valueOf(claims.getSubject());
     } catch (IllegalArgumentException ex) {
-      throw unauthorizedException();
-    }
-  }
-
-  private Claims parseClaimsOrThrowUnauthorized(String token) {
-    try {
-      return parseClaims(token);
-    } catch (JwtException | IllegalArgumentException ex) {
       throw unauthorizedException();
     }
   }

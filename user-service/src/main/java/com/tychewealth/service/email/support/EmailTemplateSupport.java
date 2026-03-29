@@ -28,8 +28,8 @@ public class EmailTemplateSupport {
   }
 
   public String readTemplate(Resource resource, String templateName) {
-    try {
-      return StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
+    try (var inputStream = resource.getInputStream()) {
+      return StreamUtils.copyToString(inputStream, StandardCharsets.UTF_8);
     } catch (IOException ex) {
       throw new IllegalStateException("Unable to load " + templateName + " template", ex);
     }

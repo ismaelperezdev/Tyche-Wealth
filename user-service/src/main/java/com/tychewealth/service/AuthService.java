@@ -2,6 +2,7 @@ package com.tychewealth.service;
 
 import com.tychewealth.dto.auth.LoginResponseDto;
 import com.tychewealth.dto.auth.RefreshTokenResponseDto;
+import com.tychewealth.dto.auth.request.ForgotPasswordRequestDto;
 import com.tychewealth.dto.auth.request.LoginRequestDto;
 import com.tychewealth.dto.auth.request.RefreshTokenRequestDto;
 import com.tychewealth.dto.auth.request.RegisterRequestDto;
@@ -15,7 +16,7 @@ public interface AuthService {
 
   ResponseCookie verifyLoginDevice(String token);
 
-  void forgotPassword(ResendVerificationEmailRequestDto resendVerificationEmailRequestDto);
+  void forgotPassword(ForgotPasswordRequestDto forgotPasswordRequestDto);
 
   UserResponseDto register(RegisterRequestDto register);
 

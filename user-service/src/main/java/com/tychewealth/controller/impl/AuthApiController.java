@@ -13,6 +13,7 @@ import static org.springframework.http.ResponseEntity.status;
 import com.tychewealth.controller.AuthApi;
 import com.tychewealth.dto.auth.LoginResponseDto;
 import com.tychewealth.dto.auth.RefreshTokenResponseDto;
+import com.tychewealth.dto.auth.request.ForgotPasswordRequestDto;
 import com.tychewealth.dto.auth.request.LoginRequestDto;
 import com.tychewealth.dto.auth.request.RefreshTokenRequestDto;
 import com.tychewealth.dto.auth.request.RegisterRequestDto;
@@ -61,7 +62,7 @@ public class AuthApiController implements AuthApi {
   }
 
   @Override
-  public ResponseEntity<Void> forgotPassword(ResendVerificationEmailRequestDto requestDto) {
+  public ResponseEntity<Void> forgotPassword(ForgotPasswordRequestDto requestDto) {
     log.info(REQUEST_START, AUTH, FORGOT_PASSWORD_ACTION);
 
     authService.forgotPassword(requestDto);

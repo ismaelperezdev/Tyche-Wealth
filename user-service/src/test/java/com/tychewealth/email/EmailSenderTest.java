@@ -32,7 +32,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
-class EmailServiceHelperTest {
+class EmailSenderTest {
 
   private MockRestServiceServer mockRestServiceServer;
   private EmailSender emailSender;

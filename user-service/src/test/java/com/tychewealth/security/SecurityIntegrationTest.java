@@ -198,8 +198,7 @@ class SecurityIntegrationTest {
   void tamperedJwtIsRejectedOnProtectedEndpoint() throws Exception {
     UserEntity savedUser =
         userRepository.findByEmailIncludingDeleted(TEST_EMAIL_LAURA).orElseThrow();
-    String accessToken =
-        accessTokenCodec.generateToken(savedUser, AccessTokenType.ACCESS).accessToken();
+    String accessToken = accessTokenCodec.generateToken(savedUser, AccessTokenType.ACCESS).token();
     String tamperedToken = accessToken + TEST_TAMPERED_TOKEN_SUFFIX;
 
     mockMvc
@@ -282,8 +281,7 @@ class SecurityIntegrationTest {
   void softDeletedUserCannotKeepUsingExistingAccessToken() throws Exception {
     UserEntity savedUser =
         userRepository.findByEmailIncludingDeleted(TEST_EMAIL_LAURA).orElseThrow();
-    String accessToken =
-        accessTokenCodec.generateToken(savedUser, AccessTokenType.ACCESS).accessToken();
+    String accessToken = accessTokenCodec.generateToken(savedUser, AccessTokenType.ACCESS).token();
 
     savedUser.setDeletedAt(LocalDateTime.now());
     userRepository.save(savedUser);
@@ -299,8 +297,7 @@ class SecurityIntegrationTest {
   void updatePasswordAddsAntiCacheHeaders() throws Exception {
     UserEntity savedUser =
         userRepository.findByEmailIncludingDeleted(TEST_EMAIL_LAURA).orElseThrow();
-    String accessToken =
-        accessTokenCodec.generateToken(savedUser, AccessTokenType.ACCESS).accessToken();
+    String accessToken = accessTokenCodec.generateToken(savedUser, AccessTokenType.ACCESS).token();
 
     mockMvc
         .perform(

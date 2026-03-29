@@ -14,6 +14,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tychewealth.entity.UserEntity;
+import com.tychewealth.enums.AccessTokenType;
+import com.tychewealth.service.token.AccessTokenCodec;
 import java.util.Map;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,6 +30,10 @@ public final class UserTestHelper {
 
   public static String authorizationHeader(String accessToken) {
     return TOKEN_TYPE_BEARER_PREFIX + accessToken;
+  }
+
+  public static String createAccessToken(AccessTokenCodec accessTokenCodec, UserEntity user) {
+    return accessTokenCodec.generateToken(user, AccessTokenType.ACCESS).token();
   }
 
   public static ResultActions retrieveRequest(MockMvc mockMvc, String accessToken)

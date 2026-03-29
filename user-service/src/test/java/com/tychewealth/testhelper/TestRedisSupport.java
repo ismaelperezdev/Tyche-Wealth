@@ -143,13 +143,18 @@ public final class TestRedisSupport {
     }
 
     public long increment(String key, long ttlMillis) {
-      purgeIfExpired(key);
       long now = System.currentTimeMillis();
-      StoredValue current = entries.get(key);
-      long nextValue = current == null ? 1L : Long.parseLong(current.value()) + 1L;
-      long expiresAt = current == null ? now + ttlMillis : current.expiresAtMillis();
-      entries.put(key, new StoredValue(String.valueOf(nextValue), expiresAt));
-      return nextValue;
+      StoredValue updatedValue =
+          entries.compute(
+              key,
+              (ignored, current) -> {
+                if (current == null || current.isExpired(now)) {
+                  return new StoredValue("1", now + ttlMillis);
+                }
+                long nextValue = Long.parseLong(current.value()) + 1L;
+                return new StoredValue(String.valueOf(nextValue), current.expiresAtMillis());
+              });
+      return Long.parseLong(updatedValue.value());
     }
 
     private Long expiresAt(Duration ttl) {
@@ -175,5 +180,9 @@ public final class TestRedisSupport {
     }
   }
 
-  private record StoredValue(String value, Long expiresAtMillis) {}
+  private record StoredValue(String value, Long expiresAtMillis) {
+    private boolean isExpired(long now) {
+      return expiresAtMillis != null && expiresAtMillis <= now;
+    }
+  }
 }

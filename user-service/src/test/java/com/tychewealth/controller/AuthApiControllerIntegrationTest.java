@@ -66,9 +66,9 @@ import com.tychewealth.config.RefreshRateLimitConfig;
 import com.tychewealth.dto.auth.AuthTokenDto;
 import com.tychewealth.dto.auth.LoginResponseDto;
 import com.tychewealth.dto.auth.RefreshTokenResponseDto;
+import com.tychewealth.dto.auth.request.ForgotPasswordRequestDto;
 import com.tychewealth.dto.auth.request.LoginRequestDto;
 import com.tychewealth.dto.auth.request.RegisterRequestDto;
-import com.tychewealth.dto.auth.request.ResendVerificationEmailRequestDto;
 import com.tychewealth.dto.email.request.EmailMessageDto;
 import com.tychewealth.email.EmailSender;
 import com.tychewealth.entity.RefreshTokenEntity;
@@ -229,8 +229,7 @@ class AuthApiControllerIntegrationTest {
     AuthTokenDto verifyEmailToken =
         accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_EMAIL);
 
-    verifyRegistrationRequest(mockMvc, verifyEmailToken.accessToken())
-        .andExpect(status().isNoContent());
+    verifyRegistrationRequest(mockMvc, verifyEmailToken.token()).andExpect(status().isNoContent());
 
     UserEntity verifiedUser = userRepository.findById(user.getId()).orElseThrow();
     assertTrue(verifiedUser.isVerified());
@@ -244,7 +243,7 @@ class AuthApiControllerIntegrationTest {
         accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_EMAIL);
 
     String setCookieHeader =
-        verifyRegistrationRequest(mockMvc, verifyEmailToken.accessToken())
+        verifyRegistrationRequest(mockMvc, verifyEmailToken.token())
             .andExpect(status().isNoContent())
             .andReturn()
             .getResponse()
@@ -255,7 +254,7 @@ class AuthApiControllerIntegrationTest {
 
     verifyRegistrationRequest(
             mockMvc,
-            verifyEmailToken.accessToken(),
+            verifyEmailToken.token(),
             new Cookie(TEST_TRUSTED_DEVICE_COOKIE_NAME, trustedDeviceValue))
         .andExpect(status().isNoContent());
 
@@ -270,7 +269,7 @@ class AuthApiControllerIntegrationTest {
     UserEntity user = userRepository.save(existingLoginUser);
     AuthTokenDto accessToken = accessTokenCodec.generateToken(user, AccessTokenType.ACCESS);
 
-    verifyRegistrationRequest(mockMvc, accessToken.accessToken())
+    verifyRegistrationRequest(mockMvc, accessToken.token())
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
@@ -283,7 +282,7 @@ class AuthApiControllerIntegrationTest {
     AuthTokenDto verifyLoginDeviceToken =
         accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_LOGIN_DEVICE);
 
-    verifyLoginDeviceRequest(mockMvc, verifyLoginDeviceToken.accessToken())
+    verifyLoginDeviceRequest(mockMvc, verifyLoginDeviceToken.token())
         .andExpect(status().isNoContent())
         .andExpect(
             result ->
@@ -303,7 +302,7 @@ class AuthApiControllerIntegrationTest {
         accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_LOGIN_DEVICE);
 
     String setCookieHeader =
-        verifyLoginDeviceRequest(mockMvc, verifyLoginDeviceToken.accessToken())
+        verifyLoginDeviceRequest(mockMvc, verifyLoginDeviceToken.token())
             .andExpect(status().isNoContent())
             .andReturn()
             .getResponse()
@@ -329,7 +328,7 @@ class AuthApiControllerIntegrationTest {
         accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_LOGIN_DEVICE);
 
     String setCookieHeader =
-        verifyLoginDeviceRequest(mockMvc, verifyLoginDeviceToken.accessToken())
+        verifyLoginDeviceRequest(mockMvc, verifyLoginDeviceToken.token())
             .andExpect(status().isNoContent())
             .andReturn()
             .getResponse()
@@ -340,7 +339,7 @@ class AuthApiControllerIntegrationTest {
 
     verifyLoginDeviceRequest(
             mockMvc,
-            verifyLoginDeviceToken.accessToken(),
+            verifyLoginDeviceToken.token(),
             new Cookie(TEST_TRUSTED_DEVICE_COOKIE_NAME, trustedDeviceValue))
         .andExpect(status().isNoContent());
 
@@ -354,7 +353,7 @@ class AuthApiControllerIntegrationTest {
         accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_LOGIN_DEVICE);
 
     String setCookieHeader =
-        verifyLoginDeviceRequest(mockMvc, verifyLoginDeviceToken.accessToken())
+        verifyLoginDeviceRequest(mockMvc, verifyLoginDeviceToken.token())
             .andExpect(status().isNoContent())
             .andReturn()
             .getResponse()
@@ -369,7 +368,7 @@ class AuthApiControllerIntegrationTest {
     String renewedSetCookieHeader =
         verifyLoginDeviceRequest(
                 mockMvc,
-                verifyLoginDeviceToken.accessToken(),
+                verifyLoginDeviceToken.token(),
                 new Cookie(TEST_TRUSTED_DEVICE_COOKIE_NAME, trustedDeviceValue))
             .andExpect(status().isNoContent())
             .andReturn()
@@ -388,7 +387,7 @@ class AuthApiControllerIntegrationTest {
     UserEntity user = userRepository.save(existingLoginUser);
     AuthTokenDto accessToken = accessTokenCodec.generateToken(user, AccessTokenType.ACCESS);
 
-    verifyLoginDeviceRequest(mockMvc, accessToken.accessToken())
+    verifyLoginDeviceRequest(mockMvc, accessToken.token())
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
@@ -439,7 +438,7 @@ class AuthApiControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     objectMapper.writeValueAsString(
-                        new ResendVerificationEmailRequestDto(existingLoginUser.getEmail()))))
+                        new ForgotPasswordRequestDto(existingLoginUser.getEmail()))))
         .andExpect(status().isNoContent());
   }
 
@@ -456,7 +455,7 @@ class AuthApiControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     objectMapper.writeValueAsString(
-                        new ResendVerificationEmailRequestDto(existingLoginUser.getEmail()))))
+                        new ForgotPasswordRequestDto(existingLoginUser.getEmail()))))
         .andExpect(status().isNoContent());
 
     ArgumentCaptor<EmailMessageDto> emailCaptor = ArgumentCaptor.forClass(EmailMessageDto.class);
@@ -479,7 +478,7 @@ class AuthApiControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     objectMapper.writeValueAsString(
-                        new ResendVerificationEmailRequestDto("missing@tychewealth.com"))))
+                        new ForgotPasswordRequestDto("missing@tychewealth.com"))))
         .andExpect(status().isNoContent());
   }
 

@@ -42,7 +42,7 @@ class AccessTokenCodecTest {
 
     Long userId =
         accessTokenCodec.extractUserId(
-            accessTokenCodec.generateToken(user, AccessTokenType.ACCESS).accessToken());
+            accessTokenCodec.generateToken(user, AccessTokenType.ACCESS).token());
 
     assertEquals(42L, userId);
   }
@@ -53,7 +53,7 @@ class AccessTokenCodecTest {
     user.setId(42L);
 
     String verifyRegistrationToken =
-        accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_EMAIL).accessToken();
+        accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_EMAIL).token();
 
     assertThrows(
         AuthException.class, () -> accessTokenCodec.extractUserId(verifyRegistrationToken));
@@ -79,5 +79,16 @@ class AccessTokenCodecTest {
         accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_LOGIN_DEVICE);
 
     assertEquals(TEST_VERIFY_LOGIN_DEVICE_TOKEN_TTL_SECONDS, verifyLoginDeviceToken.expiresIn());
+  }
+
+  @Test
+  void generateForgotPasswordTokenUsesDedicatedTtl() {
+    UserEntity user = EntityBuilder.buildUser("valid@tychewealth.com", "valid-user", "password");
+    user.setId(42L);
+
+    AuthTokenDto forgotPasswordToken =
+        accessTokenCodec.generateToken(user, AccessTokenType.FORGOT_PASSWORD);
+
+    assertEquals(TEST_FORGOT_PASSWORD_TOKEN_TTL_SECONDS, forgotPasswordToken.expiresIn());
   }
 }

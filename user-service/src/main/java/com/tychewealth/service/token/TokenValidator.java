@@ -28,13 +28,13 @@ public class TokenValidator {
 
   public Long validateAndExtractUserId(String authorizationHeader) {
     String token = extractBearerToken(authorizationHeader);
-    String tokenId = accessTokenCodec.extractTokenId(token);
-    if (tokenStateStore.isAccessTokenRevoked(tokenId)) {
+    AccessTokenCodec.ParsedAccessToken parsedToken = accessTokenCodec.parseAccessToken(token);
+    if (tokenStateStore.isAccessTokenRevoked(parsedToken.tokenId())) {
       log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_ACCESS_TOKEN_MESSAGE);
       throw new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);
     }
 
-    return accessTokenCodec.extractUserId(token);
+    return parsedToken.userId();
   }
 
   public String extractBearerToken(String authorizationHeader) {

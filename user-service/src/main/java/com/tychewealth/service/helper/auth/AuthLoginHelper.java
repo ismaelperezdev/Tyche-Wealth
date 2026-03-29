@@ -57,7 +57,7 @@ public class AuthLoginHelper {
 
     return new LoginResponseDto(
         tokenPayload.tokenType(),
-        tokenPayload.accessToken(),
+        tokenPayload.token(),
         refreshToken.token(),
         tokenPayload.expiresIn(),
         response);
@@ -100,7 +100,7 @@ public class AuthLoginHelper {
         accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_LOGIN_DEVICE);
     var loginDeviceEmailMessage =
         authEmailFactory.buildVerifyLoginDeviceEmailMessage(
-            user.getEmail(), verificationToken.accessToken(), verificationToken.expiresIn());
+            user.getEmail(), verificationToken.token(), verificationToken.expiresIn());
 
     try {
       emailSender.send(loginDeviceEmailMessage);

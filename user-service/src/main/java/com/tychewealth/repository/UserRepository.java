@@ -21,7 +21,7 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
   Optional<UserEntity> findByIdAndDeletedAtIsNull(Long id);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
-  @Query("SELECT u FROM UserEntity u WHERE u.id = :id")
+  @Query("SELECT u FROM UserEntity u WHERE u.id = :id AND u.deletedAt IS NULL")
   Optional<UserEntity> findByIdForUpdate(@Param("id") Long id);
 
   Optional<UserEntity> findByEmailAndDeletedAtIsNull(String email);

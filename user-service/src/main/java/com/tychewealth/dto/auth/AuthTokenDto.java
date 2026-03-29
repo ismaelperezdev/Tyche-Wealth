@@ -1,3 +1,3 @@
 package com.tychewealth.dto.auth;
 
-public record AuthTokenDto(String tokenType, String accessToken, long expiresIn, String jti) {}
+public record AuthTokenDto(String tokenType, String token, long expiresIn, String jti) {}

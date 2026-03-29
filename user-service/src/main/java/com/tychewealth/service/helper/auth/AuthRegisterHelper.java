@@ -31,7 +31,7 @@ public class AuthRegisterHelper {
     AuthTokenDto verificationToken =
         accessTokenCodec.generateToken(created, AccessTokenType.VERIFY_EMAIL);
     Instant verificationTokenExpiresAt =
-        accessTokenCodec.extractExpiration(verificationToken.accessToken());
+        accessTokenCodec.extractExpiration(verificationToken.token());
     created.setVerificationTokenExpiresAt(verificationTokenExpiresAt);
 
     UserResponseDto response = userMapper.toDto(created);

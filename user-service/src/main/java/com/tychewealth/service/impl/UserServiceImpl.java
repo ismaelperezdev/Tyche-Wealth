@@ -10,11 +10,13 @@ import com.tychewealth.service.helper.user.UserHelper;
 import com.tychewealth.service.helper.user.UserValidationHelper;
 import com.tychewealth.service.token.TokenStateStore;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+@Slf4j
 @Service
 @AllArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -69,7 +71,11 @@ public class UserServiceImpl implements UserService {
         new TransactionSynchronization() {
           @Override
           public void afterCommit() {
-            tokenStateStore.revokeAccessTokenIfPresent(authorizationHeader);
+            try {
+              tokenStateStore.revokeAccessTokenIfPresent(authorizationHeader);
+            } catch (Exception ex) {
+              log.error("Failed to revoke access token after commit", ex);
+            }
           }
         });
   }

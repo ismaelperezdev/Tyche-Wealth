@@ -4,6 +4,7 @@ import com.tychewealth.constants.LogConstants;
 import com.tychewealth.dto.auth.AuthTokenDto;
 import com.tychewealth.dto.auth.LoginResponseDto;
 import com.tychewealth.dto.auth.RefreshTokenResponseDto;
+import com.tychewealth.dto.auth.request.ForgotPasswordRequestDto;
 import com.tychewealth.dto.auth.request.LoginRequestDto;
 import com.tychewealth.dto.auth.request.RefreshTokenRequestDto;
 import com.tychewealth.dto.auth.request.RegisterRequestDto;
@@ -27,6 +28,7 @@ import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.AccessTokenCodec;
 import com.tychewealth.service.token.TokenStateStore;
 import com.tychewealth.service.token.TokenValidator;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -67,7 +69,7 @@ public class AuthServiceImpl implements AuthService {
   }
 
   @Override
-  public void forgotPassword(ResendVerificationEmailRequestDto requestDto) {
+  public void forgotPassword(ForgotPasswordRequestDto requestDto) {
     authForgotPasswordHelper.forgotPassword(requestDto);
   }
 
@@ -78,11 +80,14 @@ public class AuthServiceImpl implements AuthService {
 
     try {
       var registeredUser = authRegisterHelper.createUser(register);
+      Instant failedAttemptExpiry =
+          accessTokenCodec.extractExpiration(registeredUser.verificationToken().token());
 
       verificationEmailWorkflow.scheduleVerificationEmail(
           registeredUser.response().getId(),
           registeredUser.response().getEmail(),
           registeredUser.verificationToken(),
+          failedAttemptExpiry,
           null,
           () -> {
             authMetrics.recordRegisterSuccess();
@@ -131,7 +136,7 @@ public class AuthServiceImpl implements AuthService {
 
     return new RefreshTokenResponseDto(
         accessTokenPayload.tokenType(),
-        accessTokenPayload.accessToken(),
+        accessTokenPayload.token(),
         accessTokenPayload.expiresIn(),
         newRefreshToken.token());
   }

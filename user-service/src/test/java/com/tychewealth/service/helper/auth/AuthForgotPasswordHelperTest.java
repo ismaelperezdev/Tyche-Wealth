@@ -8,7 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.tychewealth.dto.auth.AuthTokenDto;
-import com.tychewealth.dto.auth.request.ResendVerificationEmailRequestDto;
+import com.tychewealth.dto.auth.request.ForgotPasswordRequestDto;
 import com.tychewealth.dto.email.request.EmailMessageDto;
 import com.tychewealth.email.EmailSender;
 import com.tychewealth.entity.UserEntity;
@@ -44,7 +44,7 @@ class AuthForgotPasswordHelperTest {
         .thenReturn(Optional.empty());
 
     authForgotPasswordHelper.forgotPassword(
-        new ResendVerificationEmailRequestDto("missing@tychewealth.com"));
+        new ForgotPasswordRequestDto("missing@tychewealth.com"));
 
     verify(emailSender, never()).send(any());
   }
@@ -67,10 +67,10 @@ class AuthForgotPasswordHelperTest {
         .thenReturn(true)
         .thenReturn(false);
     when(authEmailFactory.buildForgotPasswordEmailMessage(
-            user.getEmail(), token.accessToken(), token.expiresIn()))
+            user.getEmail(), token.token(), token.expiresIn()))
         .thenReturn(emailMessage);
 
-    var request = new ResendVerificationEmailRequestDto(user.getEmail());
+    var request = new ForgotPasswordRequestDto(user.getEmail());
 
     authForgotPasswordHelper.forgotPassword(request);
     authForgotPasswordHelper.forgotPassword(request);
