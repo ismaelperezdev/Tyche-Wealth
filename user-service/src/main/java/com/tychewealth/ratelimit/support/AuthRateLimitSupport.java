@@ -9,6 +9,7 @@ import static com.tychewealth.constants.ApiConstants.AUTH_VERIFY_LOGIN_DEVICE_UR
 import com.tychewealth.dto.ratelimit.AuthRateLimitCallbacksDto;
 import com.tychewealth.dto.ratelimit.AuthRateLimitPropertiesDto;
 import com.tychewealth.dto.ratelimit.AuthRateLimitRegistrationDto;
+import com.tychewealth.enums.AuthMetricEnum;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.monitoring.AuthMetrics;
 import com.tychewealth.ratelimit.RateLimitInterceptor;
@@ -72,8 +73,8 @@ public class AuthRateLimitSupport {
             window,
             ErrorDefinition.RATE_LIMITED.getDescription(),
             new AuthRateLimitCallbacksDto(
-                ignored -> authMetrics.recordRefreshRequest(),
-                ignored -> authMetrics.recordRefreshRateLimited(),
+                ignored -> authMetrics.incrementMetric(AuthMetricEnum.REFRESH_REQUESTS),
+                ignored -> authMetrics.incrementMetric(AuthMetricEnum.REFRESH_RATE_LIMITED),
                 null),
             false),
         rateLimitStore);

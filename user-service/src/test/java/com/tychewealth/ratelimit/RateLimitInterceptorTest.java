@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.tychewealth.dto.ratelimit.AuthRateLimitCallbacksDto;
+import com.tychewealth.enums.AuthMetricEnum;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.monitoring.AuthMetrics;
 import com.tychewealth.ratelimit.support.RateLimitInterceptorConfig;
@@ -86,8 +87,8 @@ class RateLimitInterceptorTest {
                 Duration.ofSeconds(60),
                 ErrorDefinition.RATE_LIMITED.getDescription(),
                 new AuthRateLimitCallbacksDto(
-                    ignored -> authMetrics.recordRefreshRequest(),
-                    ignored -> authMetrics.recordRefreshRateLimited(),
+                    ignored -> authMetrics.incrementMetric(AuthMetricEnum.REFRESH_REQUESTS),
+                    ignored -> authMetrics.incrementMetric(AuthMetricEnum.REFRESH_RATE_LIMITED),
                     null),
                 false),
             store);
@@ -116,8 +117,8 @@ class RateLimitInterceptorTest {
                 Duration.ofSeconds(1),
                 ErrorDefinition.RATE_LIMITED.getDescription(),
                 new AuthRateLimitCallbacksDto(
-                    ignored -> authMetrics.recordRefreshRequest(),
-                    ignored -> authMetrics.recordRefreshRateLimited(),
+                    ignored -> authMetrics.incrementMetric(AuthMetricEnum.REFRESH_REQUESTS),
+                    ignored -> authMetrics.incrementMetric(AuthMetricEnum.REFRESH_RATE_LIMITED),
                     null),
                 false),
             store);

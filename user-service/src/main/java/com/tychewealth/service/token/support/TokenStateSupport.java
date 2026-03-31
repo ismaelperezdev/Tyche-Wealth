@@ -6,6 +6,7 @@ import static com.tychewealth.constants.LogConstants.AUTH;
 import static com.tychewealth.constants.LogConstants.INVALID_AUTHORIZATION_HEADER_MESSAGE;
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 
+import com.tychewealth.enums.AuthMetricEnum;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.monitoring.AuthMetrics;
@@ -47,7 +48,7 @@ public class TokenStateSupport {
     try {
       return redisTemplate.hasKey(buildAccessTokenRevocationKey(tokenId));
     } catch (RuntimeException ex) {
-      authMetrics.recordTokenStateUnavailable();
+      authMetrics.incrementMetric(AuthMetricEnum.TOKEN_STATE_UNAVAILABLE);
       log.error(
           REQUEST_CONFLICT + " tokenId={}",
           AUTH,

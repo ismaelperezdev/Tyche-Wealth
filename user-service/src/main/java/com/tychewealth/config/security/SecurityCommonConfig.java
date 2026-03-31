@@ -5,6 +5,7 @@ import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.config.JwtAuthenticationFilter;
+import com.tychewealth.enums.UserMetricEnum;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.error.handler.ErrorResponse;
 import com.tychewealth.monitoring.UserMetrics;
@@ -43,7 +44,7 @@ public class SecurityCommonConfig {
       ObjectMapper objectMapper, UserMetrics userMetrics) {
     return (request, response, ex) -> {
       if (isUserRequest(request.getRequestURI())) {
-        userMetrics.recordUnauthorized();
+        userMetrics.incrementMetric(UserMetricEnum.UNAUTHORIZED);
       }
       log.warn("Authentication failed for requestUri={}", request.getRequestURI(), ex);
       writeErrorResponse(

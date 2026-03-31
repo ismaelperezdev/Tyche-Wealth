@@ -33,6 +33,13 @@ public final class Utils {
   }
 
   public static String hmacSha256Hex(String value, String pepper) {
+    if (value == null || value.isBlank()) {
+      throw new IllegalArgumentException("HMAC value must not be null or blank");
+    }
+    if (pepper == null || pepper.isBlank()) {
+      throw new IllegalStateException("HMAC pepper must not be null or blank");
+    }
+
     try {
       Mac mac = Mac.getInstance("HmacSHA256");
       SecretKeySpec key = new SecretKeySpec(pepper.getBytes(StandardCharsets.UTF_8), "HmacSHA256");

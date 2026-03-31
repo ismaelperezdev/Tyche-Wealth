@@ -3,6 +3,7 @@ package com.tychewealth.service.helper.user;
 import com.tychewealth.constants.LogConstants;
 import com.tychewealth.dto.user.request.UserPasswordUpdateRequestDto;
 import com.tychewealth.entity.UserEntity;
+import com.tychewealth.enums.UserMetricEnum;
 import com.tychewealth.error.exception.UserException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.monitoring.UserMetrics;
@@ -35,7 +36,7 @@ public class UserValidationHelper {
                   LogConstants.USER,
                   LogConstants.UPDATE_ACTION,
                   "username conflict");
-              userMetrics.recordUsernameConflict();
+              userMetrics.incrementMetric(UserMetricEnum.USERNAME_CONFLICT);
               throw new UserException(
                   ErrorDefinition.USER_USERNAME_CONFLICT, null, HttpStatus.CONFLICT);
             });
@@ -48,7 +49,7 @@ public class UserValidationHelper {
           LogConstants.USER,
           LogConstants.UPDATE_PASSWORD_ACTION,
           "invalid current password");
-      userMetrics.recordCurrentPasswordInvalid();
+      userMetrics.incrementMetric(UserMetricEnum.CURRENT_PASSWORD_INVALID);
       throw new UserException(
           ErrorDefinition.USER_CURRENT_PASSWORD_INVALID, null, HttpStatus.UNAUTHORIZED);
     }
@@ -61,7 +62,7 @@ public class UserValidationHelper {
           LogConstants.USER,
           LogConstants.UPDATE_PASSWORD_ACTION,
           "new password reused");
-      userMetrics.recordNewPasswordReused();
+      userMetrics.incrementMetric(UserMetricEnum.NEW_PASSWORD_REUSED);
       throw new UserException(
           ErrorDefinition.USER_NEW_PASSWORD_MUST_BE_DIFFERENT, null, HttpStatus.BAD_REQUEST);
     }

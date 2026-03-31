@@ -8,6 +8,7 @@ import com.tychewealth.dto.user.UserResponseDto;
 import com.tychewealth.email.EmailSender;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.enums.AccessTokenType;
+import com.tychewealth.enums.AuthMetricEnum;
 import com.tychewealth.enums.EmailSendResult;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.exception.EmailException;
@@ -49,7 +50,7 @@ public class AuthLoginHelper {
     refreshTokenHelper.revokeActiveTokensByUserId(user.getId());
     AuthRefreshTokenHelper.LinkedRefreshToken refreshToken =
         refreshTokenHelper.saveToken(user, tokenPayload.jti(), LogConstants.LOGIN_ACTION);
-    authMetrics.recordLoginSuccess();
+    authMetrics.incrementMetric(AuthMetricEnum.LOGIN_SUCCESS);
 
     log.info(
         LogConstants.REQUEST_SUCCESS + LogConstants.USER_ID,

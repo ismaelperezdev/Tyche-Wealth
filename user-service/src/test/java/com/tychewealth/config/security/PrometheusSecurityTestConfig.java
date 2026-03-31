@@ -59,7 +59,8 @@ public class PrometheusSecurityTestConfig {
   @Bean
   public UserDetailsService prometheusUserDetailsService(
       @Value("${app.security.prometheus.username:prometheus-scraper}") String prometheusUsername,
-      @Value("${PROMETHEUS_PASSWORD:test-prometheus-secret}") String prometheusPassword,
+      @Value("${app.security.prometheus.password:test-prometheus-secret}")
+          String prometheusPassword,
       PasswordEncoder passwordEncoder) {
     if (!StringUtils.hasText(prometheusUsername) || !StringUtils.hasText(prometheusPassword)) {
       throw new IllegalStateException("Prometheus username/password not configured");

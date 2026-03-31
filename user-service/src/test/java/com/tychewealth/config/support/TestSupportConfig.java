@@ -1,5 +1,7 @@
 package com.tychewealth.config.support;
 
+import static com.tychewealth.constants.TestConstants.TEST_PROMETHEUS_PASSWORD;
+import static com.tychewealth.constants.TestConstants.TEST_PROMETHEUS_USERNAME;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -163,6 +165,9 @@ public class TestSupportConfig {
     TestPropertyValues.of(
             "spring.liquibase.change-log=classpath:db.changelog/changelog-master.xml",
             "spring.data.redis.repositories.enabled=false",
+            "app.security.prometheus.username=" + TEST_PROMETHEUS_USERNAME,
+            "app.security.prometheus.password=" + TEST_PROMETHEUS_PASSWORD,
+            "PROMETHEUS_PASSWORD=" + TEST_PROMETHEUS_PASSWORD,
             "app.auth.jwt.secret=4AYI7d6GOEvFEcCJZkDA0hGFqI6SuF5RAsxAjqzTmaM=",
             "app.auth.jwt.refresh-token-pepper=" + TEST_REFRESH_TOKEN_PEPPER,
             "app.auth.verify-registration-url=http://localhost:8080/tyche-wealth/user-service/v1/auth/verify-registration",

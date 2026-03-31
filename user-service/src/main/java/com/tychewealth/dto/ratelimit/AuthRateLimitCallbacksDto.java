@@ -1,5 +1,6 @@
 package com.tychewealth.dto.ratelimit;
 
+import com.tychewealth.enums.AuthMetricEnum;
 import com.tychewealth.monitoring.AuthMetrics;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -23,15 +24,16 @@ public record AuthRateLimitCallbacksDto(
 
   public static AuthRateLimitCallbacksDto login(AuthMetrics authMetrics) {
     return new AuthRateLimitCallbacksDto(
-        ignored -> authMetrics.recordLoginRequest(),
-        ignored -> authMetrics.recordLoginRateLimited(),
-        ignored -> authMetrics.recordLoginRateLimitStoreUnavailable());
+        ignored -> authMetrics.incrementMetric(AuthMetricEnum.LOGIN_REQUESTS),
+        ignored -> authMetrics.incrementMetric(AuthMetricEnum.LOGIN_RATE_LIMITED),
+        ignored -> authMetrics.incrementMetric(AuthMetricEnum.LOGIN_RATE_LIMIT_STORE_UNAVAILABLE));
   }
 
   public static AuthRateLimitCallbacksDto register(AuthMetrics authMetrics) {
     return new AuthRateLimitCallbacksDto(
-        ignored -> authMetrics.recordRegisterRequest(),
-        ignored -> authMetrics.recordRegisterRateLimited(),
-        ignored -> authMetrics.recordRegisterRateLimitStoreUnavailable());
+        ignored -> authMetrics.incrementMetric(AuthMetricEnum.REGISTER_REQUESTS),
+        ignored -> authMetrics.incrementMetric(AuthMetricEnum.REGISTER_RATE_LIMITED),
+        ignored ->
+            authMetrics.incrementMetric(AuthMetricEnum.REGISTER_RATE_LIMIT_STORE_UNAVAILABLE));
   }
 }

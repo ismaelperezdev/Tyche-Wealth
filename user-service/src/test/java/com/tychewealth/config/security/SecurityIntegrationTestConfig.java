@@ -36,7 +36,7 @@ public class SecurityIntegrationTestConfig {
       TestSupportConfig.applyCommonProperties(applicationContext);
       TestPropertyValues.of(
               "app.security.prometheus.username=" + TEST_PROMETHEUS_USERNAME,
-              "PROMETHEUS_PASSWORD=" + TEST_PROMETHEUS_PASSWORD,
+              "app.security.prometheus.password=" + TEST_PROMETHEUS_PASSWORD,
               "app.auth.register-rate-limit.max-requests=2",
               "app.auth.register-rate-limit.window-seconds=300",
               "app.auth.login-rate-limit.max-requests=2",

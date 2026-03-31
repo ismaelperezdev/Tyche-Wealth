@@ -9,6 +9,7 @@ import com.tychewealth.controller.UserApi;
 import com.tychewealth.dto.user.UserResponseDto;
 import com.tychewealth.dto.user.request.UserPasswordUpdateRequestDto;
 import com.tychewealth.dto.user.request.UserUpdateRequestDto;
+import com.tychewealth.enums.UserMetricEnum;
 import com.tychewealth.monitoring.UserMetrics;
 import com.tychewealth.service.UserService;
 import com.tychewealth.utils.LogContextFactory;
@@ -33,11 +34,11 @@ public class UserApiController implements UserApi {
 
   @Override
   public ResponseEntity<UserResponseDto> retrieve(@AuthenticationPrincipal Long userId) {
-    userMetrics.recordRetrieveRequest();
+    userMetrics.incrementMetric(UserMetricEnum.RETRIEVE_REQUESTS);
     log.info(LogConstants.REQUEST_START, LogConstants.USER, LogConstants.RETRIEVE_ACTION);
 
     UserResponseDto response = userService.retrieve(userId);
-    userMetrics.recordRetrieveSuccess();
+    userMetrics.incrementMetric(UserMetricEnum.RETRIEVE_SUCCESS);
 
     log.info(
         LogConstants.REQUEST_SUCCESS + LogConstants.USER_ID,
@@ -52,7 +53,7 @@ public class UserApiController implements UserApi {
   public ResponseEntity<UserResponseDto> update(
       @AuthenticationPrincipal Long userId,
       @Valid @RequestBody UserUpdateRequestDto updateRequest) {
-    userMetrics.recordUpdateRequest();
+    userMetrics.incrementMetric(UserMetricEnum.UPDATE_REQUESTS);
     log.info(
         LogConstants.REQUEST_START + LogConstants.UPDATE_REQUEST_FIELDS,
         LogConstants.USER,
@@ -60,7 +61,7 @@ public class UserApiController implements UserApi {
         LogContextFactory.mask(updateRequest.getUsername()));
 
     UserResponseDto response = userService.update(userId, updateRequest);
-    userMetrics.recordUpdateSuccess();
+    userMetrics.incrementMetric(UserMetricEnum.UPDATE_SUCCESS);
 
     log.info(
         LogConstants.REQUEST_SUCCESS + LogConstants.USER_ID,
@@ -76,12 +77,12 @@ public class UserApiController implements UserApi {
       @AuthenticationPrincipal Long userId,
       @RequestHeader(value = AUTHORIZATION_HEADER, required = false) String authorizationHeader,
       @Valid @RequestBody UserPasswordUpdateRequestDto updatePasswordRequest) {
-    userMetrics.recordUpdatePasswordRequest();
+    userMetrics.incrementMetric(UserMetricEnum.UPDATE_PASSWORD_REQUESTS);
     log.info(LogConstants.REQUEST_START, LogConstants.USER, LogConstants.UPDATE_PASSWORD_ACTION);
 
     Long updatedUserId =
         userService.updatePassword(userId, authorizationHeader, updatePasswordRequest);
-    userMetrics.recordUpdatePasswordSuccess();
+    userMetrics.incrementMetric(UserMetricEnum.UPDATE_PASSWORD_SUCCESS);
 
     log.info(
         LogConstants.REQUEST_SUCCESS + LogConstants.USER_ID,
@@ -99,11 +100,11 @@ public class UserApiController implements UserApi {
   public ResponseEntity<Void> delete(
       @AuthenticationPrincipal Long userId,
       @RequestHeader(value = AUTHORIZATION_HEADER, required = false) String authorizationHeader) {
-    userMetrics.recordDeleteRequest();
+    userMetrics.incrementMetric(UserMetricEnum.DELETE_REQUESTS);
     log.info(LogConstants.REQUEST_START, LogConstants.USER, LogConstants.DELETE_ACTION);
 
     Long deletedUserId = userService.delete(userId, authorizationHeader);
-    userMetrics.recordDeleteSuccess();
+    userMetrics.incrementMetric(UserMetricEnum.DELETE_SUCCESS);
 
     log.info(
         LogConstants.REQUEST_SUCCESS + LogConstants.USER_ID,
