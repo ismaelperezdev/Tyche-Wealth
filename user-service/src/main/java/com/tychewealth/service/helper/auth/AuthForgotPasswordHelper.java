@@ -8,10 +8,10 @@ import static com.tychewealth.constants.LogConstants.USER_ID;
 
 import com.tychewealth.dto.auth.AuthTokenDto;
 import com.tychewealth.dto.auth.request.ForgotPasswordRequestDto;
-import com.tychewealth.email.EmailSendResult;
 import com.tychewealth.email.EmailSender;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.enums.AccessTokenType;
+import com.tychewealth.enums.EmailSendResult;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.email.AuthEmailFactory;
 import com.tychewealth.service.token.AccessTokenCodec;

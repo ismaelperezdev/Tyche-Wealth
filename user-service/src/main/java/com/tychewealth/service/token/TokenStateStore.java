@@ -1,6 +1,6 @@
 package com.tychewealth.service.token;
 
-import com.tychewealth.service.monitoring.AuthMetrics;
+import com.tychewealth.monitoring.AuthMetrics;
 import com.tychewealth.service.token.support.TokenStateSupport;
 import java.time.Duration;
 import java.time.Instant;

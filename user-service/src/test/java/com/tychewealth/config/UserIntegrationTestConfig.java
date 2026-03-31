@@ -7,13 +7,14 @@ import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.handler.ErrorHandler;
 import com.tychewealth.mapper.user.UserMapperImpl;
+import com.tychewealth.monitoring.AuthMetrics;
+import com.tychewealth.monitoring.UserMetrics;
 import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.helper.auth.AuthRefreshTokenHelper;
 import com.tychewealth.service.helper.user.UserHelper;
 import com.tychewealth.service.helper.user.UserValidationHelper;
 import com.tychewealth.service.impl.UserServiceImpl;
-import com.tychewealth.service.monitoring.UserMetrics;
 import com.tychewealth.service.token.AccessTokenCodec;
 import com.tychewealth.service.token.TokenStateStore;
 import com.tychewealth.service.token.TokenValidator;
@@ -56,8 +57,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 public class UserIntegrationTestConfig {
 
   @Bean
-  public com.tychewealth.service.monitoring.AuthMetrics authMetrics() {
-    return Mockito.mock(com.tychewealth.service.monitoring.AuthMetrics.class);
+  public AuthMetrics authMetrics() {
+    return Mockito.mock(AuthMetrics.class);
   }
 
   @Bean

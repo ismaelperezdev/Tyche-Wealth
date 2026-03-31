@@ -1,10 +1,10 @@
-package com.tychewealth.config;
+package com.tychewealth.config.security;
 
 import static com.tychewealth.constants.TestConstants.TEST_PROMETHEUS_PASSWORD;
 import static com.tychewealth.constants.TestConstants.TEST_PROMETHEUS_USERNAME;
 
 import com.tychewealth.config.support.TestSupportConfig;
-import com.tychewealth.service.ratelimit.RateLimitStore;
+import com.tychewealth.ratelimit.RateLimitStore;
 import com.tychewealth.testhelper.InMemoryRateLimitStore;
 import java.time.Clock;
 import org.springframework.boot.SpringBootConfiguration;

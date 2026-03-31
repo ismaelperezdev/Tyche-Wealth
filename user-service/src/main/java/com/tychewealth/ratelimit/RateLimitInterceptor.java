@@ -1,4 +1,4 @@
-package com.tychewealth.web;
+package com.tychewealth.ratelimit;
 
 import static com.tychewealth.constants.LogConstants.AUTH;
 import static com.tychewealth.constants.LogConstants.RATE_LIMIT_ACTION;
@@ -6,37 +6,34 @@ import static com.tychewealth.constants.LogConstants.RATE_LIMIT_STORE_UNAVAILABL
 import static com.tychewealth.constants.LogConstants.RATE_LIMIT_STORE_UNAVAILABLE_MESSAGE;
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 
-import com.tychewealth.service.ratelimit.RateLimitStore;
+import com.tychewealth.ratelimit.support.RateLimitInterceptorConfig;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Duration;
-import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 @Slf4j
-public class AuthRateLimitInterceptor implements HandlerInterceptor {
+public class RateLimitInterceptor implements HandlerInterceptor {
 
   private final int maxRequests;
   private final long windowMillis;
   private final String namespace;
   private final String rejectionMessage;
-  private final Consumer<String> requestMetricRecorder;
-  private final Consumer<String> rateLimitedMetricRecorder;
-  private final Consumer<String> rateLimitStoreFailureRecorder;
+  private final RateLimitInterceptorConfig config;
+  private final boolean failClosedWhenStoreUnavailable;
   private final RateLimitStore rateLimitStore;
 
-  public AuthRateLimitInterceptor(
-      String namespace,
-      int maxRequests,
-      long windowSeconds,
-      String rejectionMessage,
-      Consumer<String> requestMetricRecorder,
-      Consumer<String> rateLimitedMetricRecorder,
-      Consumer<String> rateLimitStoreFailureRecorder,
-      RateLimitStore rateLimitStore) {
+  public RateLimitInterceptor(RateLimitInterceptorConfig config, RateLimitStore rateLimitStore) {
+    if (config == null) {
+      throw new IllegalArgumentException("config must not be null");
+    }
+    String namespace = config.getNamespace();
+    int maxRequests = config.getMaxRequests();
+    long windowSeconds = config.getWindowSeconds();
     if (namespace == null || namespace.isBlank()) {
       throw new IllegalArgumentException("namespace must be non-empty");
     }
@@ -52,28 +49,32 @@ public class AuthRateLimitInterceptor implements HandlerInterceptor {
     this.namespace = namespace;
     this.maxRequests = maxRequests;
     this.windowMillis = windowSeconds * 1000;
-    this.rejectionMessage = rejectionMessage;
-    this.requestMetricRecorder = requestMetricRecorder;
-    this.rateLimitedMetricRecorder = rateLimitedMetricRecorder;
-    this.rateLimitStoreFailureRecorder = rateLimitStoreFailureRecorder;
+    this.rejectionMessage = config.getRejectionMessage();
+    this.config = config;
+    this.failClosedWhenStoreUnavailable = config.isFailClosedWhenStoreUnavailable();
     this.rateLimitStore = rateLimitStore;
   }
 
   @Override
   public boolean preHandle(
-      HttpServletRequest request, HttpServletResponse response, Object handler) {
-    if (requestMetricRecorder != null) {
-      requestMetricRecorder.accept(request.getRequestURI());
+      @NonNull HttpServletRequest request,
+      @NonNull HttpServletResponse response,
+      @NonNull Object handler) {
+    if (config.getCallbacks().getRequestMetricRecorder() != null) {
+      config.getCallbacks().getRequestMetricRecorder().accept(request.getRequestURI());
     }
 
-    String clientKey = resolveClientKey(request);
     long requestCount;
     try {
       requestCount =
-          rateLimitStore.increment(namespace, clientKey, Duration.ofMillis(windowMillis));
+          rateLimitStore.increment(
+              namespace, resolveClientKey(request), Duration.ofMillis(windowMillis));
     } catch (RuntimeException ex) {
-      if (rateLimitStoreFailureRecorder != null) {
-        rateLimitStoreFailureRecorder.accept(request.getRequestURI());
+      if (!failClosedWhenStoreUnavailable) {
+        throw ex;
+      }
+      if (config.getCallbacks().getRateLimitStoreFailureRecorder() != null) {
+        config.getCallbacks().getRateLimitStoreFailureRecorder().accept(request.getRequestURI());
       }
       log.error(
           REQUEST_CONFLICT + RATE_LIMIT_STORE_UNAVAILABLE_CONTEXT,
@@ -87,9 +88,10 @@ public class AuthRateLimitInterceptor implements HandlerInterceptor {
       throw new ResponseStatusException(
           HttpStatus.SERVICE_UNAVAILABLE, "Rate limit service unavailable");
     }
+
     if (requestCount > maxRequests) {
-      if (rateLimitedMetricRecorder != null) {
-        rateLimitedMetricRecorder.accept(request.getRequestURI());
+      if (config.getCallbacks().getRateLimitedMetricRecorder() != null) {
+        config.getCallbacks().getRateLimitedMetricRecorder().accept(request.getRequestURI());
       }
       throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, rejectionMessage);
     }

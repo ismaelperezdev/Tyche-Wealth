@@ -12,6 +12,10 @@ public class ApiConstants {
   public static final String AUTH_LOGIN_URL = AUTH_BASE_URL + "/login";
   public static final String AUTH_REFRESH_URL = AUTH_BASE_URL + "/refresh";
   public static final String AUTH_LOGOUT_URL = AUTH_BASE_URL + "/logout";
+  public static final String AUTH_VERIFY_REGISTRATION_URL = AUTH_BASE_URL + "/verify-registration";
+  public static final String AUTH_VERIFY_LOGIN_DEVICE_URL = AUTH_BASE_URL + "/verify-login-device";
+  public static final String AUTH_FORGOT_PASSWORD_URL = AUTH_BASE_URL + "/forgot-password";
+  public static final String AUTH_RESEND_VERIFICATION_URL = AUTH_BASE_URL + "/resend-verification";
 
   public static final String USER_BASE_URL = URL_FOLDER_V1 + "/user";
   public static final String USER_ME_URL = USER_BASE_URL + "/me";

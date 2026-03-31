@@ -8,7 +8,7 @@ import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
-import com.tychewealth.service.monitoring.AuthMetrics;
+import com.tychewealth.monitoring.AuthMetrics;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

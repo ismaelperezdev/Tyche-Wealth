@@ -41,7 +41,7 @@ import static com.tychewealth.testhelper.UserTestHelper.updatePasswordRequest;
 import static com.tychewealth.testhelper.UserTestHelper.updatePasswordRequestUnauthorized;
 import static com.tychewealth.testhelper.UserTestHelper.updateRequest;
 import static com.tychewealth.testhelper.UserTestHelper.updateRequestUnauthorized;
-import static com.tychewealth.utils.Utils.sha256Hex;
+import static com.tychewealth.utils.Utils.hmacSha256Hex;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -253,7 +253,7 @@ class UserApiControllerIntegrationTest {
     assertTrue(passwordEncoder.matches(TEST_PASSWORD_NEW_VALID, updatedUser.getPassword()));
     assertTrue(
         refreshTokenRepository
-            .findByToken(sha256Hex(refreshTokenValue, TEST_REFRESH_TOKEN_PEPPER))
+            .findByToken(hmacSha256Hex(refreshTokenValue, TEST_REFRESH_TOKEN_PEPPER))
             .orElseThrow()
             .isRevoked());
   }

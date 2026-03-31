@@ -1,4 +1,4 @@
-package com.tychewealth.email;
+package com.tychewealth.enums;
 
 public enum EmailSendResult {
   DELIVERED,

@@ -27,7 +27,7 @@ import static com.tychewealth.testhelper.AuthTestHelper.logout;
 import static com.tychewealth.testhelper.AuthTestHelper.refresh;
 import static com.tychewealth.testhelper.AuthTestHelper.seedTrustedDevice;
 import static com.tychewealth.testhelper.UserTestHelper.passwordUpdateRequestBody;
-import static com.tychewealth.utils.Utils.sha256Hex;
+import static com.tychewealth.utils.Utils.hmacSha256Hex;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -40,8 +40,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tychewealth.config.RefreshRateLimitConfig;
-import com.tychewealth.config.SecurityIntegrationTestConfig;
+import com.tychewealth.config.AuthRateLimitConfig;
+import com.tychewealth.config.security.SecurityIntegrationTestConfig;
 import com.tychewealth.dto.auth.LoginResponseDto;
 import com.tychewealth.dto.auth.RefreshTokenResponseDto;
 import com.tychewealth.dto.auth.request.LoginRequestDto;
@@ -80,7 +80,7 @@ class SecurityIntegrationTest {
   @Autowired private TrustedDeviceRepository trustedDeviceRepository;
   @Autowired private PasswordEncoder passwordEncoder;
   @Autowired private AccessTokenCodec accessTokenCodec;
-  @Autowired private RefreshRateLimitConfig rateLimitConfig;
+  @Autowired private AuthRateLimitConfig rateLimitConfig;
 
   private LoginRequestDto validLoginRequest;
   private Cookie trustedDeviceCookie;
@@ -149,7 +149,7 @@ class SecurityIntegrationTest {
     assertNotNull(response.getRefreshToken());
     assertNotEquals(response.getRefreshToken(), storedTokens.getFirst().getToken());
     assertEquals(
-        sha256Hex(response.getRefreshToken(), TEST_REFRESH_TOKEN_PEPPER),
+        hmacSha256Hex(response.getRefreshToken(), TEST_REFRESH_TOKEN_PEPPER),
         storedTokens.getFirst().getToken());
   }
 

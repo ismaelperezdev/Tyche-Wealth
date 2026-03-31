@@ -1,4 +1,4 @@
-package com.tychewealth.service.monitoring;
+package com.tychewealth.monitoring;
 
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_FAILURE;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_LOGIN_INVALID_CREDENTIALS;

@@ -10,7 +10,7 @@ import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 import com.tychewealth.dto.auth.request.RefreshTokenRequestDto;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
-import com.tychewealth.service.monitoring.AuthMetrics;
+import com.tychewealth.monitoring.AuthMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

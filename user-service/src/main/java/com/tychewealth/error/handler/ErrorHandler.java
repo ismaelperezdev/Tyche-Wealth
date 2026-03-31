@@ -11,7 +11,7 @@ import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.exception.EmailException;
 import com.tychewealth.error.exception.UserException;
-import com.tychewealth.service.monitoring.UserMetrics;
+import com.tychewealth.monitoring.UserMetrics;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;

@@ -5,8 +5,8 @@ import static org.springframework.transaction.support.TransactionSynchronization
 import com.tychewealth.constants.LogConstants;
 import com.tychewealth.dto.auth.AuthTokenDto;
 import com.tychewealth.dto.email.request.EmailMessageDto;
-import com.tychewealth.email.EmailSendResult;
 import com.tychewealth.email.EmailSender;
+import com.tychewealth.enums.EmailSendResult;
 import com.tychewealth.repository.UserRepository;
 import java.time.Instant;
 import lombok.extern.slf4j.Slf4j;

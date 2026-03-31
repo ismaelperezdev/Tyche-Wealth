@@ -13,8 +13,8 @@ import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
+import com.tychewealth.monitoring.AuthMetrics;
 import com.tychewealth.repository.RefreshTokenRepository;
-import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.TokenStateStore;
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -106,7 +106,7 @@ public class AuthRefreshTokenHelper {
   }
 
   public String hashRefreshToken(String token) {
-    return com.tychewealth.utils.Utils.sha256Hex(token, refreshTokenPepper);
+    return com.tychewealth.utils.Utils.hmacSha256Hex(token, refreshTokenPepper);
   }
 
   private void throwInvalidRefreshToken() {

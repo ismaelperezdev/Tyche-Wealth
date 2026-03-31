@@ -79,7 +79,7 @@ public class LiquibaseTestHelper {
         VALUES (?, ?, ?, ?, ?, ?)
         """,
         id,
-        Utils.sha256Hex(token, TEST_REFRESH_TOKEN_PEPPER),
+        Utils.hmacSha256Hex(token, TEST_REFRESH_TOKEN_PEPPER),
         userId,
         Timestamp.from(Instant.now().plusSeconds(3600)),
         false,

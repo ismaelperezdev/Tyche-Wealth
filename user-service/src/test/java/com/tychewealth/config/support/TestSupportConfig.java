@@ -5,21 +5,24 @@ import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.tychewealth.config.RefreshRateLimitConfig;
+import com.tychewealth.config.AuthRateLimitConfig;
 import com.tychewealth.config.TestDatabaseConfig;
+import com.tychewealth.config.security.SecurityTestConfig;
 import com.tychewealth.controller.impl.AuthApiController;
 import com.tychewealth.controller.impl.UserApiController;
-import com.tychewealth.email.EmailSendResult;
 import com.tychewealth.email.EmailSender;
 import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.TrustedDeviceEntity;
 import com.tychewealth.entity.UserEntity;
+import com.tychewealth.enums.EmailSendResult;
 import com.tychewealth.error.handler.ErrorHandler;
 import com.tychewealth.mapper.user.UserMapperImpl;
+import com.tychewealth.monitoring.AuthMetrics;
+import com.tychewealth.monitoring.UserMetrics;
+import com.tychewealth.ratelimit.support.AuthRateLimitSupport;
 import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.TrustedDeviceRepository;
 import com.tychewealth.repository.UserRepository;
-import com.tychewealth.security.SecurityTestConfig;
 import com.tychewealth.service.email.AuthEmailFactory;
 import com.tychewealth.service.email.VerificationEmailWorkflow;
 import com.tychewealth.service.email.support.EmailTemplateSupport;
@@ -35,8 +38,6 @@ import com.tychewealth.service.helper.user.UserHelper;
 import com.tychewealth.service.helper.user.UserValidationHelper;
 import com.tychewealth.service.impl.AuthServiceImpl;
 import com.tychewealth.service.impl.UserServiceImpl;
-import com.tychewealth.service.monitoring.AuthMetrics;
-import com.tychewealth.service.monitoring.UserMetrics;
 import com.tychewealth.service.token.AccessTokenCodec;
 import com.tychewealth.service.token.TokenStateStore;
 import com.tychewealth.service.token.TokenValidator;
@@ -63,7 +64,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 @Import({
   SecurityTestConfig.class,
   TestDatabaseConfig.class,
-  RefreshRateLimitConfig.class,
+  AuthRateLimitConfig.class,
   AuthApiController.class,
   UserApiController.class,
   AuthServiceImpl.class,
@@ -90,7 +91,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
   TokenStateStore.class,
   TokenValidator.class,
   AccessTokenSupport.class,
-  TokenStateSupport.class
+  TokenStateSupport.class,
+  AuthRateLimitSupport.class
 })
 @EnableJpaRepositories(
     basePackageClasses = {
@@ -167,7 +169,13 @@ public class TestSupportConfig {
             "app.auth.verify-login-device-url=http://localhost:8080/tyche-wealth/user-service/v1/auth/verify-login-device",
             "app.auth.forgot-password-url=http://localhost:3000/reset-password",
             "app.email.resend.api-key=test-resend-api-key",
-            "app.email.resend.from=Tyche Wealth <auth@tyche-wealth.test>")
+            "app.email.resend.from=Tyche Wealth <auth@tyche-wealth.test>",
+            "app.auth.forgot-password-rate-limit.max-requests=2",
+            "app.auth.forgot-password-rate-limit.window-seconds=300",
+            "app.auth.resend-verification-rate-limit.max-requests=2",
+            "app.auth.resend-verification-rate-limit.window-seconds=300",
+            "app.auth.verify-login-device-rate-limit.max-requests=2",
+            "app.auth.verify-login-device-rate-limit.window-seconds=300")
         .applyTo(applicationContext.getEnvironment());
   }
 }

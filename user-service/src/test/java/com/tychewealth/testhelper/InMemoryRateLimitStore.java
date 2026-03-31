@@ -1,6 +1,6 @@
 package com.tychewealth.testhelper;
 
-import com.tychewealth.service.ratelimit.RateLimitStore;
+import com.tychewealth.ratelimit.RateLimitStore;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Map;

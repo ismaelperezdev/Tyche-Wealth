@@ -2,7 +2,7 @@ package com.tychewealth.config;
 
 import com.tychewealth.dto.email.ResendEmailPropertiesDto;
 import com.tychewealth.email.EmailSender;
-import com.tychewealth.service.ratelimit.RateLimitStore;
+import com.tychewealth.ratelimit.RateLimitStore;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Clock;

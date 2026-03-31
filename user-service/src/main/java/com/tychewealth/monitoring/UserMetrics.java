@@ -1,4 +1,4 @@
-package com.tychewealth.service.monitoring;
+package com.tychewealth.monitoring;
 
 import static com.tychewealth.constants.MetricConstants.METRIC_USER_CURRENT_PASSWORD_INVALID;
 import static com.tychewealth.constants.MetricConstants.METRIC_USER_DELETE_REQUESTS;
