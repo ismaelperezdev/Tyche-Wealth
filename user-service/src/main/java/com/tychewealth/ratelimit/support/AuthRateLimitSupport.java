@@ -6,11 +6,14 @@ import static com.tychewealth.constants.ApiConstants.AUTH_REGISTER_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_RESEND_VERIFICATION_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_VERIFY_LOGIN_DEVICE_URL;
 
-import com.tychewealth.dto.auth.AuthRateLimitPropertiesDto;
+import com.tychewealth.dto.ratelimit.AuthRateLimitCallbacksDto;
+import com.tychewealth.dto.ratelimit.AuthRateLimitPropertiesDto;
+import com.tychewealth.dto.ratelimit.AuthRateLimitRegistrationDto;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.monitoring.AuthMetrics;
 import com.tychewealth.ratelimit.RateLimitInterceptor;
 import com.tychewealth.ratelimit.RateLimitStore;
+import java.time.Duration;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
@@ -29,45 +32,46 @@ public class AuthRateLimitSupport {
     this.rateLimitStore = rateLimitStore;
   }
 
-  public List<AuthRateLimitRegistration> buildAuthRegistrations(
+  public List<AuthRateLimitRegistrationDto> buildAuthRegistrations(
       AuthRateLimitPropertiesDto properties, AuthMetrics authMetrics) {
     return List.of(
         registration(
             AUTH_REGISTER_URL,
             REGISTER_NAMESPACE,
             properties.registerRateLimit(),
-            AuthRateLimitCallbacks.register(authMetrics)),
+            AuthRateLimitCallbacksDto.register(authMetrics)),
         registration(
             AUTH_LOGIN_URL,
             LOGIN_NAMESPACE,
             properties.loginRateLimit(),
-            AuthRateLimitCallbacks.login(authMetrics)),
+            AuthRateLimitCallbacksDto.login(authMetrics)),
         registration(
             AUTH_FORGOT_PASSWORD_URL,
             FORGOT_PASSWORD_NAMESPACE,
             properties.forgotPasswordRateLimit(),
-            AuthRateLimitCallbacks.none()),
+            AuthRateLimitCallbacksDto.none()),
         registration(
             AUTH_RESEND_VERIFICATION_URL,
             RESEND_VERIFICATION_NAMESPACE,
             properties.resendVerificationRateLimit(),
-            AuthRateLimitCallbacks.none()),
+            AuthRateLimitCallbacksDto.none()),
         registration(
             AUTH_VERIFY_LOGIN_DEVICE_URL,
             VERIFY_LOGIN_DEVICE_NAMESPACE,
             properties.verifyLoginDeviceRateLimit(),
-            AuthRateLimitCallbacks.none()));
+            AuthRateLimitCallbacksDto.none()));
   }
 
   public RateLimitInterceptor buildRefreshInterceptor(
-      AuthRateLimitPropertiesDto.RateLimit rateLimit, AuthMetrics authMetrics) {
+      AuthRateLimitPropertiesDto.RateLimitDto rateLimit, AuthMetrics authMetrics) {
+    Duration window = Duration.ofSeconds(rateLimit.windowSeconds());
     return new RateLimitInterceptor(
         new RateLimitInterceptorConfig(
             REFRESH_NAMESPACE,
             rateLimit.maxRequests(),
-            rateLimit.windowSeconds(),
+            window,
             ErrorDefinition.RATE_LIMITED.getDescription(),
-            new AuthRateLimitCallbacks(
+            new AuthRateLimitCallbacksDto(
                 ignored -> authMetrics.recordRefreshRequest(),
                 ignored -> authMetrics.recordRefreshRateLimited(),
                 null),
@@ -77,25 +81,30 @@ public class AuthRateLimitSupport {
 
   private RateLimitInterceptor buildAuthInterceptor(
       String namespace,
-      AuthRateLimitPropertiesDto.RateLimit rateLimit,
-      AuthRateLimitCallbacks callbacks) {
+      AuthRateLimitPropertiesDto.RateLimitDto rateLimit,
+      AuthRateLimitCallbacksDto callbacks) {
+    Duration window = Duration.ofSeconds(rateLimit.windowSeconds());
     return new RateLimitInterceptor(
         new RateLimitInterceptorConfig(
             namespace,
             rateLimit.maxRequests(),
-            rateLimit.windowSeconds(),
+            window,
             ErrorDefinition.RATE_LIMITED.getDescription(),
             callbacks,
             true),
         rateLimitStore);
   }
 
-  private AuthRateLimitRegistration registration(
+  private AuthRateLimitRegistrationDto registration(
       String pathPattern,
       String namespace,
-      AuthRateLimitPropertiesDto.RateLimit rateLimit,
-      AuthRateLimitCallbacks callbacks) {
-    return new AuthRateLimitRegistration(
-        pathPattern, buildAuthInterceptor(namespace, rateLimit, callbacks));
+      AuthRateLimitPropertiesDto.RateLimitDto rateLimit,
+      AuthRateLimitCallbacksDto callbacks) {
+    return new AuthRateLimitRegistrationDto(
+        pathPattern, namespace, buildAuthInterceptor(namespace, rateLimit, callbacks));
+  }
+
+  public String refreshNamespace() {
+    return REFRESH_NAMESPACE;
   }
 }

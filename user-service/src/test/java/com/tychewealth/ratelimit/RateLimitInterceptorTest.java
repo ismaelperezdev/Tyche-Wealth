@@ -3,9 +3,9 @@ package com.tychewealth.ratelimit;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.tychewealth.dto.ratelimit.AuthRateLimitCallbacksDto;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.monitoring.AuthMetrics;
-import com.tychewealth.ratelimit.support.AuthRateLimitCallbacks;
 import com.tychewealth.ratelimit.support.RateLimitInterceptorConfig;
 import com.tychewealth.testhelper.InMemoryRateLimitStore;
 import com.tychewealth.testhelper.RateLimitWebTestHelper;
@@ -29,9 +29,9 @@ class RateLimitInterceptorTest {
             new RateLimitInterceptorConfig(
                 AUTH_NAMESPACE,
                 1,
-                60,
+                Duration.ofSeconds(60),
                 ErrorDefinition.RATE_LIMITED.getDescription(),
-                AuthRateLimitCallbacks.none(),
+                AuthRateLimitCallbacksDto.none(),
                 true),
             store);
 
@@ -55,9 +55,9 @@ class RateLimitInterceptorTest {
             new RateLimitInterceptorConfig(
                 AUTH_NAMESPACE,
                 1,
-                1,
+                Duration.ofSeconds(1),
                 ErrorDefinition.RATE_LIMITED.getDescription(),
-                AuthRateLimitCallbacks.none(),
+                AuthRateLimitCallbacksDto.none(),
                 true),
             store);
 
@@ -83,9 +83,9 @@ class RateLimitInterceptorTest {
             new RateLimitInterceptorConfig(
                 REFRESH_NAMESPACE,
                 1,
-                60,
+                Duration.ofSeconds(60),
                 ErrorDefinition.RATE_LIMITED.getDescription(),
-                new AuthRateLimitCallbacks(
+                new AuthRateLimitCallbacksDto(
                     ignored -> authMetrics.recordRefreshRequest(),
                     ignored -> authMetrics.recordRefreshRateLimited(),
                     null),
@@ -113,9 +113,9 @@ class RateLimitInterceptorTest {
             new RateLimitInterceptorConfig(
                 REFRESH_NAMESPACE,
                 1,
-                1,
+                Duration.ofSeconds(1),
                 ErrorDefinition.RATE_LIMITED.getDescription(),
-                new AuthRateLimitCallbacks(
+                new AuthRateLimitCallbacksDto(
                     ignored -> authMetrics.recordRefreshRequest(),
                     ignored -> authMetrics.recordRefreshRateLimited(),
                     null),
