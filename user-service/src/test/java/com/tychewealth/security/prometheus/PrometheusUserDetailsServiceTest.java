@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.tychewealth.config.SecurityConfig;
+import com.tychewealth.config.security.PrometheusSecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -19,7 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 class PrometheusUserDetailsServiceTest {
 
-  private final SecurityConfig securityConfig = new SecurityConfig();
+  private final PrometheusSecurityConfig securityConfig = new PrometheusSecurityConfig();
   private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
   @Test

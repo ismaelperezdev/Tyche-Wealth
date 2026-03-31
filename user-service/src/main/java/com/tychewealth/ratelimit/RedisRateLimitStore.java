@@ -1,4 +1,4 @@
-package com.tychewealth.service.ratelimit;
+package com.tychewealth.ratelimit;
 
 import static com.tychewealth.constants.RedisConstants.INCREMENT_WITH_TTL_SCRIPT;
 

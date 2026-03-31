@@ -4,7 +4,7 @@ import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
 import static com.tychewealth.testdata.EntityBuilder.buildRefreshToken;
 import static com.tychewealth.testdata.EntityBuilder.buildUser;
-import static com.tychewealth.utils.Utils.sha256Hex;
+import static com.tychewealth.utils.Utils.hmacSha256Hex;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -47,7 +47,7 @@ class RefreshTokenRepositoryTest {
 
     Optional<RefreshTokenEntity> result =
         refreshTokenRepository.findByToken(
-            sha256Hex(SAVED_REFRESH_TOKEN, TEST_REFRESH_TOKEN_PEPPER));
+            hmacSha256Hex(SAVED_REFRESH_TOKEN, TEST_REFRESH_TOKEN_PEPPER));
 
     assertTrue(result.isPresent());
     assertEquals(user.getId(), result.get().getUser().getId());
@@ -58,7 +58,7 @@ class RefreshTokenRepositoryTest {
   @Test
   void findByTokenReturnsEmptyWhenTokenDoesNotExist() {
     Optional<RefreshTokenEntity> result =
-        refreshTokenRepository.findByToken(sha256Hex(MISSING_TOKEN, TEST_REFRESH_TOKEN_PEPPER));
+        refreshTokenRepository.findByToken(hmacSha256Hex(MISSING_TOKEN, TEST_REFRESH_TOKEN_PEPPER));
 
     assertTrue(result.isEmpty());
   }
@@ -98,22 +98,22 @@ class RefreshTokenRepositoryTest {
     assertEquals(1, revokedCount);
     assertTrue(
         refreshTokenRepository
-            .findByToken(sha256Hex(ACTIVE_TOKEN, TEST_REFRESH_TOKEN_PEPPER))
+            .findByToken(hmacSha256Hex(ACTIVE_TOKEN, TEST_REFRESH_TOKEN_PEPPER))
             .orElseThrow()
             .isRevoked());
     assertTrue(
         refreshTokenRepository
-            .findByToken(sha256Hex(REVOKED_TOKEN, TEST_REFRESH_TOKEN_PEPPER))
+            .findByToken(hmacSha256Hex(REVOKED_TOKEN, TEST_REFRESH_TOKEN_PEPPER))
             .orElseThrow()
             .isRevoked());
     assertFalse(
         refreshTokenRepository
-            .findByToken(sha256Hex(EXPIRED_REFRESH_TOKEN, TEST_REFRESH_TOKEN_PEPPER))
+            .findByToken(hmacSha256Hex(EXPIRED_REFRESH_TOKEN, TEST_REFRESH_TOKEN_PEPPER))
             .orElseThrow()
             .isRevoked());
     assertFalse(
         refreshTokenRepository
-            .findByToken(sha256Hex(OTHER_USER_TOKEN, TEST_REFRESH_TOKEN_PEPPER))
+            .findByToken(hmacSha256Hex(OTHER_USER_TOKEN, TEST_REFRESH_TOKEN_PEPPER))
             .orElseThrow()
             .isRevoked());
   }
@@ -132,30 +132,30 @@ class RefreshTokenRepositoryTest {
 
     int activeRevoked =
         refreshTokenRepository.revokeTokenIfActive(
-            sha256Hex(ACTIVE_REFRESH_TOKEN, TEST_REFRESH_TOKEN_PEPPER), now);
+            hmacSha256Hex(ACTIVE_REFRESH_TOKEN, TEST_REFRESH_TOKEN_PEPPER), now);
     int expiredRevoked =
         refreshTokenRepository.revokeTokenIfActive(
-            sha256Hex(EXPIRED_REFRESH_TOKEN, TEST_REFRESH_TOKEN_PEPPER), now);
+            hmacSha256Hex(EXPIRED_REFRESH_TOKEN, TEST_REFRESH_TOKEN_PEPPER), now);
     int alreadyRevoked =
         refreshTokenRepository.revokeTokenIfActive(
-            sha256Hex(REVOKED_REFRESH_TOKEN, TEST_REFRESH_TOKEN_PEPPER), now);
+            hmacSha256Hex(REVOKED_REFRESH_TOKEN, TEST_REFRESH_TOKEN_PEPPER), now);
 
     assertEquals(1, activeRevoked);
     assertEquals(0, expiredRevoked);
     assertEquals(0, alreadyRevoked);
     assertTrue(
         refreshTokenRepository
-            .findByToken(sha256Hex(ACTIVE_REFRESH_TOKEN, TEST_REFRESH_TOKEN_PEPPER))
+            .findByToken(hmacSha256Hex(ACTIVE_REFRESH_TOKEN, TEST_REFRESH_TOKEN_PEPPER))
             .orElseThrow()
             .isRevoked());
     assertFalse(
         refreshTokenRepository
-            .findByToken(sha256Hex(EXPIRED_REFRESH_TOKEN, TEST_REFRESH_TOKEN_PEPPER))
+            .findByToken(hmacSha256Hex(EXPIRED_REFRESH_TOKEN, TEST_REFRESH_TOKEN_PEPPER))
             .orElseThrow()
             .isRevoked());
     assertTrue(
         refreshTokenRepository
-            .findByToken(sha256Hex(REVOKED_REFRESH_TOKEN, TEST_REFRESH_TOKEN_PEPPER))
+            .findByToken(hmacSha256Hex(REVOKED_REFRESH_TOKEN, TEST_REFRESH_TOKEN_PEPPER))
             .orElseThrow()
             .isRevoked());
   }

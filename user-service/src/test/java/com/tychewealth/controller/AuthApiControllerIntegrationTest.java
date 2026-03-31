@@ -1,7 +1,9 @@
 package com.tychewealth.controller;
 
 import static com.tychewealth.constants.ApiConstants.AUTH_BASE_URL;
+import static com.tychewealth.constants.ApiConstants.AUTH_FORGOT_PASSWORD_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_REFRESH_URL;
+import static com.tychewealth.constants.ApiConstants.AUTH_RESEND_VERIFICATION_URL;
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER;
 import static com.tychewealth.constants.CommonConstants.FIELD_EMAIL;
 import static com.tychewealth.constants.CommonConstants.FIELD_ID;
@@ -44,7 +46,7 @@ import static com.tychewealth.testhelper.AuthTestHelper.seedTrustedDevice;
 import static com.tychewealth.testhelper.AuthTestHelper.verifyLoginDeviceRequest;
 import static com.tychewealth.testhelper.AuthTestHelper.verifyRegistrationRequest;
 import static com.tychewealth.testhelper.MetricsTestHelper.counterValue;
-import static com.tychewealth.utils.Utils.sha256Hex;
+import static com.tychewealth.utils.Utils.hmacSha256Hex;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -62,7 +64,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.config.AuthIntegrationTestConfig;
-import com.tychewealth.config.RefreshRateLimitConfig;
+import com.tychewealth.config.AuthRateLimitConfig;
 import com.tychewealth.dto.auth.AuthTokenDto;
 import com.tychewealth.dto.auth.LoginResponseDto;
 import com.tychewealth.dto.auth.RefreshTokenResponseDto;
@@ -76,10 +78,10 @@ import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.enums.AccessTokenType;
 import com.tychewealth.error.handler.ErrorDefinition;
+import com.tychewealth.ratelimit.RateLimitStore;
 import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.TrustedDeviceRepository;
 import com.tychewealth.repository.UserRepository;
-import com.tychewealth.service.ratelimit.RateLimitStore;
 import com.tychewealth.service.token.AccessTokenCodec;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.Cookie;
@@ -116,7 +118,7 @@ class AuthApiControllerIntegrationTest {
   @Autowired private RefreshTokenRepository refreshTokenRepository;
   @Autowired private TrustedDeviceRepository trustedDeviceRepository;
   @Autowired private MeterRegistry meterRegistry;
-  @Autowired private RefreshRateLimitConfig rateLimitConfig;
+  @Autowired private AuthRateLimitConfig rateLimitConfig;
   @Autowired private RateLimitStore rateLimitStore;
 
   @Autowired private PasswordEncoder passwordEncoder;
@@ -142,7 +144,7 @@ class AuthApiControllerIntegrationTest {
     reset(emailSender);
     org.mockito.Mockito.when(
             emailSender.send(org.mockito.ArgumentMatchers.any(EmailMessageDto.class)))
-        .thenReturn(com.tychewealth.email.EmailSendResult.DELIVERED);
+        .thenReturn(com.tychewealth.enums.EmailSendResult.DELIVERED);
     validRequest =
         new RegisterRequestDto(TEST_EMAIL_LAURA, TEST_USERNAME_LAURA, TEST_PASSWORD_VALID);
     conflictByEmailRequest =
@@ -475,15 +477,74 @@ class AuthApiControllerIntegrationTest {
   }
 
   @Test
+  void resendVerificationEmailReturnsTooManyRequestsWhenRateLimitIsExceeded() throws Exception {
+    ResendVerificationEmailRequestDto request =
+        new ResendVerificationEmailRequestDto("missing@tychewealth.com");
+
+    mockMvc
+        .perform(
+            post(AUTH_RESEND_VERIFICATION_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isNoContent());
+
+    mockMvc
+        .perform(
+            post(AUTH_RESEND_VERIFICATION_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isNoContent());
+
+    mockMvc
+        .perform(
+            post(AUTH_RESEND_VERIFICATION_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isTooManyRequests())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.RATE_LIMITED.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.RATE_LIMITED.getType()))
+        .andExpect(jsonPath("$.description").value(ErrorDefinition.RATE_LIMITED.getDescription()));
+  }
+
+  @Test
   void forgotPasswordReturnsNoContentWhenUserDoesNotExist() throws Exception {
     mockMvc
         .perform(
-            get(AUTH_BASE_URL + "/forgot-password")
+            get(AUTH_FORGOT_PASSWORD_URL)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     objectMapper.writeValueAsString(
                         new ForgotPasswordRequestDto("missing@tychewealth.com"))))
         .andExpect(status().isNoContent());
+  }
+
+  @Test
+  void forgotPasswordReturnsTooManyRequestsWhenRateLimitIsExceeded() throws Exception {
+    ForgotPasswordRequestDto request = new ForgotPasswordRequestDto("missing@tychewealth.com");
+
+    mockMvc
+        .perform(
+            get(AUTH_FORGOT_PASSWORD_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isNoContent());
+
+    mockMvc
+        .perform(
+            get(AUTH_FORGOT_PASSWORD_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isNoContent());
+
+    mockMvc
+        .perform(
+            get(AUTH_FORGOT_PASSWORD_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isTooManyRequests())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.RATE_LIMITED.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.RATE_LIMITED.getType()))
+        .andExpect(jsonPath("$.description").value(ErrorDefinition.RATE_LIMITED.getDescription()));
   }
 
   @Test
@@ -668,6 +729,21 @@ class AuthApiControllerIntegrationTest {
   }
 
   @Test
+  void verifyLoginDeviceReturnsTooManyRequestsWhenRateLimitIsExceeded() throws Exception {
+    UserEntity user = userRepository.save(existingLoginUser);
+    AuthTokenDto accessToken = accessTokenCodec.generateToken(user, AccessTokenType.ACCESS);
+
+    verifyLoginDeviceRequest(mockMvc, accessToken.token()).andExpect(status().isUnauthorized());
+    verifyLoginDeviceRequest(mockMvc, accessToken.token()).andExpect(status().isUnauthorized());
+
+    verifyLoginDeviceRequest(mockMvc, accessToken.token())
+        .andExpect(status().isTooManyRequests())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.RATE_LIMITED.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.RATE_LIMITED.getType()))
+        .andExpect(jsonPath("$.description").value(ErrorDefinition.RATE_LIMITED.getDescription()));
+  }
+
+  @Test
   void secondLoginRevokesPreviousRefreshToken() throws Exception {
     UserEntity savedUser = userRepository.save(existingLoginUser);
     trustedDeviceCookie = seedTrustedDevice(trustedDeviceRepository, savedUser);
@@ -722,7 +798,8 @@ class AuthApiControllerIntegrationTest {
         objectMapper.readValue(responseBody, RefreshTokenResponseDto.class);
     RefreshTokenEntity newRefreshToken =
         refreshTokenRepository
-            .findByToken(sha256Hex(refreshResponse.getRefreshToken(), TEST_REFRESH_TOKEN_PEPPER))
+            .findByToken(
+                hmacSha256Hex(refreshResponse.getRefreshToken(), TEST_REFRESH_TOKEN_PEPPER))
             .orElseThrow();
 
     assertNotEquals(previousTokenValue, refreshResponse.getRefreshToken());
@@ -730,7 +807,7 @@ class AuthApiControllerIntegrationTest {
     assertFalse(newRefreshToken.isRevoked());
     assertTrue(
         refreshTokenRepository
-            .findByToken(sha256Hex(previousTokenValue, TEST_REFRESH_TOKEN_PEPPER))
+            .findByToken(hmacSha256Hex(previousTokenValue, TEST_REFRESH_TOKEN_PEPPER))
             .orElseThrow()
             .isRevoked());
     assertEquals(previousToken.getUser().getId(), newRefreshToken.getUser().getId());
@@ -845,7 +922,7 @@ class AuthApiControllerIntegrationTest {
 
     assertTrue(
         refreshTokenRepository
-            .findByToken(sha256Hex(TEST_REFRESH_TOKEN_EXISTING, TEST_REFRESH_TOKEN_PEPPER))
+            .findByToken(hmacSha256Hex(TEST_REFRESH_TOKEN_EXISTING, TEST_REFRESH_TOKEN_PEPPER))
             .orElseThrow()
             .isRevoked());
   }

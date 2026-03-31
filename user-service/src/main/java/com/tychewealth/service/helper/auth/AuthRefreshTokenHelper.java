@@ -11,10 +11,11 @@ import static com.tychewealth.constants.LogConstants.USER_ID;
 import com.tychewealth.constants.LogConstants;
 import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
+import com.tychewealth.enums.AuthMetricEnum;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
+import com.tychewealth.monitoring.AuthMetrics;
 import com.tychewealth.repository.RefreshTokenRepository;
-import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.TokenStateStore;
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -78,13 +79,13 @@ public class AuthRefreshTokenHelper {
     refreshToken.setRevoked(false);
 
     refreshTokenRepository.save(refreshToken);
-    authMetrics.recordTokensIssued(1);
+    authMetrics.incrementMetricBy(AuthMetricEnum.REFRESH_TOKEN_ISSUED, 1);
   }
 
   @Transactional
   public int revokeActiveTokensByUserId(Long userId) {
     int revokedCount = refreshTokenRepository.revokeActiveTokensByUserId(userId, Instant.now());
-    authMetrics.recordTokensRevoked(revokedCount);
+    authMetrics.incrementMetricBy(AuthMetricEnum.REFRESH_TOKEN_REVOKED, revokedCount);
     return revokedCount;
   }
 
@@ -92,7 +93,7 @@ public class AuthRefreshTokenHelper {
   public RefreshTokenEntity validateRefreshToken(String token) {
     int revokedCount =
         refreshTokenRepository.revokeTokenIfActive(hashRefreshToken(token), Instant.now());
-    authMetrics.recordTokensRevoked(revokedCount);
+    authMetrics.incrementMetricBy(AuthMetricEnum.REFRESH_TOKEN_REVOKED, revokedCount);
 
     if (revokedCount == 0) {
       throwInvalidRefreshToken();
@@ -106,12 +107,12 @@ public class AuthRefreshTokenHelper {
   }
 
   public String hashRefreshToken(String token) {
-    return com.tychewealth.utils.Utils.sha256Hex(token, refreshTokenPepper);
+    return com.tychewealth.utils.Utils.hmacSha256Hex(token, refreshTokenPepper);
   }
 
   private void throwInvalidRefreshToken() {
     log.warn(REQUEST_CONFLICT, AUTH, REFRESH_TOKEN_ACTION, INVALID_REFRESH_TOKEN_MESSAGE);
-    authMetrics.recordRefreshFailure();
+    authMetrics.incrementMetric(AuthMetricEnum.REFRESH_FAILURE);
 
     throw buildInvalidRefreshTokenException();
   }
@@ -157,7 +158,7 @@ public class AuthRefreshTokenHelper {
     }
 
     refreshTokenRepository.deleteByToken(hashRefreshToken(refreshToken));
-    authMetrics.recordTokenStateUnavailable();
+    authMetrics.incrementMetric(AuthMetricEnum.TOKEN_STATE_UNAVAILABLE);
     AuthException exception =
         new AuthException(
             ErrorDefinition.GENERIC_INTERNAL_ERROR, null, HttpStatus.SERVICE_UNAVAILABLE);

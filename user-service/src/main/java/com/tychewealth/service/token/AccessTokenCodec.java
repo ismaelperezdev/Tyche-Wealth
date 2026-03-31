@@ -66,6 +66,16 @@ public class AccessTokenCodec {
   }
 
   public AuthTokenDto generateToken(UserEntity user, AccessTokenType tokenType) {
+    if (tokenType == null) {
+      throw new IllegalArgumentException("generateToken requires a non-null tokenType");
+    }
+    if (user == null) {
+      throw new IllegalArgumentException("generateToken requires a non-null user");
+    }
+    if (user.getId() == null) {
+      throw new IllegalArgumentException("generateToken requires a non-null user id");
+    }
+
     long ttlSeconds = resolveTtlSeconds(tokenType);
     String purpose = resolvePurpose(tokenType);
     Instant issuedAt = Instant.now();

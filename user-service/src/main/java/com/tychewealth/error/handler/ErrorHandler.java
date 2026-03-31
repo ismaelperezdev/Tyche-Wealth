@@ -8,10 +8,11 @@ import static com.tychewealth.constants.LogConstants.UNHANDLED_EXCEPTION_MESSAGE
 import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
 
+import com.tychewealth.enums.UserMetricEnum;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.exception.EmailException;
 import com.tychewealth.error.exception.UserException;
-import com.tychewealth.service.monitoring.UserMetrics;
+import com.tychewealth.monitoring.UserMetrics;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
@@ -39,7 +40,7 @@ public class ErrorHandler {
   public ResponseEntity<ErrorResponse> handleAuthException(
       AuthException ex, HttpServletRequest request) {
     if (isUserRequest(request)) {
-      userMetrics.recordUnauthorized();
+      userMetrics.incrementMetric(UserMetricEnum.UNAUTHORIZED);
     }
     return buildFromException(ex.getErrorDefinition(), ex.getHttpStatus());
   }

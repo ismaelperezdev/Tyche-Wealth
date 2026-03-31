@@ -13,6 +13,8 @@ import com.tychewealth.dto.user.UserResponseDto;
 import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.enums.AccessTokenType;
+import com.tychewealth.enums.AuthMetricEnum;
+import com.tychewealth.monitoring.AuthMetrics;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.AuthService;
 import com.tychewealth.service.email.VerificationEmailWorkflow;
@@ -24,7 +26,6 @@ import com.tychewealth.service.helper.auth.AuthResendVerificationEmailHelper;
 import com.tychewealth.service.helper.auth.AuthValidationHelper;
 import com.tychewealth.service.helper.auth.AuthVerifyEmailHelper;
 import com.tychewealth.service.helper.auth.AuthVerifyLoginDeviceHelper;
-import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.service.token.AccessTokenCodec;
 import com.tychewealth.service.token.TokenStateStore;
 import com.tychewealth.service.token.TokenValidator;
@@ -90,7 +91,7 @@ public class AuthServiceImpl implements AuthService {
           failedAttemptExpiry,
           null,
           () -> {
-            authMetrics.recordRegisterSuccess();
+            authMetrics.incrementMetric(AuthMetricEnum.REGISTER_SUCCESS);
             log.info(
                 LogConstants.REQUEST_SUCCESS + LogConstants.USER_ID,
                 LogConstants.AUTH,
@@ -132,7 +133,7 @@ public class AuthServiceImpl implements AuthService {
     AuthRefreshTokenHelper.LinkedRefreshToken newRefreshToken =
         authRefreshTokenHelper.saveToken(
             user, accessTokenPayload.jti(), LogConstants.REFRESH_TOKEN_ACTION);
-    authMetrics.recordRefreshSuccess();
+    authMetrics.incrementMetric(AuthMetricEnum.REFRESH_SUCCESS);
 
     return new RefreshTokenResponseDto(
         accessTokenPayload.tokenType(),

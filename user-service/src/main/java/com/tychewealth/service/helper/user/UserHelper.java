@@ -4,12 +4,13 @@ import com.tychewealth.constants.LogConstants;
 import com.tychewealth.dto.user.request.UserPasswordUpdateRequestDto;
 import com.tychewealth.dto.user.request.UserUpdateRequestDto;
 import com.tychewealth.entity.UserEntity;
+import com.tychewealth.enums.UserMetricEnum;
 import com.tychewealth.error.exception.UserException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.mapper.user.UserMapper;
+import com.tychewealth.monitoring.UserMetrics;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.helper.auth.AuthRefreshTokenHelper;
-import com.tychewealth.service.monitoring.UserMetrics;
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
@@ -39,7 +40,7 @@ public class UserHelper {
                   LogConstants.USER,
                   LogConstants.RETRIEVE_ACTION,
                   "user not found");
-              userMetrics.recordNotFound();
+              userMetrics.incrementMetric(UserMetricEnum.NOT_FOUND);
               return new UserException(ErrorDefinition.USER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
             });
   }

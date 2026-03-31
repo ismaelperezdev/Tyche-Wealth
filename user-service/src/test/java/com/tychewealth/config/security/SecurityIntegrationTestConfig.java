@@ -1,10 +1,10 @@
-package com.tychewealth.config;
+package com.tychewealth.config.security;
 
 import static com.tychewealth.constants.TestConstants.TEST_PROMETHEUS_PASSWORD;
 import static com.tychewealth.constants.TestConstants.TEST_PROMETHEUS_USERNAME;
 
 import com.tychewealth.config.support.TestSupportConfig;
-import com.tychewealth.service.ratelimit.RateLimitStore;
+import com.tychewealth.ratelimit.RateLimitStore;
 import com.tychewealth.testhelper.InMemoryRateLimitStore;
 import java.time.Clock;
 import org.springframework.boot.SpringBootConfiguration;
@@ -36,7 +36,7 @@ public class SecurityIntegrationTestConfig {
       TestSupportConfig.applyCommonProperties(applicationContext);
       TestPropertyValues.of(
               "app.security.prometheus.username=" + TEST_PROMETHEUS_USERNAME,
-              "PROMETHEUS_PASSWORD=" + TEST_PROMETHEUS_PASSWORD,
+              "app.security.prometheus.password=" + TEST_PROMETHEUS_PASSWORD,
               "app.auth.register-rate-limit.max-requests=2",
               "app.auth.register-rate-limit.window-seconds=300",
               "app.auth.login-rate-limit.max-requests=2",

@@ -1,5 +1,7 @@
 package com.tychewealth.config;
 
+import static com.tychewealth.constants.TestConstants.TEST_PROMETHEUS_PASSWORD;
+import static com.tychewealth.constants.TestConstants.TEST_PROMETHEUS_USERNAME;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
 
 import com.tychewealth.controller.impl.UserApiController;
@@ -7,13 +9,14 @@ import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.error.handler.ErrorHandler;
 import com.tychewealth.mapper.user.UserMapperImpl;
+import com.tychewealth.monitoring.AuthMetrics;
+import com.tychewealth.monitoring.UserMetrics;
 import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.helper.auth.AuthRefreshTokenHelper;
 import com.tychewealth.service.helper.user.UserHelper;
 import com.tychewealth.service.helper.user.UserValidationHelper;
 import com.tychewealth.service.impl.UserServiceImpl;
-import com.tychewealth.service.monitoring.UserMetrics;
 import com.tychewealth.service.token.AccessTokenCodec;
 import com.tychewealth.service.token.TokenStateStore;
 import com.tychewealth.service.token.TokenValidator;
@@ -56,8 +59,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 public class UserIntegrationTestConfig {
 
   @Bean
-  public com.tychewealth.service.monitoring.AuthMetrics authMetrics() {
-    return Mockito.mock(com.tychewealth.service.monitoring.AuthMetrics.class);
+  public AuthMetrics authMetrics() {
+    return Mockito.mock(AuthMetrics.class);
   }
 
   @Bean
@@ -73,6 +76,9 @@ public class UserIntegrationTestConfig {
       TestPropertyValues.of(
               "spring.liquibase.change-log=classpath:db.changelog/changelog-master.xml",
               "spring.data.redis.repositories.enabled=false",
+              "app.security.prometheus.username=" + TEST_PROMETHEUS_USERNAME,
+              "app.security.prometheus.password=" + TEST_PROMETHEUS_PASSWORD,
+              "PROMETHEUS_PASSWORD=" + TEST_PROMETHEUS_PASSWORD,
               "app.auth.jwt.secret=4AYI7d6GOEvFEcCJZkDA0hGFqI6SuF5RAsxAjqzTmaM=",
               "app.auth.jwt.refresh-token-pepper=" + TEST_REFRESH_TOKEN_PEPPER,
               "app.auth.verify-registration-url=http://localhost:8080/tyche-wealth/user-service/v1/auth/verify-registration",

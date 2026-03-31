@@ -8,7 +8,7 @@ import static com.tychewealth.constants.TestConstants.TEST_PROMETHEUS_USERNAME;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.tychewealth.config.SecurityIntegrationTestConfig;
+import com.tychewealth.config.security.SecurityIntegrationTestConfig;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import org.junit.jupiter.api.Test;

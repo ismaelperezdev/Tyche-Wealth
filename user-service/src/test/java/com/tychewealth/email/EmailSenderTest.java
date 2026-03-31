@@ -21,6 +21,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 import com.tychewealth.dto.email.ResendEmailPropertiesDto;
 import com.tychewealth.dto.email.request.EmailMessageDto;
+import com.tychewealth.enums.EmailSendResult;
 import com.tychewealth.error.exception.EmailException;
 import com.tychewealth.testhelper.InMemoryRateLimitStore;
 import com.tychewealth.testhelper.RateLimitWebTestHelper.MutableClock;

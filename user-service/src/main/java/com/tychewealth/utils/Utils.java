@@ -32,7 +32,14 @@ public final class Utils {
     }
   }
 
-  public static String sha256Hex(String value, String pepper) {
+  public static String hmacSha256Hex(String value, String pepper) {
+    if (value == null || value.isBlank()) {
+      throw new IllegalArgumentException("HMAC value must not be null or blank");
+    }
+    if (pepper == null || pepper.isBlank()) {
+      throw new IllegalStateException("HMAC pepper must not be null or blank");
+    }
+
     try {
       Mac mac = Mac.getInstance("HmacSHA256");
       SecretKeySpec key = new SecretKeySpec(pepper.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
@@ -40,7 +47,7 @@ public final class Utils {
       byte[] hash = mac.doFinal(value.getBytes(StandardCharsets.UTF_8));
       return HexFormat.of().formatHex(hash);
     } catch (GeneralSecurityException ex) {
-      throw new IllegalStateException("HmacSHA256 algorithm not available", ex);
+      throw new IllegalStateException("Failed to compute HmacSHA256 hash", ex);
     }
   }
 

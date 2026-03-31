@@ -8,9 +8,10 @@ import static com.tychewealth.constants.LogConstants.REFRESH_TOKEN_ACTION;
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 
 import com.tychewealth.dto.auth.request.RefreshTokenRequestDto;
+import com.tychewealth.enums.AuthMetricEnum;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
-import com.tychewealth.service.monitoring.AuthMetrics;
+import com.tychewealth.monitoring.AuthMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -45,7 +46,7 @@ public class TokenValidator {
     if (refreshTokenRequestDto == null
         || !StringUtils.hasText(refreshTokenRequestDto.getRefreshToken())) {
       log.warn(REQUEST_CONFLICT, AUTH, REFRESH_TOKEN_ACTION, INVALID_REFRESH_TOKEN_MESSAGE);
-      authMetrics.recordRefreshFailure();
+      authMetrics.incrementMetric(AuthMetricEnum.REFRESH_FAILURE);
       throw new AuthException(
           ErrorDefinition.AUTH_REFRESH_TOKEN_INVALID, null, HttpStatus.UNAUTHORIZED);
     }

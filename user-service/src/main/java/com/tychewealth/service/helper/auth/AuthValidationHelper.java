@@ -8,10 +8,11 @@ import com.tychewealth.constants.LogConstants;
 import com.tychewealth.dto.auth.request.LoginRequestDto;
 import com.tychewealth.dto.auth.request.RegisterRequestDto;
 import com.tychewealth.entity.UserEntity;
+import com.tychewealth.enums.AuthMetricEnum;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
+import com.tychewealth.monitoring.AuthMetrics;
 import com.tychewealth.repository.UserRepository;
-import com.tychewealth.service.monitoring.AuthMetrics;
 import com.tychewealth.utils.Utils;
 import java.time.Instant;
 import java.util.Locale;
@@ -58,8 +59,8 @@ public class AuthValidationHelper {
         LogConstants.AUTH,
         LogConstants.LOGIN_ACTION,
         LogConstants.INVALID_LOGIN_CREDENTIALS_MESSAGE);
-    authMetrics.recordLoginFailure();
-    authMetrics.recordLoginInvalidCredentials();
+    authMetrics.incrementMetric(AuthMetricEnum.LOGIN_FAILURE);
+    authMetrics.incrementMetric(AuthMetricEnum.LOGIN_INVALID_CREDENTIALS);
     throw new AuthException(
         ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS, null, HttpStatus.UNAUTHORIZED);
   }
@@ -98,8 +99,8 @@ public class AuthValidationHelper {
         LogConstants.AUTH,
         LogConstants.REGISTER_ACTION,
         "registration conflict detected at persistence layer");
-    authMetrics.recordRegisterFailure();
-    authMetrics.recordRegisterConflict();
+    authMetrics.incrementMetric(AuthMetricEnum.REGISTER_FAILURE);
+    authMetrics.incrementMetric(AuthMetricEnum.REGISTER_CONFLICT);
 
     return new AuthException(ErrorDefinition.AUTH_REGISTRATION_CONFLICT, null, HttpStatus.CONFLICT);
   }
@@ -112,8 +113,8 @@ public class AuthValidationHelper {
           LogConstants.AUTH,
           LogConstants.REGISTER_ACTION,
           "email already exists");
-      authMetrics.recordRegisterFailure();
-      authMetrics.recordRegisterConflict();
+      authMetrics.incrementMetric(AuthMetricEnum.REGISTER_FAILURE);
+      authMetrics.incrementMetric(AuthMetricEnum.REGISTER_CONFLICT);
 
       throw new AuthException(
           ErrorDefinition.AUTH_REGISTRATION_CONFLICT, null, HttpStatus.CONFLICT);
@@ -128,8 +129,8 @@ public class AuthValidationHelper {
           LogConstants.AUTH,
           LogConstants.REGISTER_ACTION,
           "username already exists");
-      authMetrics.recordRegisterFailure();
-      authMetrics.recordRegisterConflict();
+      authMetrics.incrementMetric(AuthMetricEnum.REGISTER_FAILURE);
+      authMetrics.incrementMetric(AuthMetricEnum.REGISTER_CONFLICT);
 
       throw new AuthException(
           ErrorDefinition.AUTH_REGISTRATION_CONFLICT, null, HttpStatus.CONFLICT);
@@ -147,8 +148,8 @@ public class AuthValidationHelper {
                   LogConstants.AUTH,
                   LogConstants.LOGIN_ACTION,
                   LogConstants.INVALID_LOGIN_CREDENTIALS_MESSAGE);
-              authMetrics.recordLoginFailure();
-              authMetrics.recordLoginInvalidCredentials();
+              authMetrics.incrementMetric(AuthMetricEnum.LOGIN_FAILURE);
+              authMetrics.incrementMetric(AuthMetricEnum.LOGIN_INVALID_CREDENTIALS);
               return new AuthException(
                   ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS, null, HttpStatus.UNAUTHORIZED);
             });
@@ -166,7 +167,7 @@ public class AuthValidationHelper {
           LogConstants.AUTH,
           LogConstants.REGISTER_ACTION,
           LogConstants.INVALID_PASSWORD_FORMAT_MESSAGE);
-      authMetrics.recordRegisterFailure();
+      authMetrics.incrementMetric(AuthMetricEnum.REGISTER_FAILURE);
 
       throw new AuthException(
           ErrorDefinition.AUTH_REGISTER_PASSWORD_FORMAT_INVALID, null, HttpStatus.BAD_REQUEST);
@@ -180,7 +181,7 @@ public class AuthValidationHelper {
           LogConstants.AUTH,
           LogConstants.LOGIN_ACTION,
           LogConstants.INVALID_PASSWORD_FORMAT_MESSAGE);
-      authMetrics.recordLoginFailure();
+      authMetrics.incrementMetric(AuthMetricEnum.LOGIN_FAILURE);
 
       throw new AuthException(
           ErrorDefinition.AUTH_LOGIN_PASSWORD_FORMAT_INVALID, null, HttpStatus.BAD_REQUEST);
@@ -194,8 +195,8 @@ public class AuthValidationHelper {
           LogConstants.AUTH,
           LogConstants.LOGIN_ACTION,
           LogConstants.INVALID_LOGIN_CREDENTIALS_MESSAGE);
-      authMetrics.recordLoginFailure();
-      authMetrics.recordLoginInvalidCredentials();
+      authMetrics.incrementMetric(AuthMetricEnum.LOGIN_FAILURE);
+      authMetrics.incrementMetric(AuthMetricEnum.LOGIN_INVALID_CREDENTIALS);
 
       throw new AuthException(
           ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS, null, HttpStatus.UNAUTHORIZED);

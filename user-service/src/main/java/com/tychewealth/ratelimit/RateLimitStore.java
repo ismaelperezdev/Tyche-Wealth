@@ -1,4 +1,4 @@
-package com.tychewealth.service.ratelimit;
+package com.tychewealth.ratelimit;
 
 import java.time.Duration;
 

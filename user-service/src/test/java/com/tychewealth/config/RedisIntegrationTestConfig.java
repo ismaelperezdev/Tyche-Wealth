@@ -1,8 +1,8 @@
 package com.tychewealth.config;
 
 import com.tychewealth.config.support.TestSupportConfig;
-import com.tychewealth.service.ratelimit.RateLimitStore;
-import com.tychewealth.service.ratelimit.RedisRateLimitStore;
+import com.tychewealth.ratelimit.RateLimitStore;
+import com.tychewealth.ratelimit.RedisRateLimitStore;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;

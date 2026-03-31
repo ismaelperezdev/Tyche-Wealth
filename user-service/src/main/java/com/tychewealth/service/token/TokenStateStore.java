@@ -1,6 +1,7 @@
 package com.tychewealth.service.token;
 
-import com.tychewealth.service.monitoring.AuthMetrics;
+import com.tychewealth.enums.AuthMetricEnum;
+import com.tychewealth.monitoring.AuthMetrics;
 import com.tychewealth.service.token.support.TokenStateSupport;
 import java.time.Duration;
 import java.time.Instant;
@@ -79,7 +80,7 @@ public class TokenStateStore {
             try {
               redisTemplate.delete(redisKey);
             } catch (RuntimeException ex) {
-              authMetrics.recordTokenStateUnavailable();
+              authMetrics.incrementMetric(AuthMetricEnum.TOKEN_STATE_UNAVAILABLE);
             }
           }
         });
