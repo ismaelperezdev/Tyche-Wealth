@@ -133,6 +133,8 @@ class TokenStateStoreTest {
     TransactionSynchronizationManager.initSynchronization();
 
     tokenStateStore.unlinkRefreshToken(TEST_REFRESH_TOKEN_EXISTING);
+    verify(redisTemplate, never())
+        .delete(tokenStateSupport.buildRefreshTokenAccessTokenLinkKey(TEST_REFRESH_TOKEN_EXISTING));
 
     for (TransactionSynchronization synchronization :
         TransactionSynchronizationManager.getSynchronizations()) {

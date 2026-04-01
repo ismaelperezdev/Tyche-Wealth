@@ -11,16 +11,10 @@ import static com.tychewealth.constants.SecurityConstants.HEADER_VALUE_NOSNIFF;
 import static com.tychewealth.constants.SecurityConstants.HEADER_VALUE_NO_REFERRER;
 import static com.tychewealth.constants.SecurityConstants.HSTS_MAX_AGE_SECONDS;
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
-import static com.tychewealth.constants.TestConstants.TEST_ATTACKER_BASIC_TOKEN;
 import static com.tychewealth.constants.TestConstants.TEST_EMAIL_LAURA;
-import static com.tychewealth.constants.TestConstants.TEST_HEADER_REFERRER_POLICY;
-import static com.tychewealth.constants.TestConstants.TEST_HEADER_STRICT_TRANSPORT_SECURITY;
-import static com.tychewealth.constants.TestConstants.TEST_HEADER_X_CONTENT_TYPE_OPTIONS;
-import static com.tychewealth.constants.TestConstants.TEST_HEADER_X_FRAME_OPTIONS;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_NEW_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
-import static com.tychewealth.constants.TestConstants.TEST_TAMPERED_TOKEN_SUFFIX;
 import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
 import static com.tychewealth.testhelper.AuthTestHelper.login;
 import static com.tychewealth.testhelper.AuthTestHelper.logout;
@@ -72,6 +66,13 @@ import org.springframework.test.web.servlet.MvcResult;
 @ContextConfiguration(initializers = SecurityIntegrationTestConfig.Initializer.class)
 @AutoConfigureMockMvc
 class SecurityIntegrationTest {
+
+  private static final String TEST_HEADER_X_CONTENT_TYPE_OPTIONS = "X-Content-Type-Options";
+  private static final String TEST_HEADER_X_FRAME_OPTIONS = "X-Frame-Options";
+  private static final String TEST_HEADER_REFERRER_POLICY = "Referrer-Policy";
+  private static final String TEST_HEADER_STRICT_TRANSPORT_SECURITY = "Strict-Transport-Security";
+  private static final String TEST_ATTACKER_BASIC_TOKEN = "Basic attacker-token";
+  private static final String TEST_TAMPERED_TOKEN_SUFFIX = "tampered";
 
   @Autowired private MockMvc mockMvc;
   @Autowired private ObjectMapper objectMapper;

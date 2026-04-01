@@ -3,14 +3,10 @@ package com.tychewealth.email;
 import static com.tychewealth.constants.ApiConstants.RESEND_EMAILS_PATH;
 import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER_PREFIX;
-import static com.tychewealth.constants.TestConstants.TEST_EMAIL_DAILY_LIMIT;
 import static com.tychewealth.constants.TestConstants.TEST_EMAIL_HTML_BODY;
 import static com.tychewealth.constants.TestConstants.TEST_EMAIL_SUBJECT_VERIFY;
-import static com.tychewealth.constants.TestConstants.TEST_EMAIL_TEXT_BODY;
 import static com.tychewealth.constants.TestConstants.TEST_EMAIL_VALID;
-import static com.tychewealth.constants.TestConstants.TEST_RESEND_API_KEY;
 import static com.tychewealth.constants.TestConstants.TEST_RESEND_BASE_URL;
-import static com.tychewealth.constants.TestConstants.TEST_RESEND_FROM;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
@@ -39,6 +35,10 @@ class EmailSenderTest {
   private static final String SEND_EMAIL_REQUEST_FIXTURE =
       "/fixtures/email/send-email-request.json";
   private static final String NULL_JSON = "{}";
+  private static final String TEST_EMAIL_TEXT_BODY = "Hello";
+  private static final int TEST_EMAIL_DAILY_LIMIT = 2;
+  private static final String TEST_RESEND_API_KEY = "re_test_key";
+  private static final String TEST_RESEND_FROM = "Tyche Wealth <auth@tyche-wealth.com>";
 
   private MockRestServiceServer mockRestServiceServer;
   private EmailSender emailSender;

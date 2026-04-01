@@ -47,7 +47,7 @@ class TokenStateSupportTest {
   void buildRefreshTokenAccessTokenLinkKeyHashesRefreshToken() {
     String key = tokenStateSupport.buildRefreshTokenAccessTokenLinkKey(TEST_REFRESH_TOKEN_EXISTING);
 
-    assertTrue(key.startsWith("auth:refresh-token:access-token-jti:"));
+    assertTrue(key.matches("^auth:refresh-token:access-token-jti:[a-f0-9]{64}$"));
     assertFalse(key.endsWith(TEST_REFRESH_TOKEN_EXISTING));
   }
 

@@ -1,6 +1,5 @@
 package com.tychewealth.testdata;
 
-import static com.tychewealth.constants.TestConstants.TEST_EMAIL_INVALID;
 import static com.tychewealth.constants.TestConstants.TEST_EMAIL_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_LOWERCASE_ONLY;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_TOO_SHORT;
@@ -22,6 +21,8 @@ import java.util.stream.Stream;
 import org.junit.jupiter.params.provider.Arguments;
 
 public final class AuthTestData {
+
+  private static final String TEST_EMAIL_INVALID = "not-an-email";
 
   private AuthTestData() {}
 

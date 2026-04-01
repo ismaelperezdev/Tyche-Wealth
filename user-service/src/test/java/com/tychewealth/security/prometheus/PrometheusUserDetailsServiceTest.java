@@ -1,9 +1,6 @@
 package com.tychewealth.security.prometheus;
 
-import static com.tychewealth.constants.TestConstants.TEST_MISSING_USERNAME;
-import static com.tychewealth.constants.TestConstants.TEST_PROMETHEUS_CREDENTIALS_ERROR;
 import static com.tychewealth.constants.TestConstants.TEST_PROMETHEUS_PASSWORD;
-import static com.tychewealth.constants.TestConstants.TEST_PROMETHEUS_ROLE;
 import static com.tychewealth.constants.TestConstants.TEST_PROMETHEUS_USERNAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -18,6 +15,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 class PrometheusUserDetailsServiceTest {
+
+  private static final String TEST_PROMETHEUS_CREDENTIALS_ERROR =
+      "Prometheus username/password not configured";
+  private static final String TEST_MISSING_USERNAME = "missing";
+  private static final String TEST_PROMETHEUS_ROLE = "ROLE_PROMETHEUS";
 
   private final PrometheusSecurityConfig securityConfig = new PrometheusSecurityConfig();
   private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();

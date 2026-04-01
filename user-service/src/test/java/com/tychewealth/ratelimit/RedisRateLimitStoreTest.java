@@ -1,9 +1,6 @@
 package com.tychewealth.ratelimit;
 
 import static com.tychewealth.constants.RedisConstants.INCREMENT_WITH_TTL_SCRIPT;
-import static com.tychewealth.constants.TestConstants.TEST_AUTH_RATE_LIMIT_LOGIN_NAMESPACE;
-import static com.tychewealth.constants.TestConstants.TEST_RATE_LIMIT_CLIENT;
-import static com.tychewealth.constants.TestConstants.TEST_RATE_LIMIT_NAMESPACE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anySet;
@@ -23,6 +20,10 @@ import org.springframework.data.redis.core.RedisTemplate;
 
 @ExtendWith(MockitoExtension.class)
 class RedisRateLimitStoreTest {
+
+  private static final String TEST_AUTH_RATE_LIMIT_LOGIN_NAMESPACE = "rate-limit:auth:login";
+  private static final String TEST_RATE_LIMIT_NAMESPACE = "namespace";
+  private static final String TEST_RATE_LIMIT_CLIENT = "client";
 
   @Mock private RedisTemplate<String, String> redisTemplate;
 

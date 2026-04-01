@@ -43,6 +43,9 @@ class AccessTokenSupportTest {
     assertThrows(
         IllegalArgumentException.class,
         () -> accessTokenSupport.requirePositiveTtl(0, "app.auth.jwt.access-token-ttl-seconds"));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> accessTokenSupport.requirePositiveTtl(-1, "app.auth.jwt.access-token-ttl-seconds"));
   }
 
   @Test
@@ -51,7 +54,7 @@ class AccessTokenSupportTest {
 
     String token = accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_EMAIL).token();
 
-    assertEquals(42L, accessTokenSupport.extractVerifyEmailUserId(token));
+    assertEquals(TEST_USER_ID, accessTokenSupport.extractVerifyEmailUserId(token));
   }
 
   @Test
@@ -61,7 +64,7 @@ class AccessTokenSupportTest {
     String token =
         accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_LOGIN_DEVICE).token();
 
-    assertEquals(42L, accessTokenSupport.extractVerifyLoginDeviceUserId(token));
+    assertEquals(TEST_USER_ID, accessTokenSupport.extractVerifyLoginDeviceUserId(token));
   }
 
   @Test

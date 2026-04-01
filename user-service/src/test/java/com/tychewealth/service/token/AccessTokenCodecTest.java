@@ -45,7 +45,7 @@ class AccessTokenCodecTest {
         accessTokenCodec.extractUserId(
             accessTokenCodec.generateToken(user, AccessTokenType.ACCESS).token());
 
-    assertEquals(42L, userId);
+    assertEquals(TEST_USER_ID, userId);
   }
 
   @Test
