@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 
 public final class FixtureLoader {
 
+  private static final String CANNOT_READ_FIXTURE = "Cannot read fixture: ";
   private static final ObjectMapper OBJECT_MAPPER =
       new ObjectMapper().registerModule(new JavaTimeModule());
 
@@ -17,7 +18,7 @@ public final class FixtureLoader {
     try (InputStream input = openFixture(path)) {
       return OBJECT_MAPPER.readValue(input, type);
     } catch (IOException exception) {
-      throw new IllegalStateException("Cannot read fixture: " + path, exception);
+      throw new IllegalStateException(CANNOT_READ_FIXTURE + path, exception);
     }
   }
 
@@ -25,7 +26,7 @@ public final class FixtureLoader {
     try (InputStream input = openFixture(path)) {
       return new String(input.readAllBytes(), StandardCharsets.UTF_8);
     } catch (IOException exception) {
-      throw new IllegalStateException("Cannot read fixture: " + path, exception);
+      throw new IllegalStateException(CANNOT_READ_FIXTURE + path, exception);
     }
   }
 
