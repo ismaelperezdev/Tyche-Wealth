@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
 @DataJpaTest(
     properties = {"spring.liquibase.enabled=false", "spring.jpa.hibernate.ddl-auto=create-drop"})
@@ -37,6 +38,8 @@ class TrustedDeviceRepositoryTest {
   @Autowired private TrustedDeviceRepository trustedDeviceRepository;
 
   @Autowired private UserRepository userRepository;
+
+  @Autowired private TestEntityManager testEntityManager;
 
   @Test
   void countByUserIdAndExpiresAtAfterCountsOnlyActiveDevicesForSpecifiedUser() {
@@ -81,6 +84,8 @@ class TrustedDeviceRepositoryTest {
                 OTHER_USER_TOKEN, otherUser, now.minusSeconds(5), now.minusSeconds(10)));
 
     trustedDeviceRepository.deleteByUserIdAndExpiresAtBefore(targetUser.getId(), now);
+    testEntityManager.flush();
+    testEntityManager.clear();
 
     assertFalse(trustedDeviceRepository.findById(expiredTrustedDevice.getId()).isPresent());
     assertTrue(trustedDeviceRepository.findById(activeTrustedDevice.getId()).isPresent());

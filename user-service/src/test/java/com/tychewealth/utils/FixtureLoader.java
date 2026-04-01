@@ -14,12 +14,7 @@ public final class FixtureLoader {
   private FixtureLoader() {}
 
   public static <T> T read(String path, Class<T> type) {
-    InputStream resource = FixtureLoader.class.getResourceAsStream(path);
-    if (resource == null) {
-      throw new IllegalStateException("Fixture not found: " + path);
-    }
-
-    try (InputStream input = resource) {
+    try (InputStream input = openFixture(path)) {
       return OBJECT_MAPPER.readValue(input, type);
     } catch (IOException exception) {
       throw new IllegalStateException("Cannot read fixture: " + path, exception);
@@ -27,15 +22,18 @@ public final class FixtureLoader {
   }
 
   public static String readString(String path) {
-    InputStream resource = FixtureLoader.class.getResourceAsStream(path);
-    if (resource == null) {
-      throw new IllegalStateException("Fixture not found: " + path);
-    }
-
-    try (InputStream input = resource) {
+    try (InputStream input = openFixture(path)) {
       return new String(input.readAllBytes(), StandardCharsets.UTF_8);
     } catch (IOException exception) {
       throw new IllegalStateException("Cannot read fixture: " + path, exception);
     }
+  }
+
+  private static InputStream openFixture(String path) {
+    InputStream resource = FixtureLoader.class.getResourceAsStream(path);
+    if (resource == null) {
+      throw new IllegalStateException("Fixture not found: " + path);
+    }
+    return resource;
   }
 }

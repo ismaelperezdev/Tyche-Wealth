@@ -101,7 +101,7 @@ class AuthRateLimitSupportTest {
             IllegalStateException.class,
             () -> refreshInterceptor.preHandle(request, response, handler));
 
-    assertEquals("store unavailable", exception.getMessage());
+    assertEquals(TEST_RATE_LIMIT_STORE_UNAVAILABLE, exception.getMessage());
   }
 
   @Test

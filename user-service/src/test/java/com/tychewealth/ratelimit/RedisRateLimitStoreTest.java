@@ -6,6 +6,7 @@ import static com.tychewealth.constants.TestConstants.TEST_RATE_LIMIT_CLIENT;
 import static com.tychewealth.constants.TestConstants.TEST_RATE_LIMIT_NAMESPACE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -90,6 +91,6 @@ class RedisRateLimitStoreTest {
 
     rateLimitStore.resetNamespace(TEST_RATE_LIMIT_NAMESPACE);
 
-    verify(redisTemplate, never()).delete(Set.of());
+    verify(redisTemplate, never()).delete(anySet());
   }
 }
