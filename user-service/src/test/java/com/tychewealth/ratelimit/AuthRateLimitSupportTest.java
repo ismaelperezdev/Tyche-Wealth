@@ -5,12 +5,6 @@ import static com.tychewealth.constants.ApiConstants.AUTH_LOGIN_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_REGISTER_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_RESEND_VERIFICATION_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_VERIFY_LOGIN_DEVICE_URL;
-import static com.tychewealth.constants.TestConstants.TEST_AUTH_RATE_LIMIT_FORGOT_PASSWORD_NAMESPACE;
-import static com.tychewealth.constants.TestConstants.TEST_AUTH_RATE_LIMIT_LOGIN_NAMESPACE;
-import static com.tychewealth.constants.TestConstants.TEST_AUTH_RATE_LIMIT_REFRESH_NAMESPACE;
-import static com.tychewealth.constants.TestConstants.TEST_AUTH_RATE_LIMIT_REGISTER_NAMESPACE;
-import static com.tychewealth.constants.TestConstants.TEST_AUTH_RATE_LIMIT_RESEND_VERIFICATION_NAMESPACE;
-import static com.tychewealth.constants.TestConstants.TEST_AUTH_RATE_LIMIT_VERIFY_LOGIN_DEVICE_NAMESPACE;
 import static com.tychewealth.constants.TestConstants.TEST_RATE_LIMIT_STORE_UNAVAILABLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -34,6 +28,16 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.server.ResponseStatusException;
 
 class AuthRateLimitSupportTest {
+
+  private static final String TEST_AUTH_RATE_LIMIT_LOGIN_NAMESPACE = "rate-limit:auth:login";
+  private static final String TEST_AUTH_RATE_LIMIT_REGISTER_NAMESPACE = "rate-limit:auth:register";
+  private static final String TEST_AUTH_RATE_LIMIT_REFRESH_NAMESPACE = "rate-limit:auth:refresh";
+  private static final String TEST_AUTH_RATE_LIMIT_FORGOT_PASSWORD_NAMESPACE =
+      "rate-limit:auth:forgot-password";
+  private static final String TEST_AUTH_RATE_LIMIT_RESEND_VERIFICATION_NAMESPACE =
+      "rate-limit:auth:resend-verification";
+  private static final String TEST_AUTH_RATE_LIMIT_VERIFY_LOGIN_DEVICE_NAMESPACE =
+      "rate-limit:auth:verify-login-device";
 
   private AuthRateLimitSupport authRateLimitSupport;
   private AuthMetrics authMetrics;

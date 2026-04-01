@@ -24,7 +24,6 @@ import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_INVALID;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_NEW_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
-import static com.tychewealth.constants.TestConstants.TEST_UPDATE_USERNAME_NORMALIZED;
 import static com.tychewealth.constants.TestConstants.TEST_UPDATE_USERNAME_REQUEST;
 import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
 import static com.tychewealth.constants.ValidationConstants.NEW_PASSWORD_AND_CONFIRM_MUST_MATCH;
@@ -60,6 +59,7 @@ import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.token.AccessTokenCodec;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
+import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -150,22 +150,24 @@ class UserApiControllerIntegrationTest {
   void updateChangesUsernameWhenUserIsAuthenticated() throws Exception {
     UserEntity saved = userRepository.save(existingUser);
     String accessToken = createAccessToken(accessTokenCodec, saved);
+    String normalizedUsername = TEST_UPDATE_USERNAME_REQUEST.toLowerCase(Locale.ROOT);
 
     updateRequest(mockMvc, objectMapper, accessToken, TEST_UPDATE_USERNAME_REQUEST)
         .andExpect(status().isOk())
         .andExpect(jsonPath("$." + FIELD_ID).value(saved.getId()))
         .andExpect(jsonPath("$." + FIELD_EMAIL).value(saved.getEmail()))
-        .andExpect(jsonPath("$." + FIELD_USERNAME).value(TEST_UPDATE_USERNAME_NORMALIZED));
+        .andExpect(jsonPath("$." + FIELD_USERNAME).value(normalizedUsername));
 
     UserEntity updatedUser = userRepository.findById(saved.getId()).orElseThrow();
-    assertEquals(TEST_UPDATE_USERNAME_NORMALIZED, updatedUser.getUsername());
+    assertEquals(normalizedUsername, updatedUser.getUsername());
   }
 
   @Test
   void updateReturnsUnauthorizedWhenUserIsNotAuthenticated() throws Exception {
     double unauthorizedBefore = counterValue(meterRegistry, METRIC_USER_UNAUTHORIZED);
+    String normalizedUsername = TEST_UPDATE_USERNAME_REQUEST.toLowerCase(Locale.ROOT);
 
-    updateRequestUnauthorized(mockMvc, objectMapper, TEST_UPDATE_USERNAME_NORMALIZED)
+    updateRequestUnauthorized(mockMvc, objectMapper, normalizedUsername)
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
@@ -200,8 +202,9 @@ class UserApiControllerIntegrationTest {
     userRepository.save(saved);
     String accessToken = createAccessToken(accessTokenCodec, saved);
     double notFoundBefore = counterValue(meterRegistry, METRIC_USER_NOT_FOUND);
+    String normalizedUsername = TEST_UPDATE_USERNAME_REQUEST.toLowerCase(Locale.ROOT);
 
-    updateRequest(mockMvc, objectMapper, accessToken, TEST_UPDATE_USERNAME_NORMALIZED)
+    updateRequest(mockMvc, objectMapper, accessToken, normalizedUsername)
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.USER_NOT_FOUND.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.USER_NOT_FOUND.getType()))

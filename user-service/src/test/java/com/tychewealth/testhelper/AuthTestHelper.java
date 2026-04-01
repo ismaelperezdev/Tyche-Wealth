@@ -6,9 +6,7 @@ import static com.tychewealth.constants.ApiConstants.AUTH_LOGOUT_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_REFRESH_URL;
 import static com.tychewealth.constants.ApiConstants.AUTH_REGISTER_URL;
 import static com.tychewealth.constants.AuthConstants.*;
-import static com.tychewealth.constants.TestConstants.TEST_AUTH_TOKEN_PARAM;
 import static com.tychewealth.constants.TestConstants.TEST_TRUSTED_DEVICE_COOKIE_NAME;
-import static com.tychewealth.constants.TestConstants.TEST_VERIFY_LOGIN_DEVICE_PATH;
 import static com.tychewealth.constants.TestConstants.TEST_VERIFY_REGISTRATION_PATH;
 import static com.tychewealth.testdata.EntityBuilder.buildTrustedDevice;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -30,6 +28,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 public final class AuthTestHelper {
+
+  private static final String TEST_AUTH_TOKEN_PARAM = "token";
+  private static final String TEST_VERIFY_LOGIN_DEVICE_PATH = "/verify-login-device";
 
   private AuthTestHelper() {}
 

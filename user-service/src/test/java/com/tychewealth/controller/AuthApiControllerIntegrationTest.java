@@ -28,11 +28,8 @@ import static com.tychewealth.constants.TestConstants.TEST_EMAIL_LAURA;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_INVALID;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_EXISTING;
-import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_EXPIRED;
-import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_METRICS;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_MISSING;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
-import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_REVOKED;
 import static com.tychewealth.constants.TestConstants.TEST_TRUSTED_DEVICE_COOKIE_NAME;
 import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
 import static com.tychewealth.constants.TestConstants.TEST_VERIFY_REGISTRATION_PATH;
@@ -109,6 +106,9 @@ class AuthApiControllerIntegrationTest {
 
   private static final Pattern VERIFY_REGISTRATION_TOKEN_PATTERN =
       Pattern.compile("token=([^\"&]+)");
+  private static final String TEST_REFRESH_TOKEN_REVOKED = "revoked-refresh-token";
+  private static final String TEST_REFRESH_TOKEN_EXPIRED = "expired-refresh-token";
+  private static final String TEST_REFRESH_TOKEN_METRICS = "metrics-refresh-token";
 
   @Autowired private MockMvc mockMvc;
 
