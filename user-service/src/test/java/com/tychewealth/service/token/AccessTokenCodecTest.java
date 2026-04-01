@@ -1,26 +1,28 @@
-package com.tychewealth.service.helper.token;
+package com.tychewealth.service.token;
 
+import static com.tychewealth.constants.TestConstants.TEST_ACCESS_TOKEN_TTL_SECONDS;
+import static com.tychewealth.constants.TestConstants.TEST_EMAIL_VALID;
+import static com.tychewealth.constants.TestConstants.TEST_FORGOT_PASSWORD_TOKEN_TTL_SECONDS;
+import static com.tychewealth.constants.TestConstants.TEST_JWT_SECRET;
+import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
+import static com.tychewealth.constants.TestConstants.TEST_USERNAME_VALID;
+import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
+import static com.tychewealth.constants.TestConstants.TEST_VERIFY_EMAIL_TOKEN_TTL_SECONDS;
+import static com.tychewealth.constants.TestConstants.TEST_VERIFY_LOGIN_DEVICE_TOKEN_TTL_SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.tychewealth.dto.auth.AuthTokenDto;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.enums.AccessTokenType;
 import com.tychewealth.error.exception.AuthException;
-import com.tychewealth.service.token.AccessTokenCodec;
 import com.tychewealth.service.token.support.AccessTokenSupport;
 import com.tychewealth.testdata.EntityBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class AccessTokenCodecTest {
-
-  private static final String TEST_JWT_SECRET =
-      "0123456789012345678901234567890123456789012345678901234567890123";
-  private static final long TEST_ACCESS_TOKEN_TTL_SECONDS = 900;
-  private static final long TEST_VERIFY_EMAIL_TOKEN_TTL_SECONDS = 86400;
-  private static final long TEST_VERIFY_LOGIN_DEVICE_TOKEN_TTL_SECONDS = 1800;
-  private static final long TEST_FORGOT_PASSWORD_TOKEN_TTL_SECONDS = 3600;
 
   private AccessTokenCodec accessTokenCodec;
 
@@ -37,8 +39,7 @@ class AccessTokenCodecTest {
 
   @Test
   void extractUserIdReturnsSubjectForNormalAccessToken() {
-    UserEntity user = EntityBuilder.buildUser("valid@tychewealth.com", "valid-user", "password");
-    user.setId(42L);
+    UserEntity user = buildUser();
 
     Long userId =
         accessTokenCodec.extractUserId(
@@ -49,8 +50,7 @@ class AccessTokenCodecTest {
 
   @Test
   void extractUserIdRejectsVerifyRegistrationToken() {
-    UserEntity user = EntityBuilder.buildUser("valid@tychewealth.com", "valid-user", "password");
-    user.setId(42L);
+    UserEntity user = buildUser();
 
     String verifyRegistrationToken =
         accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_EMAIL).token();
@@ -61,8 +61,7 @@ class AccessTokenCodecTest {
 
   @Test
   void generateVerifyEmailTokenUsesTwentyFourHourTtl() {
-    UserEntity user = EntityBuilder.buildUser("valid@tychewealth.com", "valid-user", "password");
-    user.setId(42L);
+    UserEntity user = buildUser();
 
     AuthTokenDto verifyRegistrationToken =
         accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_EMAIL);
@@ -72,8 +71,7 @@ class AccessTokenCodecTest {
 
   @Test
   void generateVerifyLoginDeviceTokenUsesDedicatedTtl() {
-    UserEntity user = EntityBuilder.buildUser("valid@tychewealth.com", "valid-user", "password");
-    user.setId(42L);
+    UserEntity user = buildUser();
 
     AuthTokenDto verifyLoginDeviceToken =
         accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_LOGIN_DEVICE);
@@ -83,12 +81,28 @@ class AccessTokenCodecTest {
 
   @Test
   void generateForgotPasswordTokenUsesDedicatedTtl() {
-    UserEntity user = EntityBuilder.buildUser("valid@tychewealth.com", "valid-user", "password");
-    user.setId(42L);
+    UserEntity user = buildUser();
 
     AuthTokenDto forgotPasswordToken =
         accessTokenCodec.generateToken(user, AccessTokenType.FORGOT_PASSWORD);
 
     assertEquals(TEST_FORGOT_PASSWORD_TOKEN_TTL_SECONDS, forgotPasswordToken.expiresIn());
+  }
+
+  @Test
+  void generateAccessTokenIncludesTokenId() {
+    UserEntity user = buildUser();
+
+    AuthTokenDto accessToken = accessTokenCodec.generateToken(user, AccessTokenType.ACCESS);
+
+    assertTrue(accessToken.jti() != null && !accessToken.jti().isBlank());
+    assertEquals(accessToken.jti(), accessTokenCodec.extractTokenId(accessToken.token()));
+  }
+
+  private UserEntity buildUser() {
+    UserEntity user =
+        EntityBuilder.buildUser(TEST_EMAIL_VALID, TEST_USERNAME_VALID, TEST_PASSWORD_VALID);
+    user.setId(TEST_USER_ID);
+    return user;
   }
 }

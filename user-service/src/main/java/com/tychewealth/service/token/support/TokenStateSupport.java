@@ -5,15 +5,12 @@ import static com.tychewealth.constants.LogConstants.ACCESS_TOKEN_ACTION;
 import static com.tychewealth.constants.LogConstants.AUTH;
 import static com.tychewealth.constants.LogConstants.INVALID_AUTHORIZATION_HEADER_MESSAGE;
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
+import static com.tychewealth.utils.Utils.sha256Hex;
 
 import com.tychewealth.enums.AuthMetricEnum;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.monitoring.AuthMetrics;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -34,7 +31,7 @@ public class TokenStateSupport {
   }
 
   public String buildRefreshTokenAccessTokenLinkKey(String refreshToken) {
-    return REFRESH_TOKEN_ACCESS_TOKEN_LINK_KEY_PREFIX + sha256(refreshToken);
+    return REFRESH_TOKEN_ACCESS_TOKEN_LINK_KEY_PREFIX + sha256Hex(refreshToken);
   }
 
   public Optional<String> findAccessTokenJtiByRefreshToken(
@@ -75,15 +72,5 @@ public class TokenStateSupport {
     }
 
     return token;
-  }
-
-  private String sha256(String refreshToken) {
-    try {
-      MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-      byte[] hash = messageDigest.digest(refreshToken.getBytes(StandardCharsets.UTF_8));
-      return HexFormat.of().formatHex(hash);
-    } catch (NoSuchAlgorithmException ex) {
-      throw new IllegalStateException("SHA-256 algorithm not available", ex);
-    }
   }
 }

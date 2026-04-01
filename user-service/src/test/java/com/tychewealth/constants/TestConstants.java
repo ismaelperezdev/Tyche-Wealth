@@ -19,7 +19,6 @@ public final class TestConstants {
   public static final String TEST_FIELD_CONFIRM_NEW_PASSWORD = "confirmNewPassword";
 
   public static final String TEST_UPDATE_USERNAME_REQUEST = "AfterUpdate";
-  public static final String TEST_UPDATE_USERNAME_NORMALIZED = "afterupdate";
   public static final String TEST_OCCUPIED_USERNAME = "occupiedname";
   public static final String TEST_OTHER_EMAIL = "otro.usuario@tychewealth.com";
 
@@ -50,6 +49,16 @@ public final class TestConstants {
   public static final String TEST_ATTACKER_BASIC_TOKEN = "Basic attacker-token";
   public static final String TEST_TAMPERED_TOKEN_SUFFIX = "tampered";
   public static final String TEST_AUTH_TOKEN_PARAM = "token";
+  public static final long TEST_USER_ID = 42L;
+  public static final String TEST_JWT_SECRET =
+      "0123456789012345678901234567890123456789012345678901234567890123";
+  public static final long TEST_ACCESS_TOKEN_TTL_SECONDS = 900L;
+  public static final long TEST_VERIFY_EMAIL_TOKEN_TTL_SECONDS = 86400L;
+  public static final long TEST_VERIFY_LOGIN_DEVICE_TOKEN_TTL_SECONDS = 1800L;
+  public static final long TEST_FORGOT_PASSWORD_TOKEN_TTL_SECONDS = 3600L;
+  public static final String TEST_ACCESS_TOKEN = "access-token";
+  public static final String TEST_ACCESS_TOKEN_JTI = "jti-123";
+  public static final String TEST_BEARER_ACCESS_TOKEN = "Bearer access-token";
   public static final String TEST_VERIFY_REGISTRATION_PATH = "/verify-registration";
   public static final String TEST_VERIFY_LOGIN_DEVICE_PATH = "/verify-login-device";
   public static final String TEST_TRUSTED_DEVICE_COOKIE_NAME = "trusted_device";
