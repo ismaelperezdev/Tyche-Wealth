@@ -1,7 +1,13 @@
 package com.tychewealth.repository;
 
+import static com.tychewealth.constants.TestConstants.TEST_EMAIL_LAURA;
+import static com.tychewealth.constants.TestConstants.TEST_EMAIL_VALID;
+import static com.tychewealth.constants.TestConstants.TEST_OCCUPIED_USERNAME;
+import static com.tychewealth.constants.TestConstants.TEST_OTHER_EMAIL;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
+import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
+import static com.tychewealth.constants.TestConstants.TEST_USERNAME_VALID;
 import static com.tychewealth.testdata.EntityBuilder.buildRefreshToken;
 import static com.tychewealth.testdata.EntityBuilder.buildUser;
 import static com.tychewealth.utils.Utils.hmacSha256Hex;
@@ -41,7 +47,7 @@ class RefreshTokenRepositoryTest {
   @Test
   void findByTokenReturnsSavedToken() {
     UserEntity user =
-        userRepository.save(buildUser("lucia@tyche.com", "lucia", TEST_PASSWORD_VALID));
+        userRepository.save(buildUser(TEST_EMAIL_LAURA, TEST_USERNAME_LAURA, TEST_PASSWORD_VALID));
     Instant expiresAt = Instant.now().plusSeconds(3600);
     refreshTokenRepository.save(buildRefreshToken(SAVED_REFRESH_TOKEN, user, expiresAt, false));
 
@@ -66,7 +72,7 @@ class RefreshTokenRepositoryTest {
   @Test
   void saveAssignsIdAndCreatedAt() {
     UserEntity user =
-        userRepository.save(buildUser("marco@tyche.com", "marco", TEST_PASSWORD_VALID));
+        userRepository.save(buildUser(TEST_EMAIL_VALID, TEST_USERNAME_VALID, TEST_PASSWORD_VALID));
     RefreshTokenEntity saved =
         refreshTokenRepository.save(
             buildRefreshToken(
@@ -79,9 +85,10 @@ class RefreshTokenRepositoryTest {
   @Test
   void revokeActiveTokensByUserIdRevokesOnlyActiveTokensForSpecifiedUser() {
     UserEntity targetUser =
-        userRepository.save(buildUser("sofia@tyche.com", "sofia", TEST_PASSWORD_VALID));
+        userRepository.save(buildUser(TEST_EMAIL_LAURA, TEST_USERNAME_LAURA, TEST_PASSWORD_VALID));
     UserEntity otherUser =
-        userRepository.save(buildUser("diego@tyche.com", "diego", TEST_PASSWORD_VALID));
+        userRepository.save(
+            buildUser(TEST_OTHER_EMAIL, TEST_OCCUPIED_USERNAME, TEST_PASSWORD_VALID));
     Instant now = Instant.now();
 
     refreshTokenRepository.save(
@@ -120,7 +127,8 @@ class RefreshTokenRepositoryTest {
 
   @Test
   void revokeTokenIfActiveRevokesOnlyNonExpiredNonRevokedToken() {
-    UserEntity user = userRepository.save(buildUser("nora@tyche.com", "nora", TEST_PASSWORD_VALID));
+    UserEntity user =
+        userRepository.save(buildUser(TEST_EMAIL_VALID, TEST_USERNAME_VALID, TEST_PASSWORD_VALID));
     Instant now = Instant.now();
 
     refreshTokenRepository.save(

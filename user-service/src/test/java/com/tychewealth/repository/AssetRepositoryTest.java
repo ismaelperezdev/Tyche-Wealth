@@ -1,6 +1,8 @@
 package com.tychewealth.repository;
 
+import static com.tychewealth.constants.TestConstants.TEST_EMAIL_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
+import static com.tychewealth.constants.TestConstants.TEST_USERNAME_VALID;
 import static com.tychewealth.testdata.EntityBuilder.buildAsset;
 import static com.tychewealth.testdata.EntityBuilder.buildPortfolio;
 import static com.tychewealth.testdata.EntityBuilder.buildUser;
@@ -40,7 +42,7 @@ class AssetRepositoryTest {
   @BeforeEach
   void setUp() {
     UserEntity user =
-        userRepository.save(buildUser("asset-owner@tyche.com", "assetowner", TEST_PASSWORD_VALID));
+        userRepository.save(buildUser(TEST_EMAIL_VALID, TEST_USERNAME_VALID, TEST_PASSWORD_VALID));
     portfolio =
         portfolioRepository.save(
             buildPortfolio(

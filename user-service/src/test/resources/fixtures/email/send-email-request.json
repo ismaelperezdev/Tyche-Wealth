@@ -1,0 +1,7 @@
+{
+  "from": "Tyche Wealth <auth@tyche-wealth.com>",
+  "to": "valid@tychewealth.com",
+  "subject": "Verify your email",
+  "html": "<p>Hello</p>",
+  "text": "Hello"
+}

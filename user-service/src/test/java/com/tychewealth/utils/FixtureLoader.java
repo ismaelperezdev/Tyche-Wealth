@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 public final class FixtureLoader {
 
@@ -20,6 +21,19 @@ public final class FixtureLoader {
 
     try (InputStream input = resource) {
       return OBJECT_MAPPER.readValue(input, type);
+    } catch (IOException exception) {
+      throw new IllegalStateException("Cannot read fixture: " + path, exception);
+    }
+  }
+
+  public static String readString(String path) {
+    InputStream resource = FixtureLoader.class.getResourceAsStream(path);
+    if (resource == null) {
+      throw new IllegalStateException("Fixture not found: " + path);
+    }
+
+    try (InputStream input = resource) {
+      return new String(input.readAllBytes(), StandardCharsets.UTF_8);
     } catch (IOException exception) {
       throw new IllegalStateException("Cannot read fixture: " + path, exception);
     }

@@ -1,6 +1,10 @@
 package com.tychewealth.repository;
 
+import static com.tychewealth.constants.TestConstants.TEST_EMAIL_LAURA;
+import static com.tychewealth.constants.TestConstants.TEST_OCCUPIED_USERNAME;
+import static com.tychewealth.constants.TestConstants.TEST_OTHER_EMAIL;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
+import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
 import static com.tychewealth.testdata.EntityBuilder.buildUser;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -22,29 +26,30 @@ class UserRepositoryTest {
 
   @Test
   void findByEmailReturnsSavedUser() {
-    UserEntity user = buildUser("maria@tyche.com", "maria", TEST_PASSWORD_VALID);
+    UserEntity user = buildUser(TEST_EMAIL_LAURA, TEST_USERNAME_LAURA, TEST_PASSWORD_VALID);
     userRepository.save(user);
 
-    Optional<UserEntity> result = userRepository.findByEmailIncludingDeleted("maria@tyche.com");
+    Optional<UserEntity> result = userRepository.findByEmailIncludingDeleted(TEST_EMAIL_LAURA);
 
     assertTrue(result.isPresent());
-    assertEquals("maria", result.get().getUsername());
+    assertEquals(TEST_USERNAME_LAURA, result.get().getUsername());
   }
 
   @Test
   void findByUsernameReturnsSavedUser() {
-    UserEntity user = buildUser("carlos@tyche.com", "carlos", TEST_PASSWORD_VALID);
+    UserEntity user = buildUser(TEST_OTHER_EMAIL, TEST_OCCUPIED_USERNAME, TEST_PASSWORD_VALID);
     userRepository.save(user);
 
-    Optional<UserEntity> result = userRepository.findByUsernameIncludingDeleted("carlos");
+    Optional<UserEntity> result =
+        userRepository.findByUsernameIncludingDeleted(TEST_OCCUPIED_USERNAME);
 
     assertTrue(result.isPresent());
-    assertEquals("carlos@tyche.com", result.get().getEmail());
+    assertEquals(TEST_OTHER_EMAIL, result.get().getEmail());
   }
 
   @Test
   void findByIdAndDeletedAtIsNullExcludesSoftDeletedUser() {
-    UserEntity user = buildUser("lucia@tyche.com", "lucia", TEST_PASSWORD_VALID);
+    UserEntity user = buildUser(TEST_EMAIL_LAURA, TEST_USERNAME_LAURA, TEST_PASSWORD_VALID);
     user.setDeletedAt(LocalDateTime.now());
     UserEntity saved = userRepository.save(user);
 

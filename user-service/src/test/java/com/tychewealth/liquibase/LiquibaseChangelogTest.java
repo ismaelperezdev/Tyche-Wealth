@@ -4,6 +4,7 @@ import static com.tychewealth.constants.TestConstants.TEST_EMAIL_LAURA;
 import static com.tychewealth.constants.TestConstants.TEST_OCCUPIED_USERNAME;
 import static com.tychewealth.constants.TestConstants.TEST_OTHER_EMAIL;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_EXISTING;
+import static com.tychewealth.constants.TestConstants.TEST_TRUSTED_DEVICE_COOKIE_NAME;
 import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -28,6 +29,7 @@ import org.springframework.test.context.ContextConfiguration;
 class LiquibaseChangelogTest {
 
   private static final String CHANGESET_AUTHOR = "tyche-wealth";
+  private static final String TRUSTED_DEVICES = "TRUSTED_DEVICES";
 
   @Autowired private LiquibaseTestHelper liquibaseTestHelper;
 
@@ -82,7 +84,38 @@ class LiquibaseChangelogTest {
         () -> liquibaseTestHelper.insertRefreshToken(1L, "orphan-token", 999L));
   }
 
+  @Test
+  void trustedDevicesTableIncludesExpectedColumns() {
+    assertEquals(1, liquibaseTestHelper.countColumn(TRUSTED_DEVICES, "USER_ID"));
+    assertEquals(1, liquibaseTestHelper.countColumn(TRUSTED_DEVICES, "TOKEN_HASH"));
+    assertEquals(1, liquibaseTestHelper.countColumn(TRUSTED_DEVICES, "EXPIRES_AT"));
+    assertEquals(1, liquibaseTestHelper.countColumn(TRUSTED_DEVICES, "LAST_USED_AT"));
+    assertEquals(1, liquibaseTestHelper.countColumn(TRUSTED_DEVICES, "CREATED_AT"));
+  }
+
+  @Test
+  void trustedDeviceTokenHashMustBeUnique() {
+    liquibaseTestHelper.insertUser(1L, TEST_EMAIL_LAURA, TEST_USERNAME_LAURA);
+    liquibaseTestHelper.insertUser(2L, TEST_OTHER_EMAIL, TEST_OCCUPIED_USERNAME);
+    liquibaseTestHelper.insertTrustedDevice(1L, TEST_TRUSTED_DEVICE_COOKIE_NAME, 1L);
+
+    assertThrows(
+        DataIntegrityViolationException.class,
+        () -> liquibaseTestHelper.insertTrustedDevice(2L, TEST_TRUSTED_DEVICE_COOKIE_NAME, 2L));
+  }
+
+  @Test
+  void trustedDeviceMustReferenceExistingUser() {
+    assertThrows(
+        DataIntegrityViolationException.class,
+        () -> liquibaseTestHelper.insertTrustedDevice(1L, TEST_TRUSTED_DEVICE_COOKIE_NAME, 999L));
+  }
+
   private static Stream<String> indexChangeSetIds() {
-    return Stream.of("create-users-deleted-at-index", "create-refresh-tokens-user-id-index");
+    return Stream.of(
+        "create-users-deleted-at-index",
+        "create-refresh-tokens-user-id-index",
+        "create-trusted-devices-user-id-index",
+        "create-trusted-devices-user-id-created-at-index");
   }
 }
