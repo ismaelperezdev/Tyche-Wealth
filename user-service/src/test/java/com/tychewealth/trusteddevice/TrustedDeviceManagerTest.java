@@ -1,4 +1,4 @@
-package com.tychewealth.service.trusteddevice;
+package com.tychewealth.trusteddevice;
 
 import static com.tychewealth.constants.TestConstants.TEST_TRUSTED_DEVICE_COOKIE_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -17,6 +17,7 @@ import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.TrustedDeviceRepository;
 import com.tychewealth.repository.UserRepository;
+import com.tychewealth.service.trusteddevice.TrustedDeviceManager;
 import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;

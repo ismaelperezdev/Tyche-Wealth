@@ -21,6 +21,7 @@ public class LiquibaseTestHelper {
   }
 
   public void cleanUserRelatedTables() {
+    jdbcTemplate.update("DELETE FROM trusted_devices");
     jdbcTemplate.update("DELETE FROM refresh_tokens");
     jdbcTemplate.update("DELETE FROM users");
   }
@@ -83,6 +84,20 @@ public class LiquibaseTestHelper {
         userId,
         Timestamp.from(Instant.now().plusSeconds(3600)),
         false,
+        Timestamp.from(Instant.now()));
+  }
+
+  public void insertTrustedDevice(Long id, String token, Long userId) {
+    jdbcTemplate.update(
+        """
+        INSERT INTO trusted_devices (id, user_id, token_hash, expires_at, last_used_at, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        id,
+        userId,
+        Utils.sha256Hex(token),
+        Timestamp.from(Instant.now().plusSeconds(3600)),
+        Timestamp.from(Instant.now()),
         Timestamp.from(Instant.now()));
   }
 }

@@ -11,6 +11,7 @@ import com.tychewealth.error.handler.ErrorResponse;
 import com.tychewealth.monitoring.UserMetrics;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -62,9 +63,10 @@ public class SecurityCommonTestConfig {
   @Bean
   public CorsConfigurationSource corsConfigurationSource(
       @Value("${app.security.cors.allowed-origins:http://localhost:3000}") String allowedOrigins) {
+    List<String> parsedAllowedOrigins = parseAllowedOrigins(allowedOrigins);
+
     CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOrigins(
-        List.of(allowedOrigins.split(",")).stream().map(String::trim).toList());
+    configuration.setAllowedOrigins(parsedAllowedOrigins);
     configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
     configuration.setAllowedHeaders(List.of("*"));
     configuration.setAllowCredentials(true);
@@ -96,5 +98,29 @@ public class SecurityCommonTestConfig {
 
   private boolean isUserRequest(String requestUri) {
     return requestUri != null && requestUri.startsWith("/tyche-wealth/user-service/v1/user");
+  }
+
+  private List<String> parseAllowedOrigins(String allowedOrigins) {
+    if (allowedOrigins == null || allowedOrigins.isBlank()) {
+      throw new IllegalStateException("app.security.cors.allowed-origins must not be empty");
+    }
+
+    List<String> origins =
+        Arrays.stream(allowedOrigins.split(","))
+            .map(String::trim)
+            .filter(origin -> !origin.isBlank())
+            .toList();
+
+    if (origins.isEmpty()) {
+      throw new IllegalStateException(
+          "app.security.cors.allowed-origins must contain at least one valid origin");
+    }
+
+    if (origins.stream().anyMatch("*"::equals)) {
+      throw new IllegalStateException(
+          "Wildcard CORS origin '*' is not allowed when allowCredentials is enabled");
+    }
+
+    return origins;
   }
 }

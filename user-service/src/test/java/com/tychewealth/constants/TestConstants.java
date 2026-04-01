@@ -53,6 +53,18 @@ public final class TestConstants {
   public static final String TEST_VERIFY_REGISTRATION_PATH = "/verify-registration";
   public static final String TEST_VERIFY_LOGIN_DEVICE_PATH = "/verify-login-device";
   public static final String TEST_TRUSTED_DEVICE_COOKIE_NAME = "trusted_device";
+  public static final String TEST_RATE_LIMIT_STORE_UNAVAILABLE = "store unavailable";
+  public static final String TEST_RATE_LIMIT_NAMESPACE = "namespace";
+  public static final String TEST_RATE_LIMIT_CLIENT = "client";
+  public static final String TEST_AUTH_RATE_LIMIT_LOGIN_NAMESPACE = "rate-limit:auth:login";
+  public static final String TEST_AUTH_RATE_LIMIT_REGISTER_NAMESPACE = "rate-limit:auth:register";
+  public static final String TEST_AUTH_RATE_LIMIT_REFRESH_NAMESPACE = "rate-limit:auth:refresh";
+  public static final String TEST_AUTH_RATE_LIMIT_FORGOT_PASSWORD_NAMESPACE =
+      "rate-limit:auth:forgot-password";
+  public static final String TEST_AUTH_RATE_LIMIT_RESEND_VERIFICATION_NAMESPACE =
+      "rate-limit:auth:resend-verification";
+  public static final String TEST_AUTH_RATE_LIMIT_VERIFY_LOGIN_DEVICE_NAMESPACE =
+      "rate-limit:auth:verify-login-device";
 
   private TestConstants() {}
 }

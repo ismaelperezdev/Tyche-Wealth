@@ -25,6 +25,7 @@ import com.tychewealth.enums.EmailSendResult;
 import com.tychewealth.error.exception.EmailException;
 import com.tychewealth.testhelper.InMemoryRateLimitStore;
 import com.tychewealth.testhelper.RateLimitWebTestHelper.MutableClock;
+import com.tychewealth.utils.FixtureLoader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
@@ -35,9 +36,12 @@ import org.springframework.web.client.RestClient;
 
 class EmailSenderTest {
 
+  private static final String SEND_EMAIL_REQUEST_FIXTURE =
+      "/fixtures/email/send-email-request.json";
+  private static final String NULL_JSON = "{}";
+
   private MockRestServiceServer mockRestServiceServer;
   private EmailSender emailSender;
-  private MutableClock clock;
 
   @BeforeEach
   void setUp() {
@@ -48,7 +52,7 @@ class EmailSenderTest {
     resendEmailProperties.setApiKey(TEST_RESEND_API_KEY);
     resendEmailProperties.setFrom(TEST_RESEND_FROM);
     resendEmailProperties.setBaseUrl(TEST_RESEND_BASE_URL);
-    clock = new MutableClock();
+    MutableClock clock = new MutableClock();
 
     RestClient restClient = restClientBuilder.baseUrl(TEST_RESEND_BASE_URL).build();
     emailSender =
@@ -67,19 +71,9 @@ class EmailSenderTest {
         .andExpect(method(HttpMethod.POST))
         .andExpect(header(AUTHORIZATION_HEADER, TOKEN_TYPE_BEARER_PREFIX + TEST_RESEND_API_KEY))
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-        .andExpect(
-            content()
-                .json(
-                    """
-                    {
-                      "from": "Tyche Wealth <auth@tyche-wealth.com>",
-                      "to": "valid@tychewealth.com",
-                      "subject": "Verify your email",
-                      "html": "<p>Hello</p>",
-                      "text": "Hello"
-                    }
-                    """))
-        .andRespond(withStatus(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON).body("{}"));
+        .andExpect(content().json(FixtureLoader.readString(SEND_EMAIL_REQUEST_FIXTURE)))
+        .andRespond(
+            withStatus(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON).body(NULL_JSON));
 
     assertSame(
         EmailSendResult.DELIVERED,
@@ -109,10 +103,12 @@ class EmailSenderTest {
   void sendFailsWhenDailyQuotaIsExceeded() {
     mockRestServiceServer
         .expect(requestTo(TEST_RESEND_BASE_URL + RESEND_EMAILS_PATH))
-        .andRespond(withStatus(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON).body("{}"));
+        .andRespond(
+            withStatus(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON).body(NULL_JSON));
     mockRestServiceServer
         .expect(requestTo(TEST_RESEND_BASE_URL + RESEND_EMAILS_PATH))
-        .andRespond(withStatus(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON).body("{}"));
+        .andRespond(
+            withStatus(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON).body(NULL_JSON));
 
     assertSame(
         EmailSendResult.DELIVERED,
