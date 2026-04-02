@@ -9,6 +9,7 @@ import static com.tychewealth.constants.TestConstants.TEST_UPDATE_USERNAME_REQUE
 import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
 import static com.tychewealth.testdata.EntityBuilder.buildUser;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -103,7 +104,7 @@ class UserServiceImplTest {
 
     Long result = userService.updatePassword(TEST_USER_ID, TEST_BEARER_ACCESS_TOKEN, requestDto);
 
-    assertSame(TEST_USER_ID, result);
+    assertEquals(TEST_USER_ID, result);
     verify(userValidationHelper).validatePasswordUpdate(requestDto, user);
     verify(userHelper).updatePassword(user, requestDto);
     verify(tokenStateStore, never()).revokeAccessTokenIfPresent(TEST_BEARER_ACCESS_TOKEN);
@@ -141,7 +142,7 @@ class UserServiceImplTest {
 
     Long result = userService.delete(TEST_USER_ID, TEST_BEARER_ACCESS_TOKEN);
 
-    assertSame(TEST_USER_ID, result);
+    assertEquals(TEST_USER_ID, result);
     verify(userHelper).softDelete(user);
     verify(tokenStateStore, never()).revokeAccessTokenIfPresent(TEST_BEARER_ACCESS_TOKEN);
 

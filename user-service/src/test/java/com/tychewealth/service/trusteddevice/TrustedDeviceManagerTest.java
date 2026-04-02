@@ -116,11 +116,12 @@ class TrustedDeviceManagerTest {
   void createTrustedDeviceCookieReusesExistingTrustedDeviceWhenCookieMatches() {
     UserEntity user = buildUser(TEST_EMAIL_LAURA, null, null);
     user.setId(TRUSTED_DEVICE_USER_ID);
+    Instant now = Instant.now();
     TrustedDeviceEntity trustedDevice = new TrustedDeviceEntity();
     trustedDevice.setUser(user);
     trustedDevice.setTokenHash(Utils.sha256Hex(TEST_TRUSTED_DEVICE_TOKEN));
-    trustedDevice.setExpiresAt(Instant.parse("2026-04-01T10:15:30Z"));
-    trustedDevice.setLastUsedAt(Instant.parse("2026-04-01T09:15:30Z"));
+    trustedDevice.setExpiresAt(now.plus(Duration.ofDays(30)));
+    trustedDevice.setLastUsedAt(now.minus(Duration.ofHours(1)));
     setTrustedDeviceCookie();
 
     when(trustedDeviceRepository.findByUserIdAndTokenHashAndExpiresAtAfter(
@@ -175,8 +176,14 @@ class TrustedDeviceManagerTest {
     boolean result =
         trustedDeviceManager.hasReachedTrustedDeviceLimit(TRUSTED_DEVICE_LIMIT_USER_ID);
 
+    InOrder inOrder = inOrder(trustedDeviceRepository);
     assertTrue(result);
-    verify(trustedDeviceRepository).deleteByUserIdAndExpiresAtBefore(anyLong(), any(Instant.class));
+    inOrder
+        .verify(trustedDeviceRepository)
+        .deleteByUserIdAndExpiresAtBefore(anyLong(), any(Instant.class));
+    inOrder
+        .verify(trustedDeviceRepository)
+        .countByUserIdAndExpiresAtAfter(anyLong(), any(Instant.class));
   }
 
   @Test
@@ -208,10 +215,7 @@ class TrustedDeviceManagerTest {
 
   private void setTrustedDeviceCookie() {
     MockHttpServletRequest request = new MockHttpServletRequest();
-    request.setCookies(
-        new Cookie(
-            TEST_TRUSTED_DEVICE_COOKIE_NAME,
-            com.tychewealth.constants.TestConstants.TEST_TRUSTED_DEVICE_TOKEN));
+    request.setCookies(new Cookie(TEST_TRUSTED_DEVICE_COOKIE_NAME, TEST_TRUSTED_DEVICE_TOKEN));
     RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
   }
 }

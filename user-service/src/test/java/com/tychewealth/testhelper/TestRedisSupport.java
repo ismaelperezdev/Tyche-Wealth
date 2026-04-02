@@ -3,6 +3,7 @@ package com.tychewealth.testhelper;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.mockito.Mockito;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -97,6 +98,15 @@ public final class TestRedisSupport {
             })
         .when(valueOperations)
         .set(Mockito.anyString(), Mockito.anyString());
+    Mockito.when(
+            valueOperations.setIfAbsent(
+                Mockito.anyString(), Mockito.anyString(), Mockito.any(Duration.class)))
+        .thenAnswer(
+            invocation ->
+                state.putIfAbsent(
+                    invocation.getArgument(0),
+                    invocation.getArgument(1),
+                    invocation.getArgument(2)));
     Mockito.when(valueOperations.get(Mockito.anyString()))
         .thenAnswer(invocation -> state.get(invocation.getArgument(0)));
 
@@ -108,6 +118,21 @@ public final class TestRedisSupport {
 
     public void set(String key, String value, Duration ttl) {
       entries.put(key, new StoredValue(value, expiresAt(ttl)));
+    }
+
+    public boolean putIfAbsent(String key, String value, Duration ttl) {
+      long now = System.currentTimeMillis();
+      AtomicBoolean inserted = new AtomicBoolean(false);
+      entries.compute(
+          key,
+          (ignored, current) -> {
+            if (current == null || current.isExpired(now)) {
+              inserted.set(true);
+              return new StoredValue(value, expiresAt(ttl));
+            }
+            return current;
+          });
+      return inserted.get();
     }
 
     public String get(String key) {

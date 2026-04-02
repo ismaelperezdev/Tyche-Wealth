@@ -209,7 +209,12 @@ public final class AuthTestHelper {
   public static String extractCookieValue(String setCookieHeader, String cookieName) {
     Pattern cookiePattern = Pattern.compile(cookieName + "=([^;]+)");
     Matcher matcher = cookiePattern.matcher(setCookieHeader);
-    org.junit.jupiter.api.Assertions.assertTrue(matcher.find());
+    org.junit.jupiter.api.Assertions.assertTrue(
+        matcher.find(),
+        "Expected cookie '"
+            + cookieName
+            + "' in Set-Cookie header but was missing. Header: "
+            + setCookieHeader);
     return matcher.group(1);
   }
 }

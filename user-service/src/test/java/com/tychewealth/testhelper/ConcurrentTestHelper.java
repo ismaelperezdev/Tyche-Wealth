@@ -11,6 +11,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public final class ConcurrentTestHelper {
 
@@ -28,7 +29,9 @@ public final class ConcurrentTestHelper {
             executorService.submit(
                 () -> {
                   ready.countDown();
-                  start.await(5, TimeUnit.SECONDS);
+                  if (!start.await(5, TimeUnit.SECONDS)) {
+                    throw new TimeoutException("Timed out waiting to start concurrent tasks");
+                  }
                   return task.call();
                 }));
       }

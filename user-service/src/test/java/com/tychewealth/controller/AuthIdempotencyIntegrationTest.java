@@ -37,18 +37,14 @@ import com.tychewealth.repository.TrustedDeviceRepository;
 import com.tychewealth.repository.UserRepository;
 import com.tychewealth.service.token.AccessTokenCodec;
 import jakarta.servlet.http.Cookie;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ContextConfiguration;
@@ -72,8 +68,6 @@ class AuthIdempotencyIntegrationTest {
   @Autowired private StringRedisTemplate stringRedisTemplate;
   @Autowired private AccessTokenCodec accessTokenCodec;
 
-  private final Map<String, String> forgotPasswordTokens = new ConcurrentHashMap<>();
-
   @BeforeEach
   void setUp() {
     refreshTokenRepository.deleteAll();
@@ -82,21 +76,6 @@ class AuthIdempotencyIntegrationTest {
     rateLimitConfig.resetAll();
     reset(emailSender);
     when(emailSender.send(any(EmailMessageDto.class))).thenReturn(EmailSendResult.DELIVERED);
-
-    ValueOperations<String, String> valueOperations = stringRedisTemplate.opsForValue();
-    when(valueOperations.setIfAbsent(any(), any(), any(Duration.class)))
-        .thenAnswer(
-            invocation ->
-                forgotPasswordTokens.putIfAbsent(
-                        invocation.getArgument(0), invocation.getArgument(1))
-                    == null);
-    org.mockito.Mockito.doAnswer(
-            invocation -> {
-              forgotPasswordTokens.remove(invocation.getArgument(0));
-              return true;
-            })
-        .when(stringRedisTemplate)
-        .delete(any(String.class));
   }
 
   @Test
@@ -138,7 +117,8 @@ class AuthIdempotencyIntegrationTest {
 
     assertEquals(List.of(204, 204), statuses);
     verify(emailSender, org.mockito.Mockito.times(1)).send(any(EmailMessageDto.class));
-    assertNotNull(forgotPasswordTokens.get(FORGOT_PASSWORD_KEY_PREFIX + savedUser.getId()));
+    assertNotNull(
+        stringRedisTemplate.opsForValue().get(FORGOT_PASSWORD_KEY_PREFIX + savedUser.getId()));
   }
 
   @Test

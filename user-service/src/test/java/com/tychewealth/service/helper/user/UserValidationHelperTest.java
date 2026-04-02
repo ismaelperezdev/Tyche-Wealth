@@ -11,6 +11,7 @@ import static com.tychewealth.testdata.EntityBuilder.buildUser;
 import static com.tychewealth.testhelper.MetricsTestHelper.counterValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -128,5 +129,21 @@ class UserValidationHelperTest {
 
     verify(passwordEncoder).matches(TEST_PASSWORD_VALID, TEST_ENCODED_PASSWORD);
     verify(passwordEncoder).matches(TEST_PASSWORD_NEW_VALID, TEST_ENCODED_PASSWORD);
+  }
+
+  @Test
+  void validatePasswordUpdateShortCircuitsWhenCurrentPasswordIsInvalid() {
+    UserPasswordUpdateRequestDto requestDto =
+        new UserPasswordUpdateRequestDto(
+            TEST_PASSWORD_VALID, TEST_PASSWORD_NEW_VALID, TEST_PASSWORD_NEW_VALID);
+    UserEntity user = buildUser(TEST_EMAIL_LAURA, TEST_USERNAME_LAURA, TEST_ENCODED_PASSWORD);
+
+    when(passwordEncoder.matches(TEST_PASSWORD_VALID, TEST_ENCODED_PASSWORD)).thenReturn(false);
+
+    assertThrows(
+        UserException.class, () -> userValidationHelper.validatePasswordUpdate(requestDto, user));
+
+    verify(passwordEncoder).matches(TEST_PASSWORD_VALID, TEST_ENCODED_PASSWORD);
+    verify(passwordEncoder, never()).matches(TEST_PASSWORD_NEW_VALID, TEST_ENCODED_PASSWORD);
   }
 }
