@@ -20,13 +20,16 @@ public final class TestConstants {
   public static final String TEST_UPDATE_USERNAME_REQUEST = "AfterUpdate";
   public static final String TEST_OCCUPIED_USERNAME = "occupiedname";
   public static final String TEST_OTHER_EMAIL = "otro.usuario@tychewealth.com";
+  public static final String TEST_MISSING_EMAIL = "missing@tychewealth.com";
 
   public static final String TEST_REFRESH_TOKEN_MISSING = "missing-token";
   public static final String TEST_REFRESH_TOKEN_EXISTING = "existing-refresh-token";
   public static final String TEST_REFRESH_TOKEN_PEPPER = "test-refresh-token-pepper";
   public static final String TEST_RESEND_BASE_URL = "https://api.resend.com";
   public static final String TEST_EMAIL_SUBJECT_VERIFY = "Verify your email";
+  public static final String TEST_EMAIL_SUBJECT_RESET_PASSWORD = "Reset your password";
   public static final String TEST_EMAIL_HTML_BODY = "<p>Hello</p>";
+  public static final String TEST_EMAIL_TEXT_BODY = "body";
 
   public static final String TEST_PROMETHEUS_USERNAME = "prometheus";
   public static final String TEST_PROMETHEUS_PASSWORD = "secret";
@@ -37,9 +40,14 @@ public final class TestConstants {
   public static final long TEST_VERIFY_EMAIL_TOKEN_TTL_SECONDS = 86400L;
   public static final long TEST_VERIFY_LOGIN_DEVICE_TOKEN_TTL_SECONDS = 1800L;
   public static final long TEST_FORGOT_PASSWORD_TOKEN_TTL_SECONDS = 3600L;
+  public static final String TEST_VERIFY_EMAIL_TOKEN = "verify-email-token";
+  public static final String TEST_VERIFY_LOGIN_DEVICE_TOKEN = "verify-login-device-token";
+  public static final String TEST_FORGOT_PASSWORD_TOKEN = "forgot-token";
   public static final String TEST_ACCESS_TOKEN = "access-token";
+  public static final String TEST_ENCODED_PASSWORD = "encoded-password";
   public static final String TEST_ACCESS_TOKEN_JTI = "jti-123";
   public static final String TEST_BEARER_ACCESS_TOKEN = "Bearer access-token";
+  public static final String TEST_TRUSTED_DEVICE_TOKEN = "trusted-device-token";
   public static final String TEST_VERIFY_REGISTRATION_PATH = "/verify-registration";
   public static final String TEST_TRUSTED_DEVICE_COOKIE_NAME = "trusted_device";
   public static final String TEST_RATE_LIMIT_STORE_UNAVAILABLE = "store unavailable";
