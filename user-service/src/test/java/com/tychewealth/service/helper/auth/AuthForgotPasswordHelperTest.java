@@ -1,5 +1,7 @@
 package com.tychewealth.service.helper.auth;
 
+import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER;
+import static com.tychewealth.constants.TestConstants.TEST_ACCESS_TOKEN_JTI;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
@@ -29,6 +31,12 @@ import org.springframework.data.redis.core.ValueOperations;
 @ExtendWith(MockitoExtension.class)
 class AuthForgotPasswordHelperTest {
 
+  private static final String TEST_FORGOT_PASSWORD_TOKEN = "forgot-token";
+  private static final long TEST_FORGOT_PASSWORD_TTL_SECONDS = 900L;
+  private static final String TEST_EMAIL_SUBJECT = "Reset your password";
+  private static final String TEST_EMAIL_HTML = "<p>body</p>";
+  private static final String TEST_EMAIL_TEXT = "body";
+
   @Mock private UserRepository userRepository;
   @Mock private AccessTokenCodec accessTokenCodec;
   @Mock private AuthEmailFactory authEmailFactory;
@@ -55,9 +63,14 @@ class AuthForgotPasswordHelperTest {
     user.setId(42L);
     user.setEmail("laura.gomez@tychewealth.com");
 
-    AuthTokenDto token = new AuthTokenDto("Bearer", "forgot-token", 900L, "jti-1");
+    AuthTokenDto token =
+        new AuthTokenDto(
+            TOKEN_TYPE_BEARER,
+            TEST_FORGOT_PASSWORD_TOKEN,
+            TEST_FORGOT_PASSWORD_TTL_SECONDS,
+            TEST_ACCESS_TOKEN_JTI);
     EmailMessageDto emailMessage =
-        new EmailMessageDto(user.getEmail(), "Reset your password", "<p>body</p>", "body");
+        new EmailMessageDto(user.getEmail(), TEST_EMAIL_SUBJECT, TEST_EMAIL_HTML, TEST_EMAIL_TEXT);
 
     when(userRepository.findByEmailAndDeletedAtIsNull(user.getEmail()))
         .thenReturn(Optional.of(user));
