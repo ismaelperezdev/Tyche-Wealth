@@ -1,6 +1,7 @@
 package com.tychewealth.service.email;
 
 import static com.tychewealth.constants.TestConstants.TEST_EMAIL_LAURA;
+import static com.tychewealth.constants.TestConstants.TEST_FORGOT_PASSWORD_TOKEN_TTL_SECONDS;
 import static com.tychewealth.constants.TestConstants.TEST_VERIFY_EMAIL_TOKEN_TTL_SECONDS;
 import static com.tychewealth.constants.TestConstants.TEST_VERIFY_LOGIN_DEVICE_TOKEN_TTL_SECONDS;
 import static com.tychewealth.constants.TestConstants.TEST_VERIFY_REGISTRATION_PATH;
@@ -143,7 +144,7 @@ class AuthEmailFactoryTest {
 
     EmailMessageDto emailMessage =
         authEmailFactory.buildForgotPasswordEmailMessage(
-            TEST_EMAIL_LAURA, TEST_FORGOT_PASSWORD_TOKEN, 3600L);
+            TEST_EMAIL_LAURA, TEST_FORGOT_PASSWORD_TOKEN, TEST_FORGOT_PASSWORD_TOKEN_TTL_SECONDS);
 
     assertEquals(TEST_EMAIL_LAURA, emailMessage.to());
     assertEquals("Reset your password", emailMessage.subject());

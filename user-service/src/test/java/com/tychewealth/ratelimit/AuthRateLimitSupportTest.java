@@ -30,13 +30,7 @@ import org.springframework.web.server.ResponseStatusException;
 class AuthRateLimitSupportTest {
 
   private static final AuthRateLimitPropertiesDto DEFAULT_AUTH_RATE_LIMIT_PROPERTIES =
-      new AuthRateLimitPropertiesDto(
-          new AuthRateLimitPropertiesDto.RateLimitDto(10, 60),
-          new AuthRateLimitPropertiesDto.RateLimitDto(5, 300),
-          new AuthRateLimitPropertiesDto.RateLimitDto(10, 60),
-          new AuthRateLimitPropertiesDto.RateLimitDto(2, 3600),
-          new AuthRateLimitPropertiesDto.RateLimitDto(2, 3600),
-          new AuthRateLimitPropertiesDto.RateLimitDto(3, 900));
+      new AuthRateLimitPropertiesDto(null, null, null, null, null, null);
 
   private static final String TEST_AUTH_RATE_LIMIT_LOGIN_NAMESPACE = "rate-limit:auth:login";
   private static final String TEST_AUTH_RATE_LIMIT_REGISTER_NAMESPACE = "rate-limit:auth:register";
