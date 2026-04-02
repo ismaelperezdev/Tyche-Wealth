@@ -1,5 +1,8 @@
 package com.tychewealth.service.email;
 
+import static com.tychewealth.constants.EmailConstants.FORGOT_PASSWORD_TEMPLATE_NAME;
+import static com.tychewealth.constants.EmailConstants.VERIFY_EMAIL_TEMPLATE_NAME;
+import static com.tychewealth.constants.EmailConstants.VERIFY_LOGIN_DEVICE_TEMPLATE_NAME;
 import static com.tychewealth.constants.TestConstants.TEST_EMAIL_LAURA;
 import static com.tychewealth.constants.TestConstants.TEST_FORGOT_PASSWORD_TOKEN_TTL_SECONDS;
 import static com.tychewealth.constants.TestConstants.TEST_VERIFY_EMAIL_TOKEN_TTL_SECONDS;
@@ -24,6 +27,8 @@ import org.springframework.core.io.ByteArrayResource;
 @ExtendWith(MockitoExtension.class)
 class AuthEmailFactoryTest {
 
+  private static final String TEST_AUTH_BASE_URI =
+      "http://localhost:8080/tyche-wealth/user-service/v1/auth";
   private static final String TEST_VERIFY_LOGIN_DEVICE_PATH = "/verify-login-device";
   private static final String TEST_FORGOT_PASSWORD_URL = "http://localhost:3000/reset-password";
   private static final String TEST_VERIFY_EMAIL_TEMPLATE = "<html>verify-email-template</html>";
@@ -34,12 +39,9 @@ class AuthEmailFactoryTest {
   private static final String TEST_VERIFY_LOGIN_DEVICE_TOKEN = "verify-login-device-token";
   private static final String TEST_FORGOT_PASSWORD_TOKEN = "forgot-password-token";
   private static final String TEST_VERIFY_EMAIL_LINK =
-      "http://localhost:8080/tyche-wealth/user-service/v1/auth"
-          + TEST_VERIFY_REGISTRATION_PATH
-          + "?token="
-          + TEST_VERIFY_EMAIL_TOKEN;
+      TEST_AUTH_BASE_URI + TEST_VERIFY_REGISTRATION_PATH + "?token=" + TEST_VERIFY_EMAIL_TOKEN;
   private static final String TEST_VERIFY_LOGIN_DEVICE_LINK =
-      "http://localhost:8080/tyche-wealth/user-service/v1/auth"
+      TEST_AUTH_BASE_URI
           + TEST_VERIFY_LOGIN_DEVICE_PATH
           + "?token="
           + TEST_VERIFY_LOGIN_DEVICE_TOKEN;
@@ -53,22 +55,18 @@ class AuthEmailFactoryTest {
 
   @BeforeEach
   void setUp() {
-    when(emailTemplateSupport.readTemplate(any(), eq("verify email")))
+    when(emailTemplateSupport.readTemplate(any(), eq(VERIFY_EMAIL_TEMPLATE_NAME)))
         .thenReturn(TEST_VERIFY_EMAIL_TEMPLATE);
-    when(emailTemplateSupport.readTemplate(any(), eq("login device email")))
+    when(emailTemplateSupport.readTemplate(any(), eq(VERIFY_LOGIN_DEVICE_TEMPLATE_NAME)))
         .thenReturn(TEST_VERIFY_LOGIN_TEMPLATE);
-    when(emailTemplateSupport.readTemplate(any(), eq("forgot password email")))
+    when(emailTemplateSupport.readTemplate(any(), eq(FORGOT_PASSWORD_TEMPLATE_NAME)))
         .thenReturn(TEST_FORGOT_PASSWORD_TEMPLATE);
 
     authEmailFactory =
         new AuthEmailFactory(
             emailTemplateSupport,
-            URI.create(
-                "http://localhost:8080/tyche-wealth/user-service/v1/auth"
-                    + TEST_VERIFY_REGISTRATION_PATH),
-            URI.create(
-                "http://localhost:8080/tyche-wealth/user-service/v1/auth"
-                    + TEST_VERIFY_LOGIN_DEVICE_PATH),
+            URI.create(TEST_AUTH_BASE_URI + TEST_VERIFY_REGISTRATION_PATH),
+            URI.create(TEST_AUTH_BASE_URI + TEST_VERIFY_LOGIN_DEVICE_PATH),
             URI.create(TEST_FORGOT_PASSWORD_URL),
             new ByteArrayResource(new byte[0]),
             new ByteArrayResource(new byte[0]),
@@ -78,9 +76,7 @@ class AuthEmailFactoryTest {
   @Test
   void buildVerifyEmailMessageBuildsVerificationEmail() {
     when(emailTemplateSupport.buildVerificationLink(
-            URI.create(
-                "http://localhost:8080/tyche-wealth/user-service/v1/auth"
-                    + TEST_VERIFY_REGISTRATION_PATH),
+            URI.create(TEST_AUTH_BASE_URI + TEST_VERIFY_REGISTRATION_PATH),
             TEST_VERIFY_EMAIL_TOKEN))
         .thenReturn(TEST_VERIFY_EMAIL_LINK);
     when(emailTemplateSupport.renderHtml(
@@ -106,9 +102,7 @@ class AuthEmailFactoryTest {
   @Test
   void buildVerifyLoginDeviceEmailMessageBuildsDeviceVerificationEmail() {
     when(emailTemplateSupport.buildVerificationLink(
-            URI.create(
-                "http://localhost:8080/tyche-wealth/user-service/v1/auth"
-                    + TEST_VERIFY_LOGIN_DEVICE_PATH),
+            URI.create(TEST_AUTH_BASE_URI + TEST_VERIFY_LOGIN_DEVICE_PATH),
             TEST_VERIFY_LOGIN_DEVICE_TOKEN))
         .thenReturn(TEST_VERIFY_LOGIN_DEVICE_LINK);
     when(emailTemplateSupport.renderHtml(
