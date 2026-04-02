@@ -1,0 +1,34 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.ismaelperezdev</groupId>
+        <artifactId>tyche-wealth-parent</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>tyche-wealth-portfolio-service</artifactId>
+    <name>Tyche Wealth - Portfolio Service</name>
+    <description>Portfolio management microservice for the Tyche Wealth platform</description>
+
+    <properties>
+        <jacoco.minimum.line.coverage>0.40</jacoco.minimum.line.coverage>
+        <jacoco.minimum.branch.coverage>0.20</jacoco.minimum.branch.coverage>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-json</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+        </plugins>
+    </build>
+
+</project>

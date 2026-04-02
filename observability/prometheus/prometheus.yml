@@ -10,3 +10,12 @@ scrape_configs:
     static_configs:
       - targets:
           - user-service:8080
+
+  - job_name: portfolio-service
+    metrics_path: /actuator/prometheus
+    basic_auth:
+      username: prometheus-scraper
+      password: __PROMETHEUS_PASSWORD__
+    static_configs:
+      - targets:
+          - portfolio-service:8081

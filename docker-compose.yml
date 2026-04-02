@@ -1,18 +1,42 @@
 services:
   user-service:
     build:
-      context: ./user-service
+      context: .
+      dockerfile: services/user-service/Dockerfile
     container_name: tyche-user-service
+    env_file:
+      - ./application-local.properties
     ports:
       - "127.0.0.1:${USER_SERVICE_PORT:-8080}:8080"
     volumes:
       - ./application-local.properties:/app/application-local.properties:ro
     environment:
-      DB_URL: ${DB_URL:-jdbc:postgresql://host.docker.internal:5433/tyche_wealth_user}
+      DB_URL_USER: ${DB_URL_USER:-jdbc:postgresql://postgres:5432/tyche_wealth_user}
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
+        condition: service_healthy
+    networks:
+      - tyche-network
+
+  portfolio-service:
+    build:
+      context: .
+      dockerfile: services/portfolio-service/Dockerfile
+    container_name: tyche-portfolio-service
+    env_file:
+      - ./application-local.properties
+    ports:
+      - "127.0.0.1:${PORTFOLIO_SERVICE_PORT:-8082}:8081"
+    volumes:
+      - ./application-local.properties:/app/application-local.properties:ro
+    environment:
+      DB_URL_PORTFOLIO: ${DB_URL_PORTFOLIO:-jdbc:postgresql://postgres:5432/tyche_wealth_portfolio}
+    depends_on:
+      postgres:
         condition: service_healthy
     networks:
       - tyche-network
@@ -20,21 +44,19 @@ services:
   postgres:
     image: postgres:17
     container_name: tyche-postgres
-    profiles:
-      - db
     entrypoint:
       - /bin/sh
       - /etc/postgres/entrypoint.sh
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-tyche_wealth_user}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-tyche_wealth_user}",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}",
         ]
       interval: 10s
       timeout: 5s
@@ -42,6 +64,7 @@ services:
       start_period: 10s
     volumes:
       - ./docker/postgres/entrypoint.sh:/etc/postgres/entrypoint.sh:ro
+      - ./docker/postgres/init-multiple-databases.sh:/docker-entrypoint-initdb.d/10-init-multiple-databases.sh:ro
       - ./application-local.properties:/run/config/application-local.properties:ro
       - postgres-data:/var/lib/postgresql/data
     networks:
@@ -78,6 +101,7 @@ services:
       - ./application-local.properties:/run/config/application-local.properties:ro
     depends_on:
       - user-service
+      - portfolio-service
     networks:
       - tyche-network
 

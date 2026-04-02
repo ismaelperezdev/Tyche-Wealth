@@ -1,36 +1,24 @@
-name: User Service PR CI
+name: Portfolio Service PR CI
 
 on:
   pull_request:
     paths:
       - "pom.xml"
-      - "services/user-service/**"
-      - ".github/workflows/user-service-pr.yml"
+      - "services/portfolio-service/**"
+      - ".github/workflows/portfolio-service-pr.yml"
   workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    services:
-      redis:
-        image: redis:8-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     env:
       SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      REDIS_HOST: localhost
-      REDIS_PORT: 6379
 
     defaults:
       run:
-        working-directory: services/user-service
+        working-directory: services/portfolio-service
 
     steps:
       - name: Checkout

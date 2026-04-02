@@ -29,7 +29,7 @@ This page consolidates local setup, runtime configuration, security, and operati
 - Run the service with the checked-in build tooling:
 
 ```powershell
-cd user-service
+cd services/user-service
 .\mvnw.cmd spring-boot:run
 ```
 

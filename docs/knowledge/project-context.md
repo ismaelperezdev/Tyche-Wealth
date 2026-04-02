@@ -16,7 +16,7 @@ This document is intended to be consumed by an AI agent that generates or update
 Top-level structure:
 
 - `docs/`: project documentation in Markdown
-- `user-service/`: Java 21 + Spring Boot backend service
+- `services/user-service/`: Java 21 + Spring Boot backend service
 - `scripts/`: automation helpers for documentation generation
 
 Important constraint:
@@ -81,8 +81,8 @@ Important constraint for documentation agents:
 
 Main runtime configuration lives in:
 
-- `user-service/src/main/resources/application.properties`
-- optional local overrides in `user-service/application-local.properties`
+- `services/user-service/src/main/resources/application.properties`
+- optional local overrides in `services/user-service/application-local.properties`
 
 Relevant environment/config variables:
 
@@ -115,7 +115,7 @@ Database schema evolution is managed with Liquibase.
 
 Primary changelog root:
 
-- `user-service/src/main/resources/db.changelog/changelog-master.xml`
+- `services/user-service/src/main/resources/db.changelog/changelog-master.xml`
 
 Feature-specific changelog areas:
 
@@ -131,7 +131,7 @@ Rule for documentation generation:
 
 ## Package-Level Mental Model
 
-Relevant package responsibilities in `user-service/src/main/java/com/tychewealth`:
+Relevant package responsibilities in `services/user-service/src/main/java/com/tychewealth`:
 
 - `controller`: API contracts
 - `controller.impl`: REST controller implementations
