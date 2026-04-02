@@ -12,6 +12,7 @@ import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.enums.InvestmentHorizonEnum;
 import com.tychewealth.enums.RiskProfileEnum;
 import com.tychewealth.enums.StrategyTypeEnum;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,21 +32,38 @@ class PortfolioRepositoryTest {
   void setUp() {}
 
   @Test
-  void findByUserIdReturnsPortfolio() {
-    portfolioRepository.save(
-        buildPortfolio(
-            TEST_USER_ID,
-            "Core",
-            CurrencyCodeEnum.EUR,
-            RiskProfileEnum.MEDIUM,
-            StrategyTypeEnum.BALANCED,
-            InvestmentHorizonEnum.MEDIUM));
+  void findByUserIdOrderByCreatedAtAscReturnsPortfoliosInCreationOrder() {
+    PortfolioEntity retirementPortfolio =
+        portfolioRepository.saveAndFlush(
+            buildPortfolio(
+                TEST_USER_ID,
+                "Retirement",
+                CurrencyCodeEnum.EUR,
+                RiskProfileEnum.MEDIUM,
+                StrategyTypeEnum.BALANCED,
+                InvestmentHorizonEnum.MEDIUM));
+    PortfolioEntity corePortfolio =
+        portfolioRepository.saveAndFlush(
+            buildPortfolio(
+                TEST_USER_ID,
+                "Core",
+                CurrencyCodeEnum.USD,
+                RiskProfileEnum.LOW,
+                StrategyTypeEnum.INCOME,
+                InvestmentHorizonEnum.LONG));
 
-    List<PortfolioEntity> result = portfolioRepository.findByUserId(TEST_USER_ID);
+    retirementPortfolio.setCreatedAt(LocalDateTime.now().minusDays(1));
+    corePortfolio.setCreatedAt(LocalDateTime.now());
+    portfolioRepository.saveAndFlush(retirementPortfolio);
+    portfolioRepository.saveAndFlush(corePortfolio);
+
+    List<PortfolioEntity> result =
+        portfolioRepository.findByUserIdOrderByCreatedAtAsc(TEST_USER_ID);
 
     assertNotNull(result);
-    assertEquals(1, result.size());
-    assertEquals("Core", result.get(0).getName());
+    assertEquals(2, result.size());
+    assertEquals("Retirement", result.get(0).getName());
+    assertEquals("Core", result.get(1).getName());
   }
 
   @Test

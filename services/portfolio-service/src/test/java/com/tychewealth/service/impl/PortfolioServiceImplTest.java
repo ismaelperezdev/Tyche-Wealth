@@ -43,7 +43,7 @@ class PortfolioServiceImplTest {
   @InjectMocks private PortfolioServiceImpl portfolioService;
 
   @Test
-  void listPortfoliosReturnsMappedPortfoliosForUser() {
+  void listPortfoliosReturnsMappedPortfoliosForUserInCreatedAtOrder() {
     PortfolioEntity firstPortfolio =
         buildPortfolio(
             TEST_USER_ID,
@@ -72,7 +72,7 @@ class PortfolioServiceImplTest {
     secondResponse.setId(8L);
     secondResponse.setName(TEST_PORTFOLIO_NAME_RETIREMENT);
 
-    when(portfolioRepository.findByUserId(TEST_USER_ID))
+    when(portfolioRepository.findByUserIdOrderByCreatedAtAsc(TEST_USER_ID))
         .thenReturn(List.of(firstPortfolio, secondPortfolio));
     when(portfolioMapper.toDto(firstPortfolio)).thenReturn(firstResponse);
     when(portfolioMapper.toDto(secondPortfolio)).thenReturn(secondResponse);
@@ -81,7 +81,7 @@ class PortfolioServiceImplTest {
 
     assertEquals(2, result.size());
     assertEquals(List.of(firstResponse, secondResponse), result);
-    verify(portfolioRepository).findByUserId(TEST_USER_ID);
+    verify(portfolioRepository).findByUserIdOrderByCreatedAtAsc(TEST_USER_ID);
   }
 
   @Test

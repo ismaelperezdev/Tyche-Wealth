@@ -159,7 +159,8 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(jsonPath("$.createdAt").exists())
         .andExpect(jsonPath("$.updatedAt").exists());
 
-    List<PortfolioEntity> portfolios = portfolioRepository.findByUserId(TEST_USER_ID);
+    List<PortfolioEntity> portfolios =
+        portfolioRepository.findByUserIdOrderByCreatedAtAsc(TEST_USER_ID);
     assertEquals(1, portfolios.size());
     assertEquals(TEST_PORTFOLIO_NAME_RETIREMENT, portfolios.getFirst().getName());
     assertNotNull(portfolios.getFirst().getCreatedAt());
@@ -314,7 +315,7 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$." + NAME).value(TEST_PORTFOLIO_NAME_RETIREMENT));
 
-    assertEquals(1, portfolioRepository.findByUserId(TEST_USER_ID).size());
-    assertEquals(1, portfolioRepository.findByUserId(TEST_OTHER_USER_ID).size());
+    assertEquals(1, portfolioRepository.findByUserIdOrderByCreatedAtAsc(TEST_USER_ID).size());
+    assertEquals(1, portfolioRepository.findByUserIdOrderByCreatedAtAsc(TEST_OTHER_USER_ID).size());
   }
 }

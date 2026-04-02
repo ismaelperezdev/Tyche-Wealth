@@ -11,6 +11,7 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -24,11 +25,13 @@ public class PortfolioServiceImpl implements PortfolioService {
   @Override
   @Transactional(readOnly = true)
   public List<PortfolioResponseDto> listPortfolios(Long userId) {
-    return portfolioRepository.findByUserId(userId).stream().map(portfolioMapper::toDto).toList();
+    return portfolioRepository.findByUserIdOrderByCreatedAtAsc(userId).stream()
+        .map(portfolioMapper::toDto)
+        .toList();
   }
 
   @Override
-  @Transactional
+  @Transactional(isolation = Isolation.SERIALIZABLE)
   public PortfolioResponseDto create(Long userId, PortfolioCreateRequestDto createRequest) {
     portfolioValidationHelper.validateCreateRequest(userId, createRequest);
 
