@@ -19,37 +19,4 @@
         <jacoco.minimum.branch.coverage>0.40</jacoco.minimum.branch.coverage>
     </properties>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-api</artifactId>
-            <version>${jjwt.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-impl</artifactId>
-            <version>${jjwt.version}</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-jackson</artifactId>
-            <version>${jjwt.version}</version>
-            <scope>runtime</scope>
-        </dependency>
-    </dependencies>
-
-    <build>
-        <plugins>
-        </plugins>
-    </build>
-
 </project>
