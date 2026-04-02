@@ -15,7 +15,6 @@ import com.tychewealth.enums.StrategyTypeEnum;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -28,11 +27,8 @@ class PortfolioRepositoryTest {
 
   @Autowired private PortfolioRepository portfolioRepository;
 
-  @BeforeEach
-  void setUp() {}
-
   @Test
-  void findByUserIdOrderByCreatedAtAscReturnsPortfoliosInCreationOrder() {
+  void findByUserIdOrderByCreatedAtAscReturnsPortfoliosOrderedByCreatedAt() {
     PortfolioEntity retirementPortfolio =
         portfolioRepository.saveAndFlush(
             buildPortfolio(
@@ -52,8 +48,8 @@ class PortfolioRepositoryTest {
                 StrategyTypeEnum.INCOME,
                 InvestmentHorizonEnum.LONG));
 
-    retirementPortfolio.setCreatedAt(LocalDateTime.now().minusDays(1));
-    corePortfolio.setCreatedAt(LocalDateTime.now());
+    retirementPortfolio.setCreatedAt(LocalDateTime.now());
+    corePortfolio.setCreatedAt(LocalDateTime.now().minusDays(1));
     portfolioRepository.saveAndFlush(retirementPortfolio);
     portfolioRepository.saveAndFlush(corePortfolio);
 
@@ -62,8 +58,9 @@ class PortfolioRepositoryTest {
 
     assertNotNull(result);
     assertEquals(2, result.size());
-    assertEquals("Retirement", result.get(0).getName());
-    assertEquals("Core", result.get(1).getName());
+    assertEquals("Core", result.get(0).getName());
+    assertEquals("Retirement", result.get(1).getName());
+    assertTrue(result.get(0).getCreatedAt().isBefore(result.get(1).getCreatedAt()));
   }
 
   @Test
@@ -117,7 +114,7 @@ class PortfolioRepositoryTest {
 
     assertNotNull(result);
     assertEquals(1, result.size());
-    assertEquals("Spec", result.get(0).getName());
+    assertEquals("Spec", result.getFirst().getName());
   }
 
   @Test
