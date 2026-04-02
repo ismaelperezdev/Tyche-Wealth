@@ -11,6 +11,7 @@ import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
 import static com.tychewealth.testdata.EntityBuilder.buildUser;
 import static com.tychewealth.testhelper.MetricsTestHelper.counterValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -89,7 +90,7 @@ class AuthRefreshTokenHelperTest {
     assertSame(user, persisted.getUser());
     assertEquals(authRefreshTokenHelper.hashRefreshToken(result.token()), persisted.getToken());
     assertEquals(result.expiresAt(), persisted.getExpiresAt());
-    assertEquals(false, persisted.isRevoked());
+    assertFalse(persisted.isRevoked());
     assertEquals(result.token(), tokenCaptor.getValue());
     assertEquals(result.expiresAt(), expiresAtCaptor.getValue());
     assertEquals(
