@@ -29,6 +29,15 @@ import org.springframework.web.server.ResponseStatusException;
 
 class AuthRateLimitSupportTest {
 
+  private static final AuthRateLimitPropertiesDto DEFAULT_AUTH_RATE_LIMIT_PROPERTIES =
+      new AuthRateLimitPropertiesDto(
+          new AuthRateLimitPropertiesDto.RateLimitDto(10, 60),
+          new AuthRateLimitPropertiesDto.RateLimitDto(5, 300),
+          new AuthRateLimitPropertiesDto.RateLimitDto(10, 60),
+          new AuthRateLimitPropertiesDto.RateLimitDto(2, 3600),
+          new AuthRateLimitPropertiesDto.RateLimitDto(2, 3600),
+          new AuthRateLimitPropertiesDto.RateLimitDto(3, 900));
+
   private static final String TEST_AUTH_RATE_LIMIT_LOGIN_NAMESPACE = "rate-limit:auth:login";
   private static final String TEST_AUTH_RATE_LIMIT_REGISTER_NAMESPACE = "rate-limit:auth:register";
   private static final String TEST_AUTH_RATE_LIMIT_REFRESH_NAMESPACE = "rate-limit:auth:refresh";
@@ -55,7 +64,7 @@ class AuthRateLimitSupportTest {
   void buildAuthRegistrationsReturnsExpectedEndpointRegistrations() {
     List<AuthRateLimitRegistrationDto> registrations =
         authRateLimitSupport.buildAuthRegistrations(
-            new AuthRateLimitPropertiesDto(null, null, null, null, null, null), authMetrics);
+            DEFAULT_AUTH_RATE_LIMIT_PROPERTIES, authMetrics);
 
     assertEquals(5, registrations.size());
     assertEquals(
@@ -76,8 +85,7 @@ class AuthRateLimitSupportTest {
   void authInterceptorsFailClosedWhenStoreIsUnavailable() {
     AuthRateLimitRegistrationDto registration =
         authRateLimitSupport
-            .buildAuthRegistrations(
-                new AuthRateLimitPropertiesDto(null, null, null, null, null, null), authMetrics)
+            .buildAuthRegistrations(DEFAULT_AUTH_RATE_LIMIT_PROPERTIES, authMetrics)
             .getFirst();
     RateLimitInterceptor interceptor = registration.interceptor();
     MockHttpServletRequest request = new MockHttpServletRequest();
