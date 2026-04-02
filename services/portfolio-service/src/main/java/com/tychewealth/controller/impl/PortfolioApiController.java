@@ -1,6 +1,7 @@
 package com.tychewealth.controller.impl;
 
 import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
+import static com.tychewealth.constants.LogConstants.LIST_PORTFOLIOS_ACTION;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_NAME;
 import static com.tychewealth.constants.LogConstants.REQUEST_START;
@@ -13,6 +14,7 @@ import com.tychewealth.dto.portfolio.PortfolioResponseDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.service.PortfolioService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -27,6 +29,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class PortfolioApiController implements PortfolioApi {
 
   private final PortfolioService portfolioService;
+
+  @Override
+  public ResponseEntity<List<PortfolioResponseDto>> listPortfolios(
+      @AuthenticationPrincipal Long userId) {
+    log.info(REQUEST_START + USER_ID, PORTFOLIO, LIST_PORTFOLIOS_ACTION, userId);
+
+    List<PortfolioResponseDto> response = portfolioService.listPortfolios(userId);
+    log.info(REQUEST_SUCCESS + USER_ID, PORTFOLIO, LIST_PORTFOLIOS_ACTION, userId);
+
+    return status(HttpStatus.OK).body(response);
+  }
 
   @Override
   public ResponseEntity<PortfolioResponseDto> create(

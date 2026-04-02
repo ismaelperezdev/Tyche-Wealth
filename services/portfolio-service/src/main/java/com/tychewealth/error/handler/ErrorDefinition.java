@@ -17,7 +17,11 @@ public enum ErrorDefinition {
   PORTFOLIO_NAME_CONFLICT(
       "TYCHE-400",
       "PORTFOLIO_NAME_CONFLICT",
-      "A portfolio with name '${name:-}' already exists for this user");
+      "A portfolio with name '${name:-}' already exists for this user"),
+  PORTFOLIO_LIMIT_REACHED(
+      "TYCHE-401",
+      "PORTFOLIO_LIMIT_REACHED",
+      "The maximum number of portfolios allowed per user has been reached");
 
   private final String code;
   private final String type;

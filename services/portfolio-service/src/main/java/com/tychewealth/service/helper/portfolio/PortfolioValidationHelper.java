@@ -4,6 +4,7 @@ import static com.tychewealth.constants.CommonConstants.*;
 import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
 import static com.tychewealth.constants.LogConstants.MISSING_AUTHENTICATED_USER_MESSAGE;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO;
+import static com.tychewealth.constants.LogConstants.PORTFOLIO_LIMIT_REACHED_MESSAGE;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_NAME;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_NAME_ALREADY_EXISTS_MESSAGE;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_PERSISTENCE_CONFLICT_MESSAGE;
@@ -11,6 +12,7 @@ import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 import static com.tychewealth.constants.LogConstants.UNKNOWN_PERSISTENCE_CONFLICT_MESSAGE;
 import static com.tychewealth.constants.LogConstants.USER_ID;
 import static com.tychewealth.error.handler.ErrorDefinition.GENERIC_BAD_REQUEST;
+import static com.tychewealth.error.handler.ErrorDefinition.PORTFOLIO_LIMIT_REACHED;
 import static com.tychewealth.error.handler.ErrorDefinition.PORTFOLIO_NAME_CONFLICT;
 
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
@@ -29,33 +31,59 @@ import org.springframework.stereotype.Component;
 @AllArgsConstructor
 public class PortfolioValidationHelper {
 
+  private static final long MAX_PORTFOLIOS_PER_USER = 5L;
   private static final String PORTFOLIO_UNIQUE_CONSTRAINT = "uq_portfolio_user_id_name";
 
   private final PortfolioRepository portfolioRepository;
 
   public void validateCreateRequest(Long userId, PortfolioCreateRequestDto createRequest) {
-    if (userId == null) {
-      log.warn(REQUEST_CONFLICT, PORTFOLIO, CREATE_ACTION, MISSING_AUTHENTICATED_USER_MESSAGE);
-      throw new PortfolioException(
-          GENERIC_BAD_REQUEST,
-          Map.of(ERROR, MISSING_AUTHENTICATED_USER_MESSAGE),
-          HttpStatus.BAD_REQUEST);
+    String portfolioName = createRequest == null ? null : createRequest.getName();
+    validateAuthenticatedUser(userId);
+    validateCreateLimit(userId);
+    validateCreateNameConflict(userId, portfolioName);
+  }
+
+  public void validateAuthenticatedUser(Long userId) {
+    if (userId != null) {
+      return;
     }
 
-    String portfolioName = createRequest == null ? null : createRequest.getName();
-    if (portfolioRepository.existsByUserIdAndName(userId, portfolioName)) {
+    log.warn(REQUEST_CONFLICT, PORTFOLIO, CREATE_ACTION, MISSING_AUTHENTICATED_USER_MESSAGE);
+    throw new PortfolioException(
+        GENERIC_BAD_REQUEST,
+        Map.of(ERROR, MISSING_AUTHENTICATED_USER_MESSAGE),
+        HttpStatus.BAD_REQUEST);
+  }
+
+  public void validateCreateLimit(Long userId) {
+    long currentPortfolioCount = portfolioRepository.countByUserId(userId);
+    if (currentPortfolioCount >= MAX_PORTFOLIOS_PER_USER) {
       log.warn(
-          REQUEST_CONFLICT + PORTFOLIO_NAME + USER_ID,
+          REQUEST_CONFLICT + USER_ID,
           PORTFOLIO,
           CREATE_ACTION,
-          PORTFOLIO_NAME_ALREADY_EXISTS_MESSAGE,
-          portfolioName,
+          PORTFOLIO_LIMIT_REACHED_MESSAGE,
           userId);
-      throw new PortfolioException(
-          PORTFOLIO_NAME_CONFLICT,
-          Map.of(NAME, portfolioName == null ? "" : portfolioName),
-          HttpStatus.CONFLICT);
+      throw new PortfolioException(PORTFOLIO_LIMIT_REACHED, Map.of(), HttpStatus.CONFLICT);
     }
+  }
+
+  public void validateCreateNameConflict(Long userId, String portfolioName) {
+    if (!portfolioRepository.existsByUserIdAndName(userId, portfolioName)) {
+      return;
+    }
+
+    log.warn(
+        REQUEST_CONFLICT + PORTFOLIO_NAME + USER_ID,
+        PORTFOLIO,
+        CREATE_ACTION,
+        PORTFOLIO_NAME_ALREADY_EXISTS_MESSAGE,
+        portfolioName,
+        userId);
+    throw new PortfolioException(
+        PORTFOLIO_NAME_CONFLICT,
+        Map.of(NAME, portfolioName == null ? "" : portfolioName),
+        HttpStatus.CONFLICT);
   }
 
   public PortfolioException validateCreatePersistenceConflict(

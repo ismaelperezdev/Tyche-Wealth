@@ -64,7 +64,7 @@ class PortfolioConcurrencyIntegrationTest {
 
     assertEquals(1, createdCount);
     assertEquals(1, conflictCount);
-    assertEquals(1, portfolioRepository.findByUserId(TEST_USER_ID).size());
+    assertEquals(1, portfolioRepository.findByUserIdOrderByCreatedAtAsc(TEST_USER_ID).size());
     assertTrue(
         responses.stream()
             .filter(response -> response.status() == 409)

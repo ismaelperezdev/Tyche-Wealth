@@ -42,6 +42,14 @@ public final class PortfolioTestHelper {
     return mockMvc.perform(builder);
   }
 
+  public static ResultActions retrieveMeRequest(MockMvc mockMvc, String userId) throws Exception {
+    MockHttpServletRequestBuilder builder = MockMvcRequestBuilders.get(PORTFOLIO_BASE_URL + "/me");
+    if (userId != null) {
+      builder.header(AUTHORIZATION_HEADER, createAuthorizationHeader(Long.parseLong(userId)));
+    }
+    return mockMvc.perform(builder);
+  }
+
   public static String createRequestBody(
       String name,
       String description,

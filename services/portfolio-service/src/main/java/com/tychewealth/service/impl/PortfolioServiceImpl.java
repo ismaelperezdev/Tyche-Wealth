@@ -7,9 +7,11 @@ import com.tychewealth.mapper.portfolio.PortfolioMapper;
 import com.tychewealth.repository.PortfolioRepository;
 import com.tychewealth.service.PortfolioService;
 import com.tychewealth.service.helper.portfolio.PortfolioValidationHelper;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -21,7 +23,15 @@ public class PortfolioServiceImpl implements PortfolioService {
   private final PortfolioValidationHelper portfolioValidationHelper;
 
   @Override
-  @Transactional
+  @Transactional(readOnly = true)
+  public List<PortfolioResponseDto> listPortfolios(Long userId) {
+    return portfolioRepository.findByUserIdOrderByCreatedAtAsc(userId).stream()
+        .map(portfolioMapper::toDto)
+        .toList();
+  }
+
+  @Override
+  @Transactional(isolation = Isolation.SERIALIZABLE)
   public PortfolioResponseDto create(Long userId, PortfolioCreateRequestDto createRequest) {
     portfolioValidationHelper.validateCreateRequest(userId, createRequest);
 

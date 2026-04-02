@@ -12,9 +12,9 @@ import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.enums.InvestmentHorizonEnum;
 import com.tychewealth.enums.RiskProfileEnum;
 import com.tychewealth.enums.StrategyTypeEnum;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -27,25 +27,40 @@ class PortfolioRepositoryTest {
 
   @Autowired private PortfolioRepository portfolioRepository;
 
-  @BeforeEach
-  void setUp() {}
-
   @Test
-  void findByUserIdReturnsPortfolio() {
-    portfolioRepository.save(
-        buildPortfolio(
-            TEST_USER_ID,
-            "Core",
-            CurrencyCodeEnum.EUR,
-            RiskProfileEnum.MEDIUM,
-            StrategyTypeEnum.BALANCED,
-            InvestmentHorizonEnum.MEDIUM));
+  void findByUserIdOrderByCreatedAtAscReturnsPortfoliosOrderedByCreatedAt() {
+    PortfolioEntity retirementPortfolio =
+        portfolioRepository.saveAndFlush(
+            buildPortfolio(
+                TEST_USER_ID,
+                "Retirement",
+                CurrencyCodeEnum.EUR,
+                RiskProfileEnum.MEDIUM,
+                StrategyTypeEnum.BALANCED,
+                InvestmentHorizonEnum.MEDIUM));
+    PortfolioEntity corePortfolio =
+        portfolioRepository.saveAndFlush(
+            buildPortfolio(
+                TEST_USER_ID,
+                "Core",
+                CurrencyCodeEnum.USD,
+                RiskProfileEnum.LOW,
+                StrategyTypeEnum.INCOME,
+                InvestmentHorizonEnum.LONG));
 
-    List<PortfolioEntity> result = portfolioRepository.findByUserId(TEST_USER_ID);
+    retirementPortfolio.setCreatedAt(LocalDateTime.now());
+    corePortfolio.setCreatedAt(LocalDateTime.now().minusDays(1));
+    portfolioRepository.saveAndFlush(retirementPortfolio);
+    portfolioRepository.saveAndFlush(corePortfolio);
+
+    List<PortfolioEntity> result =
+        portfolioRepository.findByUserIdOrderByCreatedAtAsc(TEST_USER_ID);
 
     assertNotNull(result);
-    assertEquals(1, result.size());
+    assertEquals(2, result.size());
     assertEquals("Core", result.get(0).getName());
+    assertEquals("Retirement", result.get(1).getName());
+    assertTrue(result.get(0).getCreatedAt().isBefore(result.get(1).getCreatedAt()));
   }
 
   @Test
@@ -99,7 +114,7 @@ class PortfolioRepositoryTest {
 
     assertNotNull(result);
     assertEquals(1, result.size());
-    assertEquals("Spec", result.get(0).getName());
+    assertEquals("Spec", result.getFirst().getName());
   }
 
   @Test

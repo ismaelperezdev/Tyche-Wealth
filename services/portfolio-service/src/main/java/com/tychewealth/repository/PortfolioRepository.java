@@ -13,7 +13,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface PortfolioRepository extends JpaRepository<PortfolioEntity, Long> {
 
-  List<PortfolioEntity> findByUserId(Long userId);
+  List<PortfolioEntity> findByUserIdOrderByCreatedAtAsc(Long userId);
+
+  long countByUserId(Long userId);
 
   Optional<PortfolioEntity> findByUserIdAndName(Long userId, String name);
 

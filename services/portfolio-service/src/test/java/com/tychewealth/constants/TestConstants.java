@@ -16,6 +16,8 @@ public final class TestConstants {
   public static final String TEST_PASSWORD_VALID = "Secret123!";
   public static final long TEST_USER_ID = 42L;
   public static final long TEST_OTHER_USER_ID = 84L;
+  public static final long TEST_MAX_PORTFOLIOS_PER_USER = 5L;
+  public static final String TEST_PORTFOLIO_NAME_CORE = "Core";
   public static final String TEST_PORTFOLIO_NAME_RETIREMENT = "Retirement";
   public static final String TEST_PORTFOLIO_DESCRIPTION_LONG_TERM = "Long term portfolio";
   public static final String TEST_PORTFOLIO_DESCRIPTION_ANOTHER = "Another description";

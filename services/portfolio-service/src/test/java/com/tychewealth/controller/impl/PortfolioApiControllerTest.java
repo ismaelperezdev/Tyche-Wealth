@@ -8,6 +8,7 @@ import com.tychewealth.dto.portfolio.PortfolioResponseDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.service.PortfolioService;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -22,6 +23,27 @@ class PortfolioApiControllerTest {
   @Mock private PortfolioService portfolioService;
 
   @InjectMocks private PortfolioApiController portfolioApiController;
+
+  @Test
+  void listPortfoliosReturnsOkResponse() {
+    PortfolioResponseDto firstPortfolio = new PortfolioResponseDto();
+    firstPortfolio.setId(7L);
+    firstPortfolio.setName("Core");
+
+    PortfolioResponseDto secondPortfolio = new PortfolioResponseDto();
+    secondPortfolio.setId(8L);
+    secondPortfolio.setName("Retirement");
+
+    List<PortfolioResponseDto> response = List.of(firstPortfolio, secondPortfolio);
+
+    when(portfolioService.listPortfolios(42L)).thenReturn(response);
+
+    ResponseEntity<List<PortfolioResponseDto>> result = portfolioApiController.listPortfolios(42L);
+
+    assertEquals(HttpStatus.OK, result.getStatusCode());
+    assertEquals(response, result.getBody());
+    verify(portfolioService).listPortfolios(42L);
+  }
 
   @Test
   void createReturnsCreatedResponse() {

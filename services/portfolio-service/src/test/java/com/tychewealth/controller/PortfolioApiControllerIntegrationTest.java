@@ -13,11 +13,13 @@ import static com.tychewealth.constants.TestConstants.TEST_BASE_CURRENCY_EUR;
 import static com.tychewealth.constants.TestConstants.TEST_BASE_CURRENCY_USD;
 import static com.tychewealth.constants.TestConstants.TEST_INVESTMENT_HORIZON_LONG;
 import static com.tychewealth.constants.TestConstants.TEST_INVESTMENT_HORIZON_MEDIUM;
+import static com.tychewealth.constants.TestConstants.TEST_MAX_PORTFOLIOS_PER_USER;
 import static com.tychewealth.constants.TestConstants.TEST_OTHER_USER_ID;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_DESCRIPTION_ANOTHER;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_DESCRIPTION_LONG_TERM;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_DESCRIPTION_OTHER_OWNER;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_MAX_RISK;
+import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_NAME_CORE;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_NAME_RETIREMENT;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_OTHER_MAX_RISK;
 import static com.tychewealth.constants.TestConstants.TEST_RISK_PROFILE_LOW;
@@ -29,7 +31,9 @@ import static com.tychewealth.testdata.EntityBuilder.buildPortfolio;
 import static com.tychewealth.testhelper.AuthTestHelper.createAuthorizationHeader;
 import static com.tychewealth.testhelper.PortfolioTestHelper.createRequest;
 import static com.tychewealth.testhelper.PortfolioTestHelper.createRequestBody;
+import static com.tychewealth.testhelper.PortfolioTestHelper.retrieveMeRequest;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -80,6 +84,57 @@ class PortfolioApiControllerIntegrationTest {
   }
 
   @Test
+  void retrieveReturnsOkWithAuthenticatedUserPortfoliosOnly() throws Exception {
+    portfolioRepository.saveAndFlush(
+        buildPortfolio(
+            TEST_USER_ID,
+            TEST_PORTFOLIO_NAME_CORE,
+            CurrencyCodeEnum.USD,
+            RiskProfileEnum.MEDIUM,
+            StrategyTypeEnum.BALANCED,
+            InvestmentHorizonEnum.MEDIUM));
+    portfolioRepository.saveAndFlush(
+        buildPortfolio(
+            TEST_USER_ID,
+            TEST_PORTFOLIO_NAME_RETIREMENT,
+            CurrencyCodeEnum.EUR,
+            RiskProfileEnum.LOW,
+            StrategyTypeEnum.INCOME,
+            InvestmentHorizonEnum.LONG));
+    portfolioRepository.saveAndFlush(
+        buildPortfolio(
+            TEST_OTHER_USER_ID,
+            "Other User Portfolio",
+            CurrencyCodeEnum.EUR,
+            RiskProfileEnum.LOW,
+            StrategyTypeEnum.INCOME,
+            InvestmentHorizonEnum.LONG));
+
+    retrieveMeRequest(mockMvc, String.valueOf(TEST_USER_ID))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$", hasSize(2)))
+        .andExpect(jsonPath("$[0].name").value(TEST_PORTFOLIO_NAME_CORE))
+        .andExpect(jsonPath("$[1].name").value(TEST_PORTFOLIO_NAME_RETIREMENT));
+  }
+
+  @Test
+  void retrieveReturnsEmptyListWhenAuthenticatedUserHasNoPortfolios() throws Exception {
+    retrieveMeRequest(mockMvc, String.valueOf(TEST_USER_ID))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$", hasSize(0)));
+  }
+
+  @Test
+  void retrieveReturnsUnauthorizedWhenAuthenticatedUserIsMissing() throws Exception {
+    retrieveMeRequest(mockMvc, null)
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
+        .andExpect(
+            jsonPath("$." + DESCRIPTION).value(ErrorDefinition.UNAUTHORIZED.getDescription()));
+  }
+
+  @Test
   void createReturnsCreatedWhenPayloadIsValid() throws Exception {
     String requestBody =
         createRequestBody(
@@ -104,7 +159,8 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(jsonPath("$.createdAt").exists())
         .andExpect(jsonPath("$.updatedAt").exists());
 
-    List<PortfolioEntity> portfolios = portfolioRepository.findByUserId(TEST_USER_ID);
+    List<PortfolioEntity> portfolios =
+        portfolioRepository.findByUserIdOrderByCreatedAtAsc(TEST_USER_ID);
     assertEquals(1, portfolios.size());
     assertEquals(TEST_PORTFOLIO_NAME_RETIREMENT, portfolios.getFirst().getName());
     assertNotNull(portfolios.getFirst().getCreatedAt());
@@ -196,7 +252,42 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(jsonPath("$.type").value(ErrorDefinition.PORTFOLIO_NAME_CONFLICT.getType()))
         .andExpect(
             jsonPath("$." + DESCRIPTION)
-                .value("A portfolio with name 'Retirement' already exists for this user"));
+                .value(
+                    ErrorDefinition.PORTFOLIO_NAME_CONFLICT
+                        .getDescription()
+                        .replace("${name:-}", TEST_PORTFOLIO_NAME_RETIREMENT)));
+  }
+
+  @Test
+  void createReturnsConflictWhenUserAlreadyHasMaximumPortfolios() throws Exception {
+    for (int index = 0; index < TEST_MAX_PORTFOLIOS_PER_USER; index++) {
+      portfolioRepository.saveAndFlush(
+          buildPortfolio(
+              TEST_USER_ID,
+              "Portfolio " + index,
+              CurrencyCodeEnum.EUR,
+              RiskProfileEnum.LOW,
+              StrategyTypeEnum.INCOME,
+              InvestmentHorizonEnum.LONG));
+    }
+
+    String requestBody =
+        createRequestBody(
+            TEST_PORTFOLIO_NAME_RETIREMENT,
+            TEST_PORTFOLIO_DESCRIPTION_LONG_TERM,
+            TEST_BASE_CURRENCY_EUR,
+            TEST_RISK_PROFILE_LOW,
+            TEST_INVESTMENT_HORIZON_LONG,
+            TEST_STRATEGY_TYPE_INCOME,
+            TEST_PORTFOLIO_MAX_RISK);
+
+    createRequest(mockMvc, String.valueOf(TEST_USER_ID), objectMapper, requestBody)
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.PORTFOLIO_LIMIT_REACHED.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.PORTFOLIO_LIMIT_REACHED.getType()))
+        .andExpect(
+            jsonPath("$." + DESCRIPTION)
+                .value(ErrorDefinition.PORTFOLIO_LIMIT_REACHED.getDescription()));
   }
 
   @Test
@@ -224,7 +315,7 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$." + NAME).value(TEST_PORTFOLIO_NAME_RETIREMENT));
 
-    assertEquals(1, portfolioRepository.findByUserId(TEST_USER_ID).size());
-    assertEquals(1, portfolioRepository.findByUserId(TEST_OTHER_USER_ID).size());
+    assertEquals(1, portfolioRepository.findByUserIdOrderByCreatedAtAsc(TEST_USER_ID).size());
+    assertEquals(1, portfolioRepository.findByUserIdOrderByCreatedAtAsc(TEST_OTHER_USER_ID).size());
   }
 }
