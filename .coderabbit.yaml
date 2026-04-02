@@ -9,8 +9,10 @@ reviews:
   poem: false
   collapse_walkthrough: false
   path_filters:
-    - "user-service/**"
-    - "!user-service/target/**"
+    - "services/user-service/**"
+    - "services/portfolio-service/**"
+    - "!services/user-service/target/**"
+    - "!services/portfolio-service/target/**"
     - "!**/.idea/**"
     - "!**/*.iml"
   auto_review:

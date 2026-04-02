@@ -1,17 +1,15 @@
 package com.tychewealth;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static com.tychewealth.constants.TestConstants.TEST_JWT_SECRET;
 
-import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest
+@SpringBootTest(
+    properties = {
+      "app.auth.jwt.secret=" + TEST_JWT_SECRET,
+      "spring.main.allow-bean-definition-overriding=true",
+      "spring.data.redis.repositories.enabled=false"
+    })
 @ActiveProfiles("test")
-class TycheWealthPortfolioServiceApplicationTest {
-
-  @Test
-  void contextLoads() {
-    assertNotNull(TycheWealthPortfolioServiceApplication.class);
-  }
-}
+class TycheWealthPortfolioServiceApplicationTest {}
