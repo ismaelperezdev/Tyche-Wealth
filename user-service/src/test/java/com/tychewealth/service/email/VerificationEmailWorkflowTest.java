@@ -2,9 +2,14 @@ package com.tychewealth.service.email;
 
 import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER;
 import static com.tychewealth.constants.TestConstants.TEST_ACCESS_TOKEN_JTI;
+import static com.tychewealth.constants.TestConstants.TEST_EMAIL_HTML_BODY;
 import static com.tychewealth.constants.TestConstants.TEST_EMAIL_LAURA;
+import static com.tychewealth.constants.TestConstants.TEST_EMAIL_SUBJECT_VERIFY;
+import static com.tychewealth.constants.TestConstants.TEST_EMAIL_TEXT_BODY;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
+import static com.tychewealth.constants.TestConstants.TEST_VERIFY_EMAIL_TOKEN;
 import static com.tychewealth.constants.TestConstants.TEST_VERIFY_EMAIL_TOKEN_TTL_SECONDS;
+import static com.tychewealth.testdata.EntityBuilder.buildUser;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -34,13 +39,12 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @ExtendWith(MockitoExtension.class)
 class VerificationEmailWorkflowTest {
 
-  private static final String TEST_VERIFY_EMAIL_TOKEN = "verify-email-token";
-  private static final String TEST_EMAIL_SUBJECT = "Verify your email";
-  private static final String TEST_EMAIL_HTML = "<p>body</p>";
-  private static final String TEST_EMAIL_TEXT = "body";
   private static final Instant PREVIOUS_VERIFICATION_TOKEN_EXPIRY =
       Instant.parse("2026-04-01T10:15:30Z");
   private static final Instant FAILED_ATTEMPT_EXPIRY = Instant.parse("2026-04-01T11:15:30Z");
+  private static final EmailMessageDto TEST_VERIFICATION_EMAIL_MESSAGE =
+      new EmailMessageDto(
+          TEST_EMAIL_LAURA, TEST_EMAIL_SUBJECT_VERIFY, TEST_EMAIL_HTML_BODY, TEST_EMAIL_TEXT_BODY);
   private static final AuthTokenDto TEST_VERIFICATION_TOKEN =
       new AuthTokenDto(
           TOKEN_TYPE_BEARER,
@@ -64,14 +68,12 @@ class VerificationEmailWorkflowTest {
   void scheduleVerificationEmailSendsEmailAfterCommitAndRunsSuccessCallback() {
     VerificationEmailWorkflow verificationEmailWorkflow =
         new VerificationEmailWorkflow(authEmailFactory, emailSender, userRepository, self);
-    EmailMessageDto emailMessage =
-        new EmailMessageDto(TEST_EMAIL_LAURA, TEST_EMAIL_SUBJECT, TEST_EMAIL_HTML, TEST_EMAIL_TEXT);
     AtomicBoolean successCallbackInvoked = new AtomicBoolean(false);
 
     when(authEmailFactory.buildVerifyEmailMessage(
             TEST_EMAIL_LAURA, TEST_VERIFY_EMAIL_TOKEN, TEST_VERIFY_EMAIL_TOKEN_TTL_SECONDS))
-        .thenReturn(emailMessage);
-    when(emailSender.send(emailMessage)).thenReturn(EmailSendResult.DELIVERED);
+        .thenReturn(TEST_VERIFICATION_EMAIL_MESSAGE);
+    when(emailSender.send(TEST_VERIFICATION_EMAIL_MESSAGE)).thenReturn(EmailSendResult.DELIVERED);
 
     TransactionSynchronizationManager.initSynchronization();
 
@@ -87,7 +89,7 @@ class VerificationEmailWorkflowTest {
 
     runAfterCommitCallbacks();
 
-    verify(emailSender).send(emailMessage);
+    verify(emailSender).send(TEST_VERIFICATION_EMAIL_MESSAGE);
     verify(self, never())
         .restoreVerificationTokenExpiryWithErrorHandling(
             TEST_USER_ID, FAILED_ATTEMPT_EXPIRY, PREVIOUS_VERIFICATION_TOKEN_EXPIRY);
@@ -98,14 +100,13 @@ class VerificationEmailWorkflowTest {
   void scheduleVerificationEmailRestoresExpiryWhenDeliveryIsSkipped() {
     VerificationEmailWorkflow verificationEmailWorkflow =
         new VerificationEmailWorkflow(authEmailFactory, emailSender, userRepository, self);
-    EmailMessageDto emailMessage =
-        new EmailMessageDto(TEST_EMAIL_LAURA, TEST_EMAIL_SUBJECT, TEST_EMAIL_HTML, TEST_EMAIL_TEXT);
     AtomicBoolean successCallbackInvoked = new AtomicBoolean(false);
 
     when(authEmailFactory.buildVerifyEmailMessage(
             TEST_EMAIL_LAURA, TEST_VERIFY_EMAIL_TOKEN, TEST_VERIFY_EMAIL_TOKEN_TTL_SECONDS))
-        .thenReturn(emailMessage);
-    when(emailSender.send(emailMessage)).thenReturn(EmailSendResult.SKIPPED_DAILY_QUOTA);
+        .thenReturn(TEST_VERIFICATION_EMAIL_MESSAGE);
+    when(emailSender.send(TEST_VERIFICATION_EMAIL_MESSAGE))
+        .thenReturn(EmailSendResult.SKIPPED_DAILY_QUOTA);
 
     TransactionSynchronizationManager.initSynchronization();
 
@@ -119,7 +120,7 @@ class VerificationEmailWorkflowTest {
 
     runAfterCommitCallbacks();
 
-    verify(emailSender).send(emailMessage);
+    verify(emailSender).send(TEST_VERIFICATION_EMAIL_MESSAGE);
     verify(self)
         .restoreVerificationTokenExpiryWithErrorHandling(
             TEST_USER_ID, FAILED_ATTEMPT_EXPIRY, PREVIOUS_VERIFICATION_TOKEN_EXPIRY);
@@ -130,14 +131,13 @@ class VerificationEmailWorkflowTest {
   void scheduleVerificationEmailRestoresExpiryAndRethrowsWhenSendFails() {
     VerificationEmailWorkflow verificationEmailWorkflow =
         new VerificationEmailWorkflow(authEmailFactory, emailSender, userRepository, self);
-    EmailMessageDto emailMessage =
-        new EmailMessageDto(TEST_EMAIL_LAURA, TEST_EMAIL_SUBJECT, TEST_EMAIL_HTML, TEST_EMAIL_TEXT);
     AtomicBoolean successCallbackInvoked = new AtomicBoolean(false);
 
     when(authEmailFactory.buildVerifyEmailMessage(
             TEST_EMAIL_LAURA, TEST_VERIFY_EMAIL_TOKEN, TEST_VERIFY_EMAIL_TOKEN_TTL_SECONDS))
-        .thenReturn(emailMessage);
-    when(emailSender.send(emailMessage)).thenThrow(new IllegalStateException("email send failed"));
+        .thenReturn(TEST_VERIFICATION_EMAIL_MESSAGE);
+    when(emailSender.send(TEST_VERIFICATION_EMAIL_MESSAGE))
+        .thenThrow(new IllegalStateException("email send failed"));
 
     TransactionSynchronizationManager.initSynchronization();
 
@@ -151,7 +151,7 @@ class VerificationEmailWorkflowTest {
 
     assertThrows(IllegalStateException.class, this::runAfterCommitCallbacks);
 
-    verify(emailSender).send(emailMessage);
+    verify(emailSender).send(TEST_VERIFICATION_EMAIL_MESSAGE);
     verify(self)
         .restoreVerificationTokenExpiryWithErrorHandling(
             TEST_USER_ID, FAILED_ATTEMPT_EXPIRY, PREVIOUS_VERIFICATION_TOKEN_EXPIRY);
@@ -162,7 +162,7 @@ class VerificationEmailWorkflowTest {
   void restoreVerificationTokenExpiryWithErrorHandlingRestoresPreviousExpiryWhenCurrentMatches() {
     VerificationEmailWorkflow verificationEmailWorkflow =
         new VerificationEmailWorkflow(authEmailFactory, emailSender, userRepository, self);
-    UserEntity user = new UserEntity();
+    UserEntity user = buildUser(TEST_EMAIL_LAURA, null, null);
     user.setVerificationTokenExpiresAt(FAILED_ATTEMPT_EXPIRY);
 
     when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.of(user));
@@ -178,7 +178,7 @@ class VerificationEmailWorkflowTest {
   void restoreVerificationTokenExpiryWithErrorHandlingSkipsUpdateWhenCurrentExpiryChanged() {
     VerificationEmailWorkflow verificationEmailWorkflow =
         new VerificationEmailWorkflow(authEmailFactory, emailSender, userRepository, self);
-    UserEntity user = new UserEntity();
+    UserEntity user = buildUser(TEST_EMAIL_LAURA, null, null);
     user.setVerificationTokenExpiresAt(Instant.parse("2026-04-01T12:15:30Z"));
 
     when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.of(user));

@@ -15,14 +15,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.dto.auth.LoginResponseDto;
+import com.tychewealth.dto.auth.request.ForgotPasswordRequestDto;
 import com.tychewealth.dto.auth.request.LoginRequestDto;
 import com.tychewealth.dto.auth.request.RefreshTokenRequestDto;
 import com.tychewealth.dto.auth.request.RegisterRequestDto;
+import com.tychewealth.dto.auth.request.ResendVerificationEmailRequestDto;
 import com.tychewealth.entity.UserEntity;
 import com.tychewealth.repository.TrustedDeviceRepository;
 import jakarta.servlet.http.Cookie;
 import java.time.Instant;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -142,6 +146,48 @@ public final class AuthTestHelper {
     return mockMvc.perform(requestBuilder);
   }
 
+  public static int forgotPasswordStatus(
+      MockMvc mockMvc, ObjectMapper objectMapper, ForgotPasswordRequestDto requestDto)
+      throws Exception {
+    return mockMvc
+        .perform(
+            get(AUTH_BASE_URL + "/forgot-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestDto)))
+        .andReturn()
+        .getResponse()
+        .getStatus();
+  }
+
+  public static int resendVerificationStatus(
+      MockMvc mockMvc, ObjectMapper objectMapper, ResendVerificationEmailRequestDto requestDto)
+      throws Exception {
+    return mockMvc
+        .perform(
+            post(AUTH_BASE_URL + "/resend-verification")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestDto)))
+        .andReturn()
+        .getResponse()
+        .getStatus();
+  }
+
+  public static int verifyRegistrationStatus(MockMvc mockMvc, String token, Cookie trustedDevice)
+      throws Exception {
+    return verifyRegistrationRequest(mockMvc, token, trustedDevice)
+        .andReturn()
+        .getResponse()
+        .getStatus();
+  }
+
+  public static int verifyLoginDeviceStatus(MockMvc mockMvc, String token, Cookie trustedDevice)
+      throws Exception {
+    return verifyLoginDeviceRequest(mockMvc, token, trustedDevice)
+        .andReturn()
+        .getResponse()
+        .getStatus();
+  }
+
   public static String buildLongEmail() {
     String local = "a".repeat(64);
     String label63 = "b".repeat(63);
@@ -158,5 +204,12 @@ public final class AuthTestHelper {
     trustedDeviceRepository.save(trustedDevice);
 
     return new Cookie(TEST_TRUSTED_DEVICE_COOKIE_NAME, trustedDeviceToken);
+  }
+
+  public static String extractCookieValue(String setCookieHeader, String cookieName) {
+    Pattern cookiePattern = Pattern.compile(cookieName + "=([^;]+)");
+    Matcher matcher = cookiePattern.matcher(setCookieHeader);
+    org.junit.jupiter.api.Assertions.assertTrue(matcher.find());
+    return matcher.group(1);
   }
 }

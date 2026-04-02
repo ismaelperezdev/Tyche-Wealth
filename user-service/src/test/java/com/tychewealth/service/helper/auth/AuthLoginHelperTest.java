@@ -196,6 +196,49 @@ class AuthLoginHelperTest {
   }
 
   @Test
+  void loginAllowsVerificationEmailWhenCooldownStoreIsUnavailable() {
+    UserEntity user = buildUser(TEST_EMAIL_LAURA, TEST_USERNAME_LAURA, null);
+    user.setId(TEST_USER_ID);
+    AuthTokenDto verificationToken =
+        new AuthTokenDto(
+            TOKEN_TYPE_BEARER,
+            TEST_VERIFY_LOGIN_DEVICE_TOKEN,
+            TEST_VERIFY_LOGIN_DEVICE_TOKEN_TTL_SECONDS,
+            TEST_ACCESS_TOKEN_JTI);
+    EmailMessageDto emailMessage =
+        new EmailMessageDto(
+            TEST_EMAIL_LAURA,
+            TEST_EMAIL_SUBJECT_VERIFY,
+            TEST_EMAIL_HTML_BODY,
+            TEST_EMAIL_TEXT_BODY);
+
+    when(trustedDeviceManager.isTrustedCurrentDevice(user)).thenReturn(false);
+    when(trustedDeviceManager.hasReachedTrustedDeviceLimit(TEST_USER_ID)).thenReturn(false);
+    when(rateLimitStore.increment(
+            AUTH_LOGIN_DEVICE_EMAIL_COOLDOWN_NAMESPACE,
+            String.valueOf(TEST_USER_ID),
+            java.time.Duration.ofDays(1)))
+        .thenThrow(new IllegalStateException("redis unavailable"));
+    when(accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_LOGIN_DEVICE))
+        .thenReturn(verificationToken);
+    when(authEmailFactory.buildVerifyLoginDeviceEmailMessage(
+            TEST_EMAIL_LAURA,
+            TEST_VERIFY_LOGIN_DEVICE_TOKEN,
+            TEST_VERIFY_LOGIN_DEVICE_TOKEN_TTL_SECONDS))
+        .thenReturn(emailMessage);
+    when(emailSender.send(emailMessage)).thenReturn(EmailSendResult.DELIVERED);
+
+    AuthException exception = assertThrows(AuthException.class, () -> authLoginHelper.login(user));
+
+    assertEquals(
+        ErrorDefinition.AUTH_LOGIN_DEVICE_VERIFICATION_REQUIRED, exception.getErrorDefinition());
+    assertEquals(HttpStatus.FORBIDDEN, exception.getHttpStatus());
+    verify(emailSender).send(emailMessage);
+    verify(rateLimitStore, never())
+        .clear(AUTH_LOGIN_DEVICE_EMAIL_COOLDOWN_NAMESPACE, String.valueOf(TEST_USER_ID));
+  }
+
+  @Test
   void loginThrowsEmailExceptionAndRollsBackCooldownWhenDeliveryIsSkippedByQuota() {
     UserEntity user = buildUser(TEST_EMAIL_LAURA, TEST_USERNAME_LAURA, null);
     user.setId(TEST_USER_ID);
@@ -233,6 +276,54 @@ class AuthLoginHelperTest {
 
     assertEquals(ErrorDefinition.EMAIL_DELIVERY_FAILED, exception.getErrorDefinition());
     assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, exception.getHttpStatus());
+    verify(rateLimitStore)
+        .clear(AUTH_LOGIN_DEVICE_EMAIL_COOLDOWN_NAMESPACE, String.valueOf(TEST_USER_ID));
+    verify(refreshTokenHelper, never()).revokeActiveTokensByUserId(TEST_USER_ID);
+  }
+
+  @Test
+  void loginRethrowsOriginalSendFailureWhenCooldownRollbackAlsoFails() {
+    UserEntity user = buildUser(TEST_EMAIL_LAURA, TEST_USERNAME_LAURA, null);
+    user.setId(TEST_USER_ID);
+    AuthTokenDto verificationToken =
+        new AuthTokenDto(
+            TOKEN_TYPE_BEARER,
+            TEST_VERIFY_LOGIN_DEVICE_TOKEN,
+            TEST_VERIFY_LOGIN_DEVICE_TOKEN_TTL_SECONDS,
+            TEST_ACCESS_TOKEN_JTI);
+    EmailMessageDto emailMessage =
+        new EmailMessageDto(
+            TEST_EMAIL_LAURA,
+            TEST_EMAIL_SUBJECT_VERIFY,
+            TEST_EMAIL_HTML_BODY,
+            TEST_EMAIL_TEXT_BODY);
+    EmailException sendException =
+        EmailException.of(
+            ErrorDefinition.EMAIL_DELIVERY_FAILED, null, HttpStatus.INTERNAL_SERVER_ERROR);
+
+    when(trustedDeviceManager.isTrustedCurrentDevice(user)).thenReturn(false);
+    when(trustedDeviceManager.hasReachedTrustedDeviceLimit(TEST_USER_ID)).thenReturn(false);
+    when(rateLimitStore.increment(
+            AUTH_LOGIN_DEVICE_EMAIL_COOLDOWN_NAMESPACE,
+            String.valueOf(TEST_USER_ID),
+            java.time.Duration.ofDays(1)))
+        .thenReturn(1L);
+    when(accessTokenCodec.generateToken(user, AccessTokenType.VERIFY_LOGIN_DEVICE))
+        .thenReturn(verificationToken);
+    when(authEmailFactory.buildVerifyLoginDeviceEmailMessage(
+            TEST_EMAIL_LAURA,
+            TEST_VERIFY_LOGIN_DEVICE_TOKEN,
+            TEST_VERIFY_LOGIN_DEVICE_TOKEN_TTL_SECONDS))
+        .thenReturn(emailMessage);
+    when(emailSender.send(emailMessage)).thenThrow(sendException);
+    org.mockito.Mockito.doThrow(new IllegalStateException("redis unavailable"))
+        .when(rateLimitStore)
+        .clear(AUTH_LOGIN_DEVICE_EMAIL_COOLDOWN_NAMESPACE, String.valueOf(TEST_USER_ID));
+
+    EmailException exception =
+        assertThrows(EmailException.class, () -> authLoginHelper.login(user));
+
+    assertSame(sendException, exception);
     verify(rateLimitStore)
         .clear(AUTH_LOGIN_DEVICE_EMAIL_COOLDOWN_NAMESPACE, String.valueOf(TEST_USER_ID));
     verify(refreshTokenHelper, never()).revokeActiveTokensByUserId(TEST_USER_ID);
