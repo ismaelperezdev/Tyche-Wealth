@@ -3,6 +3,8 @@ package com.tychewealth.service.impl;
 import static com.tychewealth.constants.CommonConstants.NAME;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_MAX_RISK;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_NAME_RETIREMENT;
+import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
+import static com.tychewealth.testdata.EntityBuilder.buildPortfolio;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
@@ -14,10 +16,15 @@ import com.tychewealth.dto.portfolio.PortfolioResponseDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.enums.CurrencyCodeEnum;
+import com.tychewealth.enums.InvestmentHorizonEnum;
+import com.tychewealth.enums.RiskProfileEnum;
+import com.tychewealth.enums.StrategyTypeEnum;
 import com.tychewealth.error.exception.PortfolioException;
+import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.mapper.portfolio.PortfolioMapper;
 import com.tychewealth.repository.PortfolioRepository;
 import com.tychewealth.service.helper.portfolio.PortfolioValidationHelper;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,6 +41,48 @@ class PortfolioServiceImplTest {
   @Mock private PortfolioValidationHelper portfolioValidationHelper;
 
   @InjectMocks private PortfolioServiceImpl portfolioService;
+
+  @Test
+  void listPortfoliosReturnsMappedPortfoliosForUser() {
+    PortfolioEntity firstPortfolio =
+        buildPortfolio(
+            TEST_USER_ID,
+            "Core",
+            CurrencyCodeEnum.USD,
+            RiskProfileEnum.MEDIUM,
+            StrategyTypeEnum.BALANCED,
+            InvestmentHorizonEnum.MEDIUM);
+    firstPortfolio.setId(7L);
+
+    PortfolioEntity secondPortfolio =
+        buildPortfolio(
+            TEST_USER_ID,
+            TEST_PORTFOLIO_NAME_RETIREMENT,
+            CurrencyCodeEnum.EUR,
+            RiskProfileEnum.LOW,
+            StrategyTypeEnum.INCOME,
+            InvestmentHorizonEnum.LONG);
+    secondPortfolio.setId(8L);
+
+    PortfolioResponseDto firstResponse = new PortfolioResponseDto();
+    firstResponse.setId(7L);
+    firstResponse.setName("Core");
+
+    PortfolioResponseDto secondResponse = new PortfolioResponseDto();
+    secondResponse.setId(8L);
+    secondResponse.setName(TEST_PORTFOLIO_NAME_RETIREMENT);
+
+    when(portfolioRepository.findByUserId(TEST_USER_ID))
+        .thenReturn(List.of(firstPortfolio, secondPortfolio));
+    when(portfolioMapper.toDto(firstPortfolio)).thenReturn(firstResponse);
+    when(portfolioMapper.toDto(secondPortfolio)).thenReturn(secondResponse);
+
+    List<PortfolioResponseDto> result = portfolioService.listPortfolios(TEST_USER_ID);
+
+    assertEquals(2, result.size());
+    assertEquals(List.of(firstResponse, secondResponse), result);
+    verify(portfolioRepository).findByUserId(TEST_USER_ID);
+  }
 
   @Test
   void createPersistsPortfolioAndReturnsResponse() {
@@ -95,7 +144,10 @@ class PortfolioServiceImplTest {
         assertThrows(PortfolioException.class, () -> portfolioService.create(42L, request));
 
     assertEquals(
-        "A portfolio with name 'Retirement' already exists for this user", expected.getMessage());
+        ErrorDefinition.PORTFOLIO_NAME_CONFLICT
+            .getDescription()
+            .replace("${name:-}", TEST_PORTFOLIO_NAME_RETIREMENT),
+        expected.getMessage());
     verify(portfolioValidationHelper)
         .validateCreatePersistenceConflict(
             eq(persistenceException), eq(TEST_PORTFOLIO_NAME_RETIREMENT));

@@ -8,6 +8,7 @@ public final class LogConstants {
   public static final String AUTH = "[auth]";
   public static final String SYSTEM = "[system]";
   public static final String CREATE_ACTION = "[create]";
+  public static final String LIST_PORTFOLIOS_ACTION = "[list-portfolios]";
   public static final String ERROR_HANDLER_ACTION = "[error-handler]";
   public static final String ACCESS_TOKEN_ACTION = "[access-token]";
   public static final String RATE_LIMIT_ACTION = "[rate-limit]";
@@ -23,6 +24,7 @@ public final class LogConstants {
   public static final String MISSING_AUTHENTICATED_USER_MESSAGE = "missing authenticated user";
   public static final String PORTFOLIO_NAME_ALREADY_EXISTS_MESSAGE =
       "portfolio name already exists for user";
+  public static final String PORTFOLIO_LIMIT_REACHED_MESSAGE = "portfolio limit reached for user";
   public static final String PORTFOLIO_PERSISTENCE_CONFLICT_MESSAGE =
       "portfolio conflict detected at persistence layer";
   public static final String UNKNOWN_PERSISTENCE_CONFLICT_MESSAGE = "unknown persistence conflict";
