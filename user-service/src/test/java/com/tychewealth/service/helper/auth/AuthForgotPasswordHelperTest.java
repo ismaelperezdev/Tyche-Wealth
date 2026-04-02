@@ -1,5 +1,16 @@
 package com.tychewealth.service.helper.auth;
 
+import static com.tychewealth.constants.AuthConstants.TOKEN_TYPE_BEARER;
+import static com.tychewealth.constants.TestConstants.TEST_ACCESS_TOKEN_JTI;
+import static com.tychewealth.constants.TestConstants.TEST_EMAIL_HTML_BODY;
+import static com.tychewealth.constants.TestConstants.TEST_EMAIL_LAURA;
+import static com.tychewealth.constants.TestConstants.TEST_EMAIL_SUBJECT_RESET_PASSWORD;
+import static com.tychewealth.constants.TestConstants.TEST_EMAIL_TEXT_BODY;
+import static com.tychewealth.constants.TestConstants.TEST_FORGOT_PASSWORD_TOKEN;
+import static com.tychewealth.constants.TestConstants.TEST_FORGOT_PASSWORD_TOKEN_TTL_SECONDS;
+import static com.tychewealth.constants.TestConstants.TEST_MISSING_EMAIL;
+import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
+import static com.tychewealth.testdata.EntityBuilder.buildUser;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
@@ -40,24 +51,31 @@ class AuthForgotPasswordHelperTest {
 
   @Test
   void forgotPasswordReturnsSilentlyWhenUserDoesNotExist() {
-    when(userRepository.findByEmailAndDeletedAtIsNull("missing@tychewealth.com"))
+    when(userRepository.findByEmailAndDeletedAtIsNull(TEST_MISSING_EMAIL))
         .thenReturn(Optional.empty());
 
-    authForgotPasswordHelper.forgotPassword(
-        new ForgotPasswordRequestDto("missing@tychewealth.com"));
+    authForgotPasswordHelper.forgotPassword(new ForgotPasswordRequestDto(TEST_MISSING_EMAIL));
 
     verify(emailSender, never()).send(any());
   }
 
   @Test
   void forgotPasswordDoesNotResendEmailWhilePreviousTokenIsStillActive() {
-    UserEntity user = new UserEntity();
-    user.setId(42L);
-    user.setEmail("laura.gomez@tychewealth.com");
+    UserEntity user = buildUser(TEST_EMAIL_LAURA, null, null);
+    user.setId(TEST_USER_ID);
 
-    AuthTokenDto token = new AuthTokenDto("Bearer", "forgot-token", 900L, "jti-1");
+    AuthTokenDto token =
+        new AuthTokenDto(
+            TOKEN_TYPE_BEARER,
+            TEST_FORGOT_PASSWORD_TOKEN,
+            TEST_FORGOT_PASSWORD_TOKEN_TTL_SECONDS,
+            TEST_ACCESS_TOKEN_JTI);
     EmailMessageDto emailMessage =
-        new EmailMessageDto(user.getEmail(), "Reset your password", "<p>body</p>", "body");
+        new EmailMessageDto(
+            user.getEmail(),
+            TEST_EMAIL_SUBJECT_RESET_PASSWORD,
+            TEST_EMAIL_HTML_BODY,
+            TEST_EMAIL_TEXT_BODY);
 
     when(userRepository.findByEmailAndDeletedAtIsNull(user.getEmail()))
         .thenReturn(Optional.of(user));
