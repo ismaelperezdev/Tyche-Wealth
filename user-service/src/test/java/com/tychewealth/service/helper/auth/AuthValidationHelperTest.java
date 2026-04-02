@@ -14,8 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.tychewealth.dto.auth.request.LoginRequestDto;
@@ -166,7 +166,7 @@ class AuthValidationHelperTest {
 
     assertEquals(ErrorDefinition.AUTH_LOGIN_INVALID_CREDENTIALS, exception.getErrorDefinition());
     assertEquals(HttpStatus.UNAUTHORIZED, exception.getHttpStatus());
-    verify(passwordEncoder, never()).matches(TEST_PASSWORD_VALID, null);
+    verifyNoInteractions(passwordEncoder);
     assertEquals(1.0, counterValue(meterRegistry, AuthMetricEnum.LOGIN_FAILURE.metricName()));
     assertEquals(
         1.0, counterValue(meterRegistry, AuthMetricEnum.LOGIN_INVALID_CREDENTIALS.metricName()));
