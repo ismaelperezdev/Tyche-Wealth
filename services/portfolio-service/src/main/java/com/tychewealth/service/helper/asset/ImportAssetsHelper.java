@@ -57,6 +57,7 @@ public class ImportAssetsHelper {
   private static final String CACHE_KEY_CONTEXT = " cacheKey={}";
   private static final Duration IMPORT_CACHE_TTL = Duration.ofHours(12);
   private static final Duration IMPORT_QUEUE_OFFER_TIMEOUT = Duration.ofMillis(100);
+  private static final Duration IMPORT_SHUTDOWN_TIMEOUT = Duration.ofSeconds(5);
 
   private final AssetValidationHelper assetValidationHelper;
   private final RedisTemplate<String, String> redisTemplate;
@@ -182,7 +183,18 @@ public class ImportAssetsHelper {
       }
       throw new IllegalStateException("Asset import processing failed", cause);
     } finally {
-      redisTemplate.delete(inflightKey);
+      try {
+        redisTemplate.delete(inflightKey);
+      } catch (RuntimeException ex) {
+        log.warn(
+            REQUEST_CONFLICT + FILE_NAME_CONTEXT + " inflightKey={}",
+            ASSET,
+            IMPORT_ASSETS_ACTION,
+            "asset import inflight lock release failed",
+            fileName,
+            inflightKey,
+            ex);
+      }
       log.info(
           REQUEST_SUCCESS + FILE_NAME_CONTEXT,
           ASSET,
@@ -372,5 +384,28 @@ public class ImportAssetsHelper {
   @PreDestroy
   void shutdown() {
     importExecutor.shutdown();
+    try {
+      if (!importExecutor.awaitTermination(IMPORT_SHUTDOWN_TIMEOUT.toSeconds(), TimeUnit.SECONDS)) {
+        log.warn(
+            REQUEST_CONFLICT + IMPORT_QUEUE_STATUS,
+            ASSET,
+            IMPORT_ASSETS_ACTION,
+            "asset import executor did not terminate in time; forcing shutdown",
+            importExecutor.getActiveCount(),
+            importExecutor.getQueue().size());
+        importExecutor.shutdownNow();
+      }
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      log.warn(
+          REQUEST_CONFLICT + IMPORT_QUEUE_STATUS,
+          ASSET,
+          IMPORT_ASSETS_ACTION,
+          "asset import executor shutdown was interrupted; forcing shutdown",
+          importExecutor.getActiveCount(),
+          importExecutor.getQueue().size(),
+          ex);
+      importExecutor.shutdownNow();
+    }
   }
 }

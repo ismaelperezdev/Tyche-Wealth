@@ -5,7 +5,7 @@ import static com.tychewealth.constants.LogConstants.IMPORT_ASSETS_ACTION;
 import static com.tychewealth.constants.LogConstants.REQUEST_START;
 import static com.tychewealth.constants.LogConstants.REQUEST_SUCCESS;
 import static com.tychewealth.constants.LogConstants.USER_ID;
-import static org.springframework.http.ResponseEntity.status;
+import static com.tychewealth.utils.Utils.buildNoStoreBodyResponse;
 
 import com.tychewealth.controller.AssetApi;
 import com.tychewealth.dto.asset.AssetImportResponseDto;
@@ -37,6 +37,6 @@ public class AssetApiController implements AssetApi {
     AssetImportResponseDto response = assetService.importAssets(userId, file);
     log.info(REQUEST_SUCCESS + USER_ID, ASSET, IMPORT_ASSETS_ACTION, userId);
 
-    return status(HttpStatus.OK).body(response);
+    return buildNoStoreBodyResponse(HttpStatus.OK, response);
   }
 }

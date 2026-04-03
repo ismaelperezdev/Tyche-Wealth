@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.mockito.Mockito;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -85,8 +86,19 @@ public final class TestRedisSupport {
     }
 
     public boolean setIfAbsent(String key, String value, Duration ttl) {
-      purgeIfExpired(key);
-      return entries.putIfAbsent(key, new StoredValue(value, expiresAt(ttl))) == null;
+      AtomicBoolean installed = new AtomicBoolean();
+      entries.compute(
+          key,
+          (ignored, currentValue) -> {
+            if (currentValue == null
+                || (currentValue.expiresAtMillis() != null
+                    && currentValue.expiresAtMillis() <= System.currentTimeMillis())) {
+              installed.set(true);
+              return new StoredValue(value, expiresAt(ttl));
+            }
+            return currentValue;
+          });
+      return installed.get();
     }
 
     public String get(String key) {

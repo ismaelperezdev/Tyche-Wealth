@@ -76,8 +76,9 @@ public final class AiUtils {
       char current = value.charAt(index);
 
       if (shouldSkipCharacter(current, inString, escaping)) {
-        escaping = updateEscapingState(current, escaping);
-        inString = updateStringState(current, inString, escaping);
+        boolean wasEscaping = escaping;
+        inString = updateStringState(current, inString, wasEscaping);
+        escaping = updateEscapingState(current, wasEscaping);
         continue;
       }
 

@@ -28,6 +28,9 @@ public class AiClient {
   private final AiPropertiesDto aiProperties;
 
   public String prompt(String prompt, AiModelTypeEnum modelType) {
+    validatePrompt(prompt);
+    validateModelType(modelType);
+
     HttpRequest request =
         HttpRequest.newBuilder()
             .uri(URI.create(aiProperties.baseUrl().replaceAll("/+$", "") + "/chat/completions"))
@@ -61,6 +64,18 @@ public class AiClient {
     }
 
     return content.trim();
+  }
+
+  private void validatePrompt(String prompt) {
+    if (prompt == null || prompt.isBlank()) {
+      throw new IllegalArgumentException("prompt must not be null or empty");
+    }
+  }
+
+  private void validateModelType(AiModelTypeEnum modelType) {
+    if (modelType == null) {
+      throw new IllegalArgumentException("modelType must not be null");
+    }
   }
 
   private String[] buildAuthorizationHeaders() {

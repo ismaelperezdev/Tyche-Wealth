@@ -1,5 +1,7 @@
 package com.tychewealth.testdata;
 
+import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_NAME_CORE;
+import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
 import static com.tychewealth.constants.ValidationConstants.MUST_BE_AT_MOST_20_CHARACTERS;
 import static com.tychewealth.constants.ValidationConstants.MUST_BE_BETWEEN_3_AND_60_CHARACTERS;
 import static com.tychewealth.constants.ValidationConstants.MUST_BE_GREATER_THAN_0;
@@ -35,8 +37,6 @@ public final class AssetTestData {
   public static final BigDecimal TEST_ASSET_RESPONSE_QUANTITY = new BigDecimal("10");
   public static final BigDecimal TEST_ASSET_RESPONSE_AVERAGE_PRICE = new BigDecimal("150.00");
 
-  private static final String TEST_PORTFOLIO_NAME_CORE = "Core";
-  private static final long TEST_PORTFOLIO_USER_ID = 42L;
   private static final BigDecimal TEST_ZERO_QUANTITY = new BigDecimal("0.00000000");
   private static final BigDecimal TEST_INVALID_QUANTITY_PRECISION =
       new BigDecimal("123456789012.123456789");
@@ -185,7 +185,7 @@ public final class AssetTestData {
 
   private static PortfolioEntity validPortfolio() {
     return EntityBuilder.buildPortfolio(
-        TEST_PORTFOLIO_USER_ID,
+        TEST_USER_ID,
         TEST_PORTFOLIO_NAME_CORE,
         CurrencyCodeEnum.USD,
         RiskProfileEnum.MEDIUM,

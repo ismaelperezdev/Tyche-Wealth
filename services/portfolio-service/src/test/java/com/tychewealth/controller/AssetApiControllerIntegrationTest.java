@@ -3,6 +3,8 @@ package com.tychewealth.controller;
 import static com.tychewealth.constants.ApiConstants.ASSET_IMPORT_URL;
 import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static com.tychewealth.constants.CommonConstants.DESCRIPTION;
+import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
+import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
 import static com.tychewealth.testdata.AssetTestData.AI_RESPONSE;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_CONTENT_TYPE_CSV;
@@ -18,7 +20,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
+import static org.springframework.http.HttpHeaders.PRAGMA;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -44,6 +49,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @ContextConfiguration(initializers = AssetIntegrationTestConfig.Initializer.class)
 @AutoConfigureMockMvc
 class AssetApiControllerIntegrationTest {
+
+  private static final int ATTACHMENT_SIZE_LIMIT_BYTES = 3_145_728;
 
   @Autowired private MockMvc mockMvc;
   @Autowired private PortfolioRepository portfolioRepository;
@@ -76,6 +83,8 @@ class AssetApiControllerIntegrationTest {
                 .file(file)
                 .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
         .andExpect(status().isOk())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$.fileName").value(TEST_ASSET_FILE_NAME))
         .andExpect(jsonPath("$.extractedText").value(TEST_ASSET_EXTRACTED_TEXT))
         .andExpect(jsonPath("$.aiResponse").value(containsString(TEST_ASSET_NAME_APPLE)))
@@ -101,6 +110,8 @@ class AssetApiControllerIntegrationTest {
     mockMvc
         .perform(multipart(ASSET_IMPORT_URL).file(file))
         .andExpect(status().isUnauthorized())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
         .andExpect(
@@ -119,6 +130,8 @@ class AssetApiControllerIntegrationTest {
                 .file(file)
                 .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
         .andExpect(status().isBadRequest())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_BAD_REQUEST.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_BAD_REQUEST.getType()))
         .andExpect(jsonPath("$." + DESCRIPTION).value(containsString("file must not be empty")));
@@ -126,7 +139,7 @@ class AssetApiControllerIntegrationTest {
 
   @Test
   void importReturnsBadRequestWhenAttachmentExceedsSizeLimit() throws Exception {
-    byte[] oversizedContent = new byte[3_145_729];
+    byte[] oversizedContent = new byte[ATTACHMENT_SIZE_LIMIT_BYTES + 1];
     MockMultipartFile file =
         new MockMultipartFile(
             "file", TEST_ASSET_FILE_NAME, TEST_ASSET_CONTENT_TYPE_CSV, oversizedContent);
@@ -137,6 +150,8 @@ class AssetApiControllerIntegrationTest {
                 .file(file)
                 .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
         .andExpect(status().isBadRequest())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(
             jsonPath("$.code").value(ErrorDefinition.ATTACHMENT_SIZE_LIMIT_EXCEEDED.getCode()))
         .andExpect(

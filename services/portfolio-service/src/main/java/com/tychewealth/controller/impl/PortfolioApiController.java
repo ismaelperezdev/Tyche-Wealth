@@ -10,7 +10,8 @@ import static com.tychewealth.constants.LogConstants.REQUEST_SUCCESS;
 import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import static com.tychewealth.constants.LogConstants.UPDATE_ACTION;
 import static com.tychewealth.constants.LogConstants.USER_ID;
-import static org.springframework.http.ResponseEntity.status;
+import static com.tychewealth.utils.Utils.buildNoStoreBodyResponse;
+import static com.tychewealth.utils.Utils.buildNoStoreEmptyResponse;
 
 import com.tychewealth.controller.PortfolioApi;
 import com.tychewealth.dto.portfolio.PortfolioResponseDto;
@@ -45,7 +46,7 @@ public class PortfolioApiController implements PortfolioApi {
     List<PortfolioResponseDto> response = portfolioService.listPortfolios(userId);
     log.info(REQUEST_SUCCESS + USER_ID, PORTFOLIO, LIST_PORTFOLIOS_ACTION, userId);
 
-    return status(HttpStatus.OK).body(response);
+    return buildNoStoreBodyResponse(HttpStatus.OK, response);
   }
 
   @Override
@@ -59,7 +60,7 @@ public class PortfolioApiController implements PortfolioApi {
     log.info(
         REQUEST_SUCCESS + PORTFOLIO_ID + USER_ID, PORTFOLIO, RETRIEVE_ACTION, portfolioId, userId);
 
-    return status(HttpStatus.OK).body(response);
+    return buildNoStoreBodyResponse(HttpStatus.OK, response);
   }
 
   @Override
@@ -72,7 +73,7 @@ public class PortfolioApiController implements PortfolioApi {
     PortfolioResponseDto response = portfolioService.create(userId, createRequest);
     log.info(REQUEST_SUCCESS + USER_ID, PORTFOLIO, CREATE_ACTION, userId);
 
-    return status(HttpStatus.CREATED).body(response);
+    return buildNoStoreBodyResponse(HttpStatus.CREATED, response);
   }
 
   @Override
@@ -87,7 +88,7 @@ public class PortfolioApiController implements PortfolioApi {
     log.info(
         REQUEST_SUCCESS + PORTFOLIO_ID + USER_ID, PORTFOLIO, UPDATE_ACTION, portfolioId, userId);
 
-    return status(HttpStatus.OK).body(response);
+    return buildNoStoreBodyResponse(HttpStatus.OK, response);
   }
 
   @Override
@@ -99,6 +100,6 @@ public class PortfolioApiController implements PortfolioApi {
     log.info(
         REQUEST_SUCCESS + PORTFOLIO_ID + USER_ID, PORTFOLIO, DELETE_ACTION, portfolioId, userId);
 
-    return status(HttpStatus.NO_CONTENT).build();
+    return buildNoStoreEmptyResponse(HttpStatus.NO_CONTENT);
   }
 }

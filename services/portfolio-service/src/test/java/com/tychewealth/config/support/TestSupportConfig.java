@@ -68,6 +68,7 @@ public class TestSupportConfig {
 
   public static void applyCommonProperties(ConfigurableApplicationContext applicationContext) {
     TestPropertyValues.of(
+            "spring.application.name=portfolio-service-test",
             "spring.jpa.hibernate.ddl-auto=none",
             "spring.liquibase.enabled=true",
             "spring.liquibase.change-log=classpath:db.changelog/changelog-master.xml",

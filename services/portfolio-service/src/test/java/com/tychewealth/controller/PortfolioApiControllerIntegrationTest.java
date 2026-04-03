@@ -10,6 +10,8 @@ import static com.tychewealth.constants.CommonConstants.NAME;
 import static com.tychewealth.constants.CommonConstants.NAME_PLACEHOLDER;
 import static com.tychewealth.constants.CommonConstants.RISK_PROFILE;
 import static com.tychewealth.constants.CommonConstants.STRATEGY_TYPE;
+import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
+import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
 import static com.tychewealth.constants.TestConstants.TEST_BASE_CURRENCY_EUR;
 import static com.tychewealth.constants.TestConstants.TEST_BASE_CURRENCY_USD;
 import static com.tychewealth.constants.TestConstants.TEST_INVESTMENT_HORIZON_LONG;
@@ -44,6 +46,9 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
+import static org.springframework.http.HttpHeaders.PRAGMA;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -116,6 +121,8 @@ class PortfolioApiControllerIntegrationTest {
 
     retrieveMeRequest(mockMvc, String.valueOf(TEST_USER_ID))
         .andExpect(status().isOk())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$", hasSize(2)))
         .andExpect(jsonPath("$[0].name").value(TEST_PORTFOLIO_NAME_CORE))
         .andExpect(jsonPath("$[1].name").value(TEST_PORTFOLIO_NAME_RETIREMENT));
@@ -125,6 +132,8 @@ class PortfolioApiControllerIntegrationTest {
   void retrieveReturnsEmptyListWhenAuthenticatedUserHasNoPortfolios() throws Exception {
     retrieveMeRequest(mockMvc, String.valueOf(TEST_USER_ID))
         .andExpect(status().isOk())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$", hasSize(0)));
   }
 
@@ -132,6 +141,8 @@ class PortfolioApiControllerIntegrationTest {
   void retrieveReturnsUnauthorizedWhenAuthenticatedUserIsMissing() throws Exception {
     retrieveMeRequest(mockMvc, null)
         .andExpect(status().isUnauthorized())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
         .andExpect(
@@ -152,6 +163,8 @@ class PortfolioApiControllerIntegrationTest {
 
     retrieveMeByIdRequest(mockMvc, String.valueOf(TEST_USER_ID), portfolio.getId())
         .andExpect(status().isOk())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$.id").value(portfolio.getId()))
         .andExpect(jsonPath("$." + NAME).value(TEST_PORTFOLIO_NAME_RETIREMENT))
         .andExpect(jsonPath("$." + BASE_CURRENCY).value(TEST_BASE_CURRENCY_EUR));
@@ -171,6 +184,8 @@ class PortfolioApiControllerIntegrationTest {
 
     retrieveMeByIdRequest(mockMvc, null, portfolio.getId())
         .andExpect(status().isUnauthorized())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()));
   }
@@ -189,6 +204,8 @@ class PortfolioApiControllerIntegrationTest {
 
     retrieveMeByIdRequest(mockMvc, String.valueOf(TEST_USER_ID), portfolio.getId())
         .andExpect(status().isNotFound())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$.code").value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getType()))
         .andExpect(
@@ -210,6 +227,8 @@ class PortfolioApiControllerIntegrationTest {
 
     createRequest(mockMvc, String.valueOf(TEST_USER_ID), requestBody)
         .andExpect(status().isCreated())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$.id").isNumber())
         .andExpect(jsonPath("$." + NAME).value(TEST_PORTFOLIO_NAME_RETIREMENT))
         .andExpect(jsonPath("$." + DESCRIPTION).value(TEST_PORTFOLIO_DESCRIPTION_LONG_TERM))
@@ -242,6 +261,8 @@ class PortfolioApiControllerIntegrationTest {
 
     createRequest(mockMvc, null, requestBody)
         .andExpect(status().isUnauthorized())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
         .andExpect(
@@ -254,6 +275,8 @@ class PortfolioApiControllerIntegrationTest {
       throws Exception {
     createRequest(mockMvc, String.valueOf(TEST_USER_ID), requestBody)
         .andExpect(status().isBadRequest())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getType()))
         .andExpect(jsonPath("$." + DESCRIPTION).value(containsString(expectedMessage)));
@@ -268,6 +291,8 @@ class PortfolioApiControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(malformedCreateRequest()))
         .andExpect(status().isBadRequest())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_BAD_REQUEST.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_BAD_REQUEST.getType()))
         .andExpect(jsonPath("$." + DESCRIPTION).value(containsString("invalid")));
@@ -282,6 +307,8 @@ class PortfolioApiControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(invalidEnumCreateRequest()))
         .andExpect(status().isBadRequest())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_BAD_REQUEST.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_BAD_REQUEST.getType()))
         .andExpect(jsonPath("$." + DESCRIPTION).value(containsString("field 'baseCurrency'")))
@@ -314,6 +341,8 @@ class PortfolioApiControllerIntegrationTest {
 
     createRequest(mockMvc, String.valueOf(TEST_USER_ID), requestBody)
         .andExpect(status().isConflict())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$.code").value(ErrorDefinition.PORTFOLIO_NAME_CONFLICT.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.PORTFOLIO_NAME_CONFLICT.getType()))
         .andExpect(
@@ -349,6 +378,8 @@ class PortfolioApiControllerIntegrationTest {
 
     createRequest(mockMvc, String.valueOf(TEST_USER_ID), requestBody)
         .andExpect(status().isConflict())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$.code").value(ErrorDefinition.PORTFOLIO_LIMIT_REACHED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.PORTFOLIO_LIMIT_REACHED.getType()))
         .andExpect(
@@ -379,6 +410,8 @@ class PortfolioApiControllerIntegrationTest {
 
     createRequest(mockMvc, String.valueOf(TEST_OTHER_USER_ID), requestBody)
         .andExpect(status().isCreated())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$." + NAME).value(TEST_PORTFOLIO_NAME_RETIREMENT));
 
     assertEquals(1, portfolioRepository.findByUserIdOrderByCreatedAtAsc(TEST_USER_ID).size());
@@ -409,6 +442,8 @@ class PortfolioApiControllerIntegrationTest {
 
     updateMeRequest(mockMvc, String.valueOf(TEST_USER_ID), portfolio.getId(), requestBody)
         .andExpect(status().isOk())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$.id").value(portfolio.getId()))
         .andExpect(jsonPath("$." + NAME).value(TEST_PORTFOLIO_NAME_CORE))
         .andExpect(jsonPath("$." + DESCRIPTION).value(TEST_PORTFOLIO_DESCRIPTION_ANOTHER))
@@ -448,7 +483,9 @@ class PortfolioApiControllerIntegrationTest {
             TEST_PORTFOLIO_OTHER_MAX_RISK);
 
     updateMeRequest(mockMvc, null, portfolio.getId(), requestBody)
-        .andExpect(status().isUnauthorized());
+        .andExpect(status().isUnauthorized())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE));
 
     assertEquals(
         TEST_PORTFOLIO_NAME_RETIREMENT,
@@ -479,6 +516,8 @@ class PortfolioApiControllerIntegrationTest {
 
     updateMeRequest(mockMvc, String.valueOf(TEST_USER_ID), portfolio.getId(), requestBody)
         .andExpect(status().isNotFound())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$.code").value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getType()))
         .andExpect(
@@ -519,6 +558,8 @@ class PortfolioApiControllerIntegrationTest {
 
     updateMeRequest(mockMvc, String.valueOf(TEST_USER_ID), targetPortfolio.getId(), requestBody)
         .andExpect(status().isConflict())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath("$.code").value(ErrorDefinition.PORTFOLIO_NAME_CONFLICT.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.PORTFOLIO_NAME_CONFLICT.getType()));
   }
@@ -538,7 +579,9 @@ class PortfolioApiControllerIntegrationTest {
         buildAsset(portfolio, "Apple Inc.", "AAPL", AssetTypeEnum.STOCK, CurrencyCodeEnum.USD));
 
     deleteMeRequest(mockMvc, String.valueOf(TEST_USER_ID), portfolio.getId())
-        .andExpect(status().isNoContent());
+        .andExpect(status().isNoContent())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE));
 
     assertEquals(0, portfolioRepository.findByUserIdOrderByCreatedAtAsc(TEST_USER_ID).size());
     assertEquals(0, assetRepository.findByPortfolioId(portfolio.getId()).size());
@@ -557,7 +600,9 @@ class PortfolioApiControllerIntegrationTest {
                 InvestmentHorizonEnum.LONG));
 
     deleteMeRequest(mockMvc, String.valueOf(TEST_USER_ID), otherUsersPortfolio.getId())
-        .andExpect(status().isNoContent());
+        .andExpect(status().isNoContent())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE));
 
     assertEquals(1, portfolioRepository.findByUserIdOrderByCreatedAtAsc(TEST_OTHER_USER_ID).size());
   }
@@ -574,7 +619,10 @@ class PortfolioApiControllerIntegrationTest {
                 StrategyTypeEnum.INCOME,
                 InvestmentHorizonEnum.LONG));
 
-    deleteMeRequest(mockMvc, null, portfolio.getId()).andExpect(status().isUnauthorized());
+    deleteMeRequest(mockMvc, null, portfolio.getId())
+        .andExpect(status().isUnauthorized())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE));
 
     assertTrue(portfolioRepository.findById(portfolio.getId()).isPresent());
   }

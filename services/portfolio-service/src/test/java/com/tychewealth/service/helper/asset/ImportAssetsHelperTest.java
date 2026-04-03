@@ -2,6 +2,7 @@ package com.tychewealth.service.helper.asset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,7 +48,9 @@ class ImportAssetsHelperTest {
       Future<AssetImportResponseDto> first =
           executorService.submit(() -> helper.buildImportPayload(file));
 
-      firstStreamOpened.await(1, TimeUnit.SECONDS);
+      assertTrue(
+          firstStreamOpened.await(1, TimeUnit.SECONDS),
+          "Timed out waiting for the first stream to open");
 
       Future<AssetImportResponseDto> second =
           executorService.submit(() -> helper.buildImportPayload(file));

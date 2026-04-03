@@ -36,19 +36,23 @@ public class InMemoryRateLimitStore implements RateLimitStore {
     properties.getRules().put(rateLimitKey, new RateLimitPropertiesDto.RateLimitDto(1, 60));
     RateLimitInterceptor interceptor = new RateLimitInterceptor(properties, rateLimitStore);
 
-    SecurityContextHolder.getContext()
-        .setAuthentication(new UsernamePasswordAuthenticationToken(TEST_USER_ID, null));
+    try {
+      SecurityContextHolder.getContext()
+          .setAuthentication(new UsernamePasswordAuthenticationToken(TEST_USER_ID, null));
 
-    MockHttpServletResponse response = new MockHttpServletResponse();
+      MockHttpServletResponse response = new MockHttpServletResponse();
 
-    assertDoesNotThrow(() -> interceptor.preHandle(request, response, handlerMethod));
+      assertDoesNotThrow(() -> interceptor.preHandle(request, response, handlerMethod));
 
-    ResponseStatusException exception =
-        assertThrows(
-            ResponseStatusException.class,
-            () -> interceptor.preHandle(request, response, handlerMethod));
+      ResponseStatusException exception =
+          assertThrows(
+              ResponseStatusException.class,
+              () -> interceptor.preHandle(request, response, handlerMethod));
 
-    assertEquals(429, exception.getStatusCode().value());
+      assertEquals(429, exception.getStatusCode().value());
+    } finally {
+      SecurityContextHolder.clearContext();
+    }
   }
 
   @Override

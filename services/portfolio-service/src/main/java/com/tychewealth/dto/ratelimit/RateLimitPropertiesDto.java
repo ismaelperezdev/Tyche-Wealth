@@ -16,9 +16,6 @@ public class RateLimitPropertiesDto {
 
   public RateLimitDto ruleFor(RateLimitKey key) {
     RateLimitDto configured = rules.get(key);
-    if (configured == null) {
-      return new RateLimitDto(key.defaultMaxRequests(), key.defaultWindowSeconds());
-    }
     return configured.normalized(key.defaultMaxRequests(), key.defaultWindowSeconds());
   }
 

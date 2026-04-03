@@ -1,6 +1,8 @@
 package com.tychewealth.repository;
 
 import static com.tychewealth.constants.TestConstants.TEST_OTHER_USER_ID;
+import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_NAME_CORE;
+import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_NAME_RETIREMENT;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
 import static com.tychewealth.testdata.EntityBuilder.buildPortfolio;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,7 +35,7 @@ class PortfolioRepositoryTest {
         portfolioRepository.saveAndFlush(
             buildPortfolio(
                 TEST_USER_ID,
-                "Retirement",
+                TEST_PORTFOLIO_NAME_RETIREMENT,
                 CurrencyCodeEnum.EUR,
                 RiskProfileEnum.MEDIUM,
                 StrategyTypeEnum.BALANCED,
@@ -42,7 +44,7 @@ class PortfolioRepositoryTest {
         portfolioRepository.saveAndFlush(
             buildPortfolio(
                 TEST_USER_ID,
-                "Core",
+                TEST_PORTFOLIO_NAME_CORE,
                 CurrencyCodeEnum.USD,
                 RiskProfileEnum.LOW,
                 StrategyTypeEnum.INCOME,
@@ -58,8 +60,8 @@ class PortfolioRepositoryTest {
 
     assertNotNull(result);
     assertEquals(2, result.size());
-    assertEquals("Core", result.get(0).getName());
-    assertEquals("Retirement", result.get(1).getName());
+    assertEquals(TEST_PORTFOLIO_NAME_CORE, result.get(0).getName());
+    assertEquals(TEST_PORTFOLIO_NAME_RETIREMENT, result.get(1).getName());
     assertTrue(result.get(0).getCreatedAt().isBefore(result.get(1).getCreatedAt()));
   }
 

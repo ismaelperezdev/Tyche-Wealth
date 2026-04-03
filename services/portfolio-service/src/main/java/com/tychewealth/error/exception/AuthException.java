@@ -14,7 +14,11 @@ public class AuthException extends RuntimeException {
 
   public AuthException(
       ErrorDefinition errorDefinition, Map<String, String> description, HttpStatus httpStatus) {
-    this(resolve(errorDefinition), description, httpStatus);
+    super(resolve(errorDefinition).getDescription());
+
+    this.errorDefinition = resolve(errorDefinition);
+    this.description = description == null ? Map.of() : Map.copyOf(description);
+    this.httpStatus = httpStatus == null ? HttpStatus.UNAUTHORIZED : httpStatus;
   }
 
   public static AuthException of(
@@ -22,19 +26,7 @@ public class AuthException extends RuntimeException {
     return new AuthException(errorDefinition, description, httpStatus);
   }
 
-  private AuthException(
-      ResolvedError resolvedError, Map<String, String> description, HttpStatus httpStatus) {
-    super(resolvedError.errorDefinition().getDescription());
-
-    this.errorDefinition = resolvedError.errorDefinition();
-    this.description = description == null ? Map.of() : Map.copyOf(description);
-    this.httpStatus = httpStatus == null ? HttpStatus.UNAUTHORIZED : httpStatus;
+  private static ErrorDefinition resolve(ErrorDefinition errorDefinition) {
+    return errorDefinition == null ? ErrorDefinition.UNAUTHORIZED : errorDefinition;
   }
-
-  private static ResolvedError resolve(ErrorDefinition errorDefinition) {
-    return new ResolvedError(
-        errorDefinition == null ? ErrorDefinition.UNAUTHORIZED : errorDefinition);
-  }
-
-  private record ResolvedError(ErrorDefinition errorDefinition) {}
 }

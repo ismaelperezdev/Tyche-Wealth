@@ -10,9 +10,7 @@ import static com.tychewealth.testdata.AssetTestData.validImportedAssetCandidate
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.tychewealth.dto.asset.AssetImportCandidateDto;
 import com.tychewealth.dto.asset.AssetImportResponseDto;
@@ -80,7 +78,7 @@ class AssetServiceImplTest {
             java.util.Map.of(ERROR, "file must not be empty"),
             HttpStatus.BAD_REQUEST);
 
-    org.mockito.Mockito.doThrow(validationException)
+    doThrow(validationException)
         .when(assetValidationHelper)
         .validateImportRequest(TEST_USER_ID, file);
 

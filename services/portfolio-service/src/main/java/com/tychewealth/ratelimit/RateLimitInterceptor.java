@@ -53,15 +53,14 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     }
 
     RateLimitKey key = rateLimited.value();
+    String clientKey = resolveClientKey(request);
     RateLimitPropertiesDto.RateLimitDto rule = properties.ruleFor(key);
 
     long requestCount;
     try {
       requestCount =
           rateLimitStore.increment(
-              key.namespace(),
-              resolveClientKey(request),
-              Duration.ofSeconds(rule.getWindowSeconds()));
+              key.namespace(), clientKey, Duration.ofSeconds(rule.getWindowSeconds()));
     } catch (RuntimeException ex) {
       log.error(
           REQUEST_CONFLICT + RATE_LIMIT_STORE_UNAVAILABLE_CONTEXT,
@@ -70,7 +69,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
           RATE_LIMIT_STORE_UNAVAILABLE_MESSAGE,
           request.getRequestURI(),
           key.namespace(),
-          null,
+          clientKey,
           ex);
       throw new ResponseStatusException(
           HttpStatus.SERVICE_UNAVAILABLE, "Rate limit service unavailable");

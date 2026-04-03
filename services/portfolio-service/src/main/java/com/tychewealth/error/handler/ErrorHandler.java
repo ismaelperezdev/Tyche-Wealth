@@ -8,6 +8,7 @@ import static com.tychewealth.constants.LogConstants.ERROR_HANDLER_ACTION;
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT_WITH_URI;
 import static com.tychewealth.constants.LogConstants.SYSTEM;
 import static com.tychewealth.constants.LogConstants.UNHANDLED_EXCEPTION_MESSAGE;
+import static com.tychewealth.utils.Utils.buildNoStoreBodyResponse;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.tychewealth.error.exception.AssetImportException;
@@ -122,7 +123,7 @@ public class ErrorHandler {
             .description(resolveDescription(definition, description, metadata))
             .build();
 
-    return ResponseEntity.status(status).body(response);
+    return buildNoStoreBodyResponse(status, response);
   }
 
   private String resolveDescription(
