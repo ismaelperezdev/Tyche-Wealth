@@ -65,10 +65,9 @@ public class PortfolioApiController implements PortfolioApi {
       @AuthenticationPrincipal Long userId,
       @Valid @RequestBody PortfolioCreateRequestDto createRequest) {
     log.info(
-        REQUEST_START + PORTFOLIO_NAME + USER_ID,
+        REQUEST_START + USER_ID,
         PORTFOLIO,
         CREATE_ACTION,
-        createRequest.getName(),
         userId);
 
     PortfolioResponseDto response = portfolioService.create(userId, createRequest);
@@ -83,11 +82,10 @@ public class PortfolioApiController implements PortfolioApi {
       @PathVariable("portfolioId") Long portfolioId,
       @Valid @RequestBody PortfolioUpdateRequestDto updateRequest) {
     log.info(
-        REQUEST_START + PORTFOLIO_ID + PORTFOLIO_NAME + USER_ID,
+        REQUEST_START + PORTFOLIO_ID + USER_ID,
         PORTFOLIO,
         UPDATE_ACTION,
         portfolioId,
-        updateRequest.getName(),
         userId);
 
     PortfolioResponseDto response = portfolioService.update(userId, portfolioId, updateRequest);
