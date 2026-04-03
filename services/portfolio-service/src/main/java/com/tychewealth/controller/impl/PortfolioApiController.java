@@ -1,8 +1,10 @@
 package com.tychewealth.controller.impl;
 
 import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
+import static com.tychewealth.constants.LogConstants.DELETE_ACTION;
 import static com.tychewealth.constants.LogConstants.LIST_PORTFOLIOS_ACTION;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO;
+import static com.tychewealth.constants.LogConstants.PORTFOLIO_ID;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_NAME;
 import static com.tychewealth.constants.LogConstants.REQUEST_START;
 import static com.tychewealth.constants.LogConstants.REQUEST_SUCCESS;
@@ -20,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -56,5 +59,17 @@ public class PortfolioApiController implements PortfolioApi {
     log.info(REQUEST_SUCCESS + USER_ID, PORTFOLIO, CREATE_ACTION, userId);
 
     return status(HttpStatus.CREATED).body(response);
+  }
+
+  @Override
+  public ResponseEntity<Void> delete(
+      @AuthenticationPrincipal Long userId, @PathVariable("portfolioId") Long portfolioId) {
+    log.info(REQUEST_START + PORTFOLIO_ID + USER_ID, PORTFOLIO, DELETE_ACTION, portfolioId, userId);
+
+    portfolioService.delete(userId, portfolioId);
+    log.info(
+        REQUEST_SUCCESS + PORTFOLIO_ID + USER_ID, PORTFOLIO, DELETE_ACTION, portfolioId, userId);
+
+    return status(HttpStatus.NO_CONTENT).build();
   }
 }

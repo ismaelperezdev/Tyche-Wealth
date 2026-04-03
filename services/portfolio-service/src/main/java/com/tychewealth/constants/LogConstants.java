@@ -8,6 +8,7 @@ public final class LogConstants {
   public static final String AUTH = "[auth]";
   public static final String SYSTEM = "[system]";
   public static final String CREATE_ACTION = "[create]";
+  public static final String DELETE_ACTION = "[delete]";
   public static final String LIST_PORTFOLIOS_ACTION = "[list-portfolios]";
   public static final String ERROR_HANDLER_ACTION = "[error-handler]";
   public static final String ACCESS_TOKEN_ACTION = "[access-token]";
@@ -18,6 +19,7 @@ public final class LogConstants {
   public static final String REQUEST_CONFLICT = BASE_LOG + " Request rejected: {}";
   public static final String REQUEST_CONFLICT_WITH_URI = REQUEST_CONFLICT + " uri={}";
   public static final String PORTFOLIO_NAME = " portfolioName={}";
+  public static final String PORTFOLIO_ID = " portfolioId={}";
   public static final String USER_ID = " userId={}";
   public static final String UNHANDLED_EXCEPTION_MESSAGE =
       "unhandled exception reached global error handler";

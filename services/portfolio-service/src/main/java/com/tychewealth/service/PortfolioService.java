@@ -9,4 +9,6 @@ public interface PortfolioService {
   List<PortfolioResponseDto> listPortfolios(Long userId);
 
   PortfolioResponseDto create(Long userId, PortfolioCreateRequestDto createRequest);
+
+  void delete(Long userId, Long portfolioId);
 }

@@ -11,6 +11,7 @@ import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.enums.InvestmentHorizonEnum;
 import com.tychewealth.enums.RiskProfileEnum;
 import com.tychewealth.enums.StrategyTypeEnum;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -56,7 +57,7 @@ public class PortfolioEntity {
   @NotNull(message = MUST_NOT_BE_NULL)
   private Long userId;
 
-  @OneToMany(mappedBy = "portfolio")
+  @OneToMany(mappedBy = "portfolio", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<AssetEntity> assets = new ArrayList<>();
 
   @Column(name = "name", nullable = false, length = 60)

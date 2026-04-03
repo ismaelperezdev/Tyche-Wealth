@@ -74,7 +74,7 @@ class PortfolioConcurrencyIntegrationTest {
 
   private IntegrationResponse executeCreate(String requestBody) throws Exception {
     MvcResult result =
-        createRequest(mockMvc, String.valueOf(TEST_USER_ID), objectMapper, requestBody).andReturn();
+        createRequest(mockMvc, String.valueOf(TEST_USER_ID), requestBody).andReturn();
     return new IntegrationResponse(
         result.getResponse().getStatus(), result.getResponse().getContentAsString());
   }

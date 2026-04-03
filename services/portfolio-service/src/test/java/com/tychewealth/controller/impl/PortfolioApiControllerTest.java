@@ -63,4 +63,12 @@ class PortfolioApiControllerTest {
     assertEquals(response, result.getBody());
     verify(portfolioService).create(42L, request);
   }
+
+  @Test
+  void deleteReturnsNoContentResponse() {
+    ResponseEntity<Void> result = portfolioApiController.delete(42L, 7L);
+
+    assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+    verify(portfolioService).delete(42L, 7L);
+  }
 }
