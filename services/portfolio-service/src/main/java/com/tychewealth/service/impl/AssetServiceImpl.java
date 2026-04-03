@@ -22,12 +22,12 @@ public class AssetServiceImpl implements AssetService {
   @Override
   @Transactional(readOnly = true)
   public AssetImportResponseDto importAssets(Long userId, MultipartFile file) {
-
     assetValidationHelper.validateImportRequest(userId, file);
     AssetImportResponseDto response = importAssetsHelper.buildImportPayload(file);
     String prompt = AssetImportPromptUtils.buildAssetImportPrompt(response.getExtractedText());
-    response.setAiResponse(importAssetsAiHelper.promptFast(prompt));
-
+    String aiResponse = importAssetsAiHelper.promptFast(prompt);
+    response.setAiResponse(aiResponse);
+    response.setAssets(importAssetsAiHelper.parseAiAssets(aiResponse));
     return response;
   }
 }

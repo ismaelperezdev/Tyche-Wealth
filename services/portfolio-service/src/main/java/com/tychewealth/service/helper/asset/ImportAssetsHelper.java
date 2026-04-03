@@ -20,13 +20,17 @@ import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 import static com.tychewealth.constants.LogConstants.REQUEST_START;
 import static com.tychewealth.constants.LogConstants.REQUEST_SUCCESS;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.dto.asset.AssetImportResponseDto;
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.utils.FileDataExtractor;
+import com.tychewealth.utils.Utils;
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -35,8 +39,10 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -45,14 +51,23 @@ import org.springframework.web.multipart.MultipartFile;
 @Component
 public class ImportAssetsHelper {
 
+  private static final String IMPORT_CACHE_KEY_PREFIX = "asset-import:payload:";
+  private static final Duration IMPORT_CACHE_TTL = Duration.ofHours(12);
+
   private final AssetValidationHelper assetValidationHelper;
+  private final RedisTemplate<String, String> redisTemplate;
+  private final ObjectMapper objectMapper;
   private final ThreadPoolExecutor importExecutor;
 
   public ImportAssetsHelper(
       AssetValidationHelper assetValidationHelper,
+      RedisTemplate<String, String> redisTemplate,
+      ObjectMapper objectMapper,
       @Value("${app.asset.import.queue.max-concurrency:4}") int maxConcurrency,
       @Value("${app.asset.import.queue.capacity:50}") int queueCapacity) {
     this.assetValidationHelper = assetValidationHelper;
+    this.redisTemplate = redisTemplate;
+    this.objectMapper = objectMapper;
     this.importExecutor =
         new ThreadPoolExecutor(
             Math.max(1, maxConcurrency),
@@ -64,6 +79,12 @@ public class ImportAssetsHelper {
   }
 
   public AssetImportResponseDto buildImportPayload(MultipartFile file) {
+    String cacheKey = buildCacheKey(file);
+    AssetImportResponseDto cachedResponse = readCachedResponse(cacheKey);
+    if (cachedResponse != null) {
+      return cachedResponse;
+    }
+
     String fileName = resolveFileName(file);
     log.info(
         REQUEST_START + IMPORT_QUEUE_STATUS,
@@ -77,7 +98,8 @@ public class ImportAssetsHelper {
     Future<AssetImportResponseDto> future =
         importExecutor.submit(() -> extractCommonPayload(file, fileName));
     try {
-      AssetImportResponseDto response = future.get();
+      AssetImportResponseDto response =
+          future.get(assetValidationHelper.extractionTimeoutSeconds(), TimeUnit.SECONDS);
       log.info(
           REQUEST_SUCCESS + IMPORT_QUEUE_STATUS,
           ASSET,
@@ -86,6 +108,7 @@ public class ImportAssetsHelper {
           fileName,
           importExecutor.getActiveCount(),
           importExecutor.getQueue().size());
+      writeCachedResponse(cacheKey, response);
       return response;
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
@@ -97,6 +120,10 @@ public class ImportAssetsHelper {
           fileName,
           ex);
       throw new IllegalStateException("Asset import processing was interrupted", ex);
+    } catch (TimeoutException ex) {
+      future.cancel(true);
+      throw assetValidationHelper.extractionTimeoutExceeded(
+          assetValidationHelper.extractionTimeoutSeconds());
     } catch (ExecutionException ex) {
       log.error(
           REQUEST_CONFLICT + FILE_NAME_CONTEXT,
@@ -110,6 +137,39 @@ public class ImportAssetsHelper {
         throw runtimeException;
       }
       throw new IllegalStateException("Asset import processing failed", cause);
+    }
+  }
+
+  private String buildCacheKey(MultipartFile file) {
+    try {
+      return IMPORT_CACHE_KEY_PREFIX + Utils.sha256Hex(file.getBytes());
+    } catch (IOException ex) {
+      throw new AssetImportException(
+          ErrorDefinition.ASSET_IMPORT_EXTRACTION_FAILED, Map.of(), HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  private AssetImportResponseDto readCachedResponse(String cacheKey) {
+    String cachedJson = redisTemplate.opsForValue().get(cacheKey);
+    if (cachedJson == null || cachedJson.isBlank()) {
+      return null;
+    }
+
+    try {
+      return objectMapper.readValue(cachedJson, AssetImportResponseDto.class);
+    } catch (JsonProcessingException ex) {
+      redisTemplate.delete(cacheKey);
+      return null;
+    }
+  }
+
+  private void writeCachedResponse(String cacheKey, AssetImportResponseDto response) {
+    try {
+      redisTemplate
+          .opsForValue()
+          .set(cacheKey, objectMapper.writeValueAsString(response), IMPORT_CACHE_TTL);
+    } catch (JsonProcessingException ex) {
+      throw new IllegalStateException("Unable to cache asset import payload", ex);
     }
   }
 
@@ -136,7 +196,7 @@ public class ImportAssetsHelper {
           fileName,
           elapsedMillis,
           extractedText.length());
-      return new AssetImportResponseDto(fileName, extractedText, null);
+      return new AssetImportResponseDto(fileName, extractedText, null, null);
     } catch (IOException ex) {
       log.warn(
           REQUEST_CONFLICT + FILE_NAME_CONTEXT,

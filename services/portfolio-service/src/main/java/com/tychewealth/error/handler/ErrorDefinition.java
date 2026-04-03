@@ -41,7 +41,23 @@ public enum ErrorDefinition {
       "ATTACHMENT_TEXT_LIMIT_EXCEEDED",
       "The extracted attachment text exceeds the maximum allowed length. Maximum: ${expected:-} characters. Received: ${received:-} characters"),
   ATTACHMENT_INSPECTION_FAILED(
-      "TYCHE-504", "ATTACHMENT_INSPECTION_FAILED", "Unable to inspect attachment");
+      "TYCHE-504", "ATTACHMENT_INSPECTION_FAILED", "Unable to inspect attachment"),
+  ASSET_IMPORT_AI_RESPONSE_INVALID(
+      "TYCHE-505",
+      "ASSET_IMPORT_AI_RESPONSE_INVALID",
+      "The AI response could not be converted into valid asset data: ${error:-}"),
+  ATTACHMENT_PROCESSING_TIMEOUT_EXCEEDED(
+      "TYCHE-506",
+      "ATTACHMENT_PROCESSING_TIMEOUT_EXCEEDED",
+      "Attachment processing exceeded the maximum allowed time. Maximum: ${expected:-} seconds. Received: ${received:-} seconds"),
+  AI_PROCESSING_TIMEOUT_EXCEEDED(
+      "TYCHE-507",
+      "AI_PROCESSING_TIMEOUT_EXCEEDED",
+      "AI processing exceeded the maximum allowed time. Maximum: ${expected:-} seconds. Received: ${received:-} seconds"),
+  ASSET_IMPORT_RESULT_LIMIT_EXCEEDED(
+      "TYCHE-508",
+      "ASSET_IMPORT_RESULT_LIMIT_EXCEEDED",
+      "The import produced too many assets. Maximum: ${expected:-}. Received: ${received:-}");
 
   private final String code;
   private final String type;

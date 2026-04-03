@@ -29,15 +29,27 @@ public class AssetValidationHelper {
   private final long maxFileSizeBytes;
   private final int maxPdfPages;
   private final int maxExtractedCharacters;
+  private final int maxExtractionProcessingSeconds;
+  private final int maxAiProcessingSeconds;
+  private final int maxDetectedAssets;
 
   public AssetValidationHelper(
       @Value("${app.asset.import.validation.max-file-size-bytes:3145728}") long maxFileSizeBytes,
       @Value("${app.asset.import.validation.max-pdf-pages:10}") int maxPdfPages,
       @Value("${app.asset.import.validation.max-extracted-characters:15000}")
-          int maxExtractedCharacters) {
+          int maxExtractedCharacters,
+      @Value("${app.asset.import.validation.max-extraction-processing-seconds:15}")
+          int maxExtractionProcessingSeconds,
+      @Value("${app.asset.import.validation.max-ai-processing-seconds:30}")
+          int maxAiProcessingSeconds,
+      @Value("${app.asset.import.validation.max-detected-assets:25}") int maxDetectedAssets) {
     this.maxFileSizeBytes = maxFileSizeBytes <= 0 ? 3145728L : maxFileSizeBytes;
     this.maxPdfPages = maxPdfPages <= 0 ? 10 : maxPdfPages;
     this.maxExtractedCharacters = maxExtractedCharacters <= 0 ? 15000 : maxExtractedCharacters;
+    this.maxExtractionProcessingSeconds =
+        maxExtractionProcessingSeconds <= 0 ? 15 : maxExtractionProcessingSeconds;
+    this.maxAiProcessingSeconds = maxAiProcessingSeconds <= 0 ? 30 : maxAiProcessingSeconds;
+    this.maxDetectedAssets = maxDetectedAssets <= 0 ? 25 : maxDetectedAssets;
   }
 
   public void validateImportRequest(Long userId, MultipartFile file) {
@@ -123,6 +135,49 @@ public class AssetValidationHelper {
       throw new AssetImportException(
           ErrorDefinition.ATTACHMENT_INSPECTION_FAILED, Map.of(), HttpStatus.BAD_REQUEST);
     }
+  }
+
+  public int extractionTimeoutSeconds() {
+    return maxExtractionProcessingSeconds;
+  }
+
+  public int aiTimeoutSeconds() {
+    return maxAiProcessingSeconds;
+  }
+
+  public void validateDetectedAssetsCount(int detectedAssets) {
+    if (detectedAssets > maxDetectedAssets) {
+      throw new AssetImportException(
+          ErrorDefinition.ASSET_IMPORT_RESULT_LIMIT_EXCEEDED,
+          Map.of(
+              EXPECTED,
+              String.valueOf(maxDetectedAssets),
+              RECEIVED,
+              String.valueOf(detectedAssets)),
+          HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  public AssetImportException extractionTimeoutExceeded(long elapsedSeconds) {
+    return new AssetImportException(
+        ErrorDefinition.ATTACHMENT_PROCESSING_TIMEOUT_EXCEEDED,
+        Map.of(
+            EXPECTED,
+            String.valueOf(maxExtractionProcessingSeconds),
+            RECEIVED,
+            String.valueOf(elapsedSeconds)),
+        HttpStatus.BAD_REQUEST);
+  }
+
+  public AssetImportException aiTimeoutExceeded(long elapsedSeconds) {
+    return new AssetImportException(
+        ErrorDefinition.AI_PROCESSING_TIMEOUT_EXCEEDED,
+        Map.of(
+            EXPECTED,
+            String.valueOf(maxAiProcessingSeconds),
+            RECEIVED,
+            String.valueOf(elapsedSeconds)),
+        HttpStatus.BAD_REQUEST);
   }
 
   private String resolveFileName(MultipartFile file) {

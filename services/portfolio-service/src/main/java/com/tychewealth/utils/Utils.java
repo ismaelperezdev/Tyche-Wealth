@@ -62,9 +62,13 @@ public final class Utils {
   }
 
   public static String sha256Hex(String value) {
+    return sha256Hex(value.getBytes(StandardCharsets.UTF_8));
+  }
+
+  public static String sha256Hex(byte[] value) {
     try {
       MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-      byte[] hash = messageDigest.digest(value.getBytes(StandardCharsets.UTF_8));
+      byte[] hash = messageDigest.digest(value);
       return HexFormat.of().formatHex(hash);
     } catch (NoSuchAlgorithmException ex) {
       throw new IllegalStateException("SHA-256 algorithm not available", ex);

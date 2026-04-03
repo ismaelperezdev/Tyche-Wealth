@@ -16,9 +16,18 @@ import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 import static com.tychewealth.constants.LogConstants.REQUEST_START;
 import static com.tychewealth.constants.LogConstants.REQUEST_SUCCESS;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.client.AiClient;
 import com.tychewealth.dto.ai.AiModelTypeEnum;
+import com.tychewealth.dto.asset.AssetImportCandidateDto;
+import com.tychewealth.error.exception.AssetImportException;
+import com.tychewealth.error.handler.ErrorDefinition;
 import jakarta.annotation.PreDestroy;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -26,22 +35,37 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
 public class ImportAssetsAiHelper {
 
+  private static final String AI_CACHE_KEY_PREFIX = "asset-import:ai:";
+  private static final Duration AI_CACHE_TTL = Duration.ofHours(12);
+
   private final AiClient aiClient;
+  private final AssetValidationHelper assetValidationHelper;
+  private final RedisTemplate<String, String> redisTemplate;
+  private final ObjectMapper objectMapper;
   private final ThreadPoolExecutor aiExecutor;
 
   public ImportAssetsAiHelper(
       AiClient aiClient,
+      AssetValidationHelper assetValidationHelper,
+      RedisTemplate<String, String> redisTemplate,
+      ObjectMapper objectMapper,
       @Value("${app.asset.import.ai.queue.max-concurrency:1}") int maxConcurrency,
       @Value("${app.asset.import.ai.queue.capacity:20}") int queueCapacity) {
     this.aiClient = aiClient;
+    this.assetValidationHelper = assetValidationHelper;
+    this.redisTemplate = redisTemplate;
+    this.objectMapper = objectMapper;
     this.aiExecutor =
         new ThreadPoolExecutor(
             Math.max(1, maxConcurrency),
@@ -60,7 +84,17 @@ public class ImportAssetsAiHelper {
     return execute(prompt, AiModelTypeEnum.COMPLEX);
   }
 
+  public List<AssetImportCandidateDto> promptFastAndParse(String prompt) {
+    return parseAiAssets(promptFast(prompt));
+  }
+
   private String execute(String prompt, AiModelTypeEnum modelType) {
+    String cacheKey = buildCacheKey(prompt, modelType);
+    String cachedResponse = redisTemplate.opsForValue().get(cacheKey);
+    if (cachedResponse != null && !cachedResponse.isBlank()) {
+      return cachedResponse;
+    }
+
     log.info(
         REQUEST_START + AI_QUEUE_STATUS,
         ASSET,
@@ -72,7 +106,7 @@ public class ImportAssetsAiHelper {
 
     Future<String> future = aiExecutor.submit(() -> callAi(prompt, modelType));
     try {
-      String response = future.get();
+      String response = future.get(assetValidationHelper.aiTimeoutSeconds(), TimeUnit.SECONDS);
       log.info(
           REQUEST_SUCCESS + AI_QUEUE_STATUS,
           ASSET,
@@ -81,6 +115,7 @@ public class ImportAssetsAiHelper {
           modelType,
           aiExecutor.getActiveCount(),
           aiExecutor.getQueue().size());
+      redisTemplate.opsForValue().set(cacheKey, response, AI_CACHE_TTL);
       return response;
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
@@ -92,6 +127,9 @@ public class ImportAssetsAiHelper {
           modelType,
           ex);
       throw new IllegalStateException("AI processing was interrupted", ex);
+    } catch (TimeoutException ex) {
+      future.cancel(true);
+      throw assetValidationHelper.aiTimeoutExceeded(assetValidationHelper.aiTimeoutSeconds());
     } catch (ExecutionException ex) {
       log.error(
           REQUEST_CONFLICT + MODEL_TYPE_CONTEXT,
@@ -105,6 +143,30 @@ public class ImportAssetsAiHelper {
         throw runtimeException;
       }
       throw new IllegalStateException("AI processing failed", cause);
+    }
+  }
+
+  private String buildCacheKey(String prompt, AiModelTypeEnum modelType) {
+    return AI_CACHE_KEY_PREFIX
+        + modelType.name()
+        + ":"
+        + com.tychewealth.utils.Utils.sha256Hex(prompt);
+  }
+
+  public List<AssetImportCandidateDto> parseAiAssets(String aiResponse) {
+    try {
+      JavaType type =
+          objectMapper
+              .getTypeFactory()
+              .constructCollectionType(List.class, AssetImportCandidateDto.class);
+      List<AssetImportCandidateDto> assets = objectMapper.readValue(aiResponse, type);
+      assetValidationHelper.validateDetectedAssetsCount(assets.size());
+      return assets;
+    } catch (JsonProcessingException ex) {
+      throw new AssetImportException(
+          ErrorDefinition.ASSET_IMPORT_AI_RESPONSE_INVALID,
+          Map.of("error", ex.getOriginalMessage()),
+          HttpStatus.BAD_REQUEST);
     }
   }
 

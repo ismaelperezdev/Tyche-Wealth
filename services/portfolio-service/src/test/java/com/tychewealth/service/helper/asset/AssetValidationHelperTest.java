@@ -18,7 +18,7 @@ import org.springframework.mock.web.MockMultipartFile;
 
 class AssetValidationHelperTest {
 
-  private final AssetValidationHelper helper = new AssetValidationHelper(10L, 2, 5);
+  private final AssetValidationHelper helper = new AssetValidationHelper(10L, 2, 5, 1, 1, 2);
 
   @Test
   void validateExtractionRequestRejectsNullFileNameAsGenericBadRequest() {
@@ -74,7 +74,7 @@ class AssetValidationHelperTest {
     }
 
     AssetValidationHelper pageLimitedHelper =
-        new AssetValidationHelper(pdfBytes.length + 100L, 2, 5);
+        new AssetValidationHelper(pdfBytes.length + 100L, 2, 5, 1, 1, 2);
     MockMultipartFile file =
         new MockMultipartFile("file", "statement.pdf", "application/pdf", pdfBytes);
 
