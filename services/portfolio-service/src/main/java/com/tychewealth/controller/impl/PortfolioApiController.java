@@ -5,7 +5,6 @@ import static com.tychewealth.constants.LogConstants.DELETE_ACTION;
 import static com.tychewealth.constants.LogConstants.LIST_PORTFOLIOS_ACTION;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_ID;
-import static com.tychewealth.constants.LogConstants.PORTFOLIO_NAME;
 import static com.tychewealth.constants.LogConstants.REQUEST_START;
 import static com.tychewealth.constants.LogConstants.REQUEST_SUCCESS;
 import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
@@ -64,11 +63,7 @@ public class PortfolioApiController implements PortfolioApi {
   public ResponseEntity<PortfolioResponseDto> create(
       @AuthenticationPrincipal Long userId,
       @Valid @RequestBody PortfolioCreateRequestDto createRequest) {
-    log.info(
-        REQUEST_START + USER_ID,
-        PORTFOLIO,
-        CREATE_ACTION,
-        userId);
+    log.info(REQUEST_START + USER_ID, PORTFOLIO, CREATE_ACTION, userId);
 
     PortfolioResponseDto response = portfolioService.create(userId, createRequest);
     log.info(REQUEST_SUCCESS + USER_ID, PORTFOLIO, CREATE_ACTION, userId);
@@ -81,12 +76,7 @@ public class PortfolioApiController implements PortfolioApi {
       @AuthenticationPrincipal Long userId,
       @PathVariable("portfolioId") Long portfolioId,
       @Valid @RequestBody PortfolioUpdateRequestDto updateRequest) {
-    log.info(
-        REQUEST_START + PORTFOLIO_ID + USER_ID,
-        PORTFOLIO,
-        UPDATE_ACTION,
-        portfolioId,
-        userId);
+    log.info(REQUEST_START + PORTFOLIO_ID + USER_ID, PORTFOLIO, UPDATE_ACTION, portfolioId, userId);
 
     PortfolioResponseDto response = portfolioService.update(userId, portfolioId, updateRequest);
     log.info(
