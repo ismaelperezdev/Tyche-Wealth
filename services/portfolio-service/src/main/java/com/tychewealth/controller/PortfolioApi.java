@@ -6,6 +6,7 @@ import static com.tychewealth.constants.ApiConstants.REQUEST_PRODUCES;
 
 import com.tychewealth.dto.portfolio.PortfolioResponseDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
+import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,11 +27,25 @@ public interface PortfolioApi {
   @GetMapping(value = "/me", produces = REQUEST_PRODUCES)
   ResponseEntity<List<PortfolioResponseDto>> listPortfolios(@AuthenticationPrincipal Long userId);
 
+  @GetMapping(value = "/me/{portfolioId}", produces = REQUEST_PRODUCES)
+  ResponseEntity<PortfolioResponseDto> retrieve(
+      @AuthenticationPrincipal Long userId, @PathVariable("portfolioId") Long portfolioId);
+
   @PostMapping(consumes = REQUEST_CONSUMES, produces = REQUEST_PRODUCES)
   ResponseEntity<PortfolioResponseDto> create(
       @AuthenticationPrincipal Long userId,
       @Valid @RequestBody PortfolioCreateRequestDto createRequest);
 
+  @PatchMapping(
+      value = "/me/{portfolioId}",
+      consumes = REQUEST_CONSUMES,
+      produces = REQUEST_PRODUCES)
+  ResponseEntity<PortfolioResponseDto> update(
+      @AuthenticationPrincipal Long userId,
+      @PathVariable("portfolioId") Long portfolioId,
+      @Valid @RequestBody PortfolioUpdateRequestDto updateRequest);
+
   @DeleteMapping(value = "/me/{portfolioId}")
-  ResponseEntity<Void> delete(@AuthenticationPrincipal Long userId, @PathVariable Long portfolioId);
+  ResponseEntity<Void> delete(
+      @AuthenticationPrincipal Long userId, @PathVariable("portfolioId") Long portfolioId);
 }

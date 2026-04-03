@@ -2,6 +2,7 @@ package com.tychewealth.service.impl;
 
 import com.tychewealth.dto.portfolio.PortfolioResponseDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
+import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.mapper.portfolio.PortfolioMapper;
 import com.tychewealth.repository.PortfolioRepository;
@@ -31,6 +32,15 @@ public class PortfolioServiceImpl implements PortfolioService {
   }
 
   @Override
+  @Transactional(readOnly = true)
+  public PortfolioResponseDto retrieve(Long userId, Long portfolioId) {
+    portfolioValidationHelper.validateAuthenticatedUser(userId);
+    PortfolioEntity portfolio =
+        portfolioValidationHelper.validateOwnedPortfolio(userId, portfolioId);
+    return portfolioMapper.toDto(portfolio);
+  }
+
+  @Override
   @Transactional(isolation = Isolation.SERIALIZABLE)
   public PortfolioResponseDto create(Long userId, PortfolioCreateRequestDto createRequest) {
     portfolioValidationHelper.validateCreateRequest(userId, createRequest);
@@ -43,6 +53,22 @@ public class PortfolioServiceImpl implements PortfolioService {
     } catch (DataIntegrityViolationException ex) {
       throw portfolioValidationHelper.validateCreatePersistenceConflict(
           ex, createRequest.getName());
+    }
+  }
+
+  @Override
+  @Transactional(isolation = Isolation.SERIALIZABLE)
+  public PortfolioResponseDto update(
+      Long userId, Long portfolioId, PortfolioUpdateRequestDto updateRequest) {
+    PortfolioEntity portfolio =
+        portfolioValidationHelper.validateUpdateRequest(userId, portfolioId, updateRequest);
+    portfolioMapper.update(updateRequest, portfolio);
+
+    try {
+      return portfolioMapper.toDto(portfolioRepository.saveAndFlush(portfolio));
+    } catch (DataIntegrityViolationException ex) {
+      throw portfolioValidationHelper.validateUpdatePersistenceConflict(
+          ex, updateRequest.getName());
     }
   }
 

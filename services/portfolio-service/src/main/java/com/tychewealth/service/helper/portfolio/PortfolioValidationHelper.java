@@ -4,18 +4,25 @@ import static com.tychewealth.constants.CommonConstants.*;
 import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
 import static com.tychewealth.constants.LogConstants.MISSING_AUTHENTICATED_USER_MESSAGE;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO;
+import static com.tychewealth.constants.LogConstants.PORTFOLIO_ID;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_LIMIT_REACHED_MESSAGE;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_NAME;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_NAME_ALREADY_EXISTS_MESSAGE;
+import static com.tychewealth.constants.LogConstants.PORTFOLIO_NOT_FOUND_MESSAGE;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_PERSISTENCE_CONFLICT_MESSAGE;
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
+import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import static com.tychewealth.constants.LogConstants.UNKNOWN_PERSISTENCE_CONFLICT_MESSAGE;
+import static com.tychewealth.constants.LogConstants.UPDATE_ACTION;
 import static com.tychewealth.constants.LogConstants.USER_ID;
 import static com.tychewealth.error.handler.ErrorDefinition.GENERIC_BAD_REQUEST;
 import static com.tychewealth.error.handler.ErrorDefinition.PORTFOLIO_LIMIT_REACHED;
 import static com.tychewealth.error.handler.ErrorDefinition.PORTFOLIO_NAME_CONFLICT;
+import static com.tychewealth.error.handler.ErrorDefinition.PORTFOLIO_NOT_FOUND;
 
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
+import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
+import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.repository.PortfolioRepository;
 import com.tychewealth.utils.Utils;
@@ -41,6 +48,15 @@ public class PortfolioValidationHelper {
     validateAuthenticatedUser(userId);
     validateCreateLimit(userId);
     validateCreateNameConflict(userId, portfolioName);
+  }
+
+  public PortfolioEntity validateUpdateRequest(
+      Long userId, Long portfolioId, PortfolioUpdateRequestDto updateRequest) {
+    String portfolioName = updateRequest == null ? null : updateRequest.getName();
+    validateAuthenticatedUser(userId);
+    PortfolioEntity portfolio = validateOwnedPortfolio(userId, portfolioId, UPDATE_ACTION);
+    validateUpdateNameConflict(userId, portfolioId, portfolioName);
+    return portfolio;
   }
 
   public void validateAuthenticatedUser(Long userId) {
@@ -86,17 +102,68 @@ public class PortfolioValidationHelper {
         HttpStatus.CONFLICT);
   }
 
+  public PortfolioEntity validateOwnedPortfolio(Long userId, Long portfolioId) {
+    return validateOwnedPortfolio(userId, portfolioId, RETRIEVE_ACTION);
+  }
+
+  public PortfolioEntity validateOwnedPortfolio(Long userId, Long portfolioId, String action) {
+    return portfolioRepository
+        .findByIdAndUserId(portfolioId, userId)
+        .orElseThrow(
+            () -> {
+              log.warn(
+                  REQUEST_CONFLICT + PORTFOLIO_ID + USER_ID,
+                  PORTFOLIO,
+                  action,
+                  PORTFOLIO_NOT_FOUND_MESSAGE,
+                  portfolioId,
+                  userId);
+              return new PortfolioException(PORTFOLIO_NOT_FOUND, Map.of(), HttpStatus.NOT_FOUND);
+            });
+  }
+
+  public void validateUpdateNameConflict(Long userId, Long portfolioId, String portfolioName) {
+    portfolioRepository
+        .findByUserIdAndName(userId, portfolioName)
+        .filter(existingPortfolio -> !existingPortfolio.getId().equals(portfolioId))
+        .ifPresent(
+            existingPortfolio -> {
+              log.warn(
+                  REQUEST_CONFLICT + PORTFOLIO_NAME + PORTFOLIO_ID + USER_ID,
+                  PORTFOLIO,
+                  UPDATE_ACTION,
+                  PORTFOLIO_NAME_ALREADY_EXISTS_MESSAGE,
+                  portfolioName,
+                  portfolioId,
+                  userId);
+              throw new PortfolioException(
+                  PORTFOLIO_NAME_CONFLICT,
+                  Map.of(NAME, portfolioName == null ? "" : portfolioName),
+                  HttpStatus.CONFLICT);
+            });
+  }
+
   public PortfolioException validateCreatePersistenceConflict(
       DataIntegrityViolationException ex, String portfolioName) {
+    return validatePersistenceConflict(ex, CREATE_ACTION, portfolioName);
+  }
+
+  public PortfolioException validateUpdatePersistenceConflict(
+      DataIntegrityViolationException ex, String portfolioName) {
+    return validatePersistenceConflict(ex, UPDATE_ACTION, portfolioName);
+  }
+
+  private PortfolioException validatePersistenceConflict(
+      DataIntegrityViolationException ex, String action, String portfolioName) {
     if (Utils.hasConstraintViolation(ex, PORTFOLIO_UNIQUE_CONSTRAINT)) {
-      log.warn(REQUEST_CONFLICT, PORTFOLIO, CREATE_ACTION, PORTFOLIO_PERSISTENCE_CONFLICT_MESSAGE);
+      log.warn(REQUEST_CONFLICT, PORTFOLIO, action, PORTFOLIO_PERSISTENCE_CONFLICT_MESSAGE);
       return new PortfolioException(
           PORTFOLIO_NAME_CONFLICT,
           Map.of(NAME, portfolioName == null ? "" : portfolioName),
           HttpStatus.CONFLICT);
     }
 
-    log.error(REQUEST_CONFLICT, PORTFOLIO, CREATE_ACTION, UNKNOWN_PERSISTENCE_CONFLICT_MESSAGE, ex);
+    log.error(REQUEST_CONFLICT, PORTFOLIO, action, UNKNOWN_PERSISTENCE_CONFLICT_MESSAGE, ex);
     throw ex;
   }
 }

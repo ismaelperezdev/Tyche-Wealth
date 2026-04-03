@@ -29,5 +29,5 @@ public interface PortfolioRepository extends JpaRepository<PortfolioEntity, Long
 
   List<PortfolioEntity> findByInvestmentHorizon(InvestmentHorizonEnum investmentHorizon);
 
-  Boolean existsByUserIdAndName(Long userId, String name);
+  boolean existsByUserIdAndName(Long userId, String name);
 }

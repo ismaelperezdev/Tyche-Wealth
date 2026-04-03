@@ -5,15 +5,17 @@ import static com.tychewealth.constants.LogConstants.DELETE_ACTION;
 import static com.tychewealth.constants.LogConstants.LIST_PORTFOLIOS_ACTION;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_ID;
-import static com.tychewealth.constants.LogConstants.PORTFOLIO_NAME;
 import static com.tychewealth.constants.LogConstants.REQUEST_START;
 import static com.tychewealth.constants.LogConstants.REQUEST_SUCCESS;
+import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
+import static com.tychewealth.constants.LogConstants.UPDATE_ACTION;
 import static com.tychewealth.constants.LogConstants.USER_ID;
 import static org.springframework.http.ResponseEntity.status;
 
 import com.tychewealth.controller.PortfolioApi;
 import com.tychewealth.dto.portfolio.PortfolioResponseDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
+import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
 import com.tychewealth.service.PortfolioService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -45,20 +47,42 @@ public class PortfolioApiController implements PortfolioApi {
   }
 
   @Override
+  public ResponseEntity<PortfolioResponseDto> retrieve(
+      @AuthenticationPrincipal Long userId, @PathVariable("portfolioId") Long portfolioId) {
+    log.info(
+        REQUEST_START + PORTFOLIO_ID + USER_ID, PORTFOLIO, RETRIEVE_ACTION, portfolioId, userId);
+
+    PortfolioResponseDto response = portfolioService.retrieve(userId, portfolioId);
+    log.info(
+        REQUEST_SUCCESS + PORTFOLIO_ID + USER_ID, PORTFOLIO, RETRIEVE_ACTION, portfolioId, userId);
+
+    return status(HttpStatus.OK).body(response);
+  }
+
+  @Override
   public ResponseEntity<PortfolioResponseDto> create(
       @AuthenticationPrincipal Long userId,
       @Valid @RequestBody PortfolioCreateRequestDto createRequest) {
-    log.info(
-        REQUEST_START + PORTFOLIO_NAME + USER_ID,
-        PORTFOLIO,
-        CREATE_ACTION,
-        createRequest.getName(),
-        userId);
+    log.info(REQUEST_START + USER_ID, PORTFOLIO, CREATE_ACTION, userId);
 
     PortfolioResponseDto response = portfolioService.create(userId, createRequest);
     log.info(REQUEST_SUCCESS + USER_ID, PORTFOLIO, CREATE_ACTION, userId);
 
     return status(HttpStatus.CREATED).body(response);
+  }
+
+  @Override
+  public ResponseEntity<PortfolioResponseDto> update(
+      @AuthenticationPrincipal Long userId,
+      @PathVariable("portfolioId") Long portfolioId,
+      @Valid @RequestBody PortfolioUpdateRequestDto updateRequest) {
+    log.info(REQUEST_START + PORTFOLIO_ID + USER_ID, PORTFOLIO, UPDATE_ACTION, portfolioId, userId);
+
+    PortfolioResponseDto response = portfolioService.update(userId, portfolioId, updateRequest);
+    log.info(
+        REQUEST_SUCCESS + PORTFOLIO_ID + USER_ID, PORTFOLIO, UPDATE_ACTION, portfolioId, userId);
+
+    return status(HttpStatus.OK).body(response);
   }
 
   @Override

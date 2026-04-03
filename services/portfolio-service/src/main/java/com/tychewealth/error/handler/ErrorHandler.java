@@ -9,10 +9,12 @@ import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT_WITH_URI;
 import static com.tychewealth.constants.LogConstants.SYSTEM;
 import static com.tychewealth.constants.LogConstants.UNHANDLED_EXCEPTION_MESSAGE;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.exception.PortfolioException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -133,6 +135,9 @@ public class ErrorHandler {
 
   private String resolveErrorMessage(HttpMessageNotReadableException ex) {
     Throwable cause = ex.getMostSpecificCause();
+    if (cause instanceof InvalidFormatException invalidFormatException) {
+      return resolveInvalidFormatMessage(invalidFormatException);
+    }
     if (cause.getMessage() != null && !cause.getMessage().isBlank()) {
       return cause.getMessage();
     }
@@ -140,6 +145,25 @@ public class ErrorHandler {
       return ex.getMessage();
     }
     return "unknown bad request";
+  }
+
+  private String resolveInvalidFormatMessage(InvalidFormatException ex) {
+    if (ex.getTargetType() != null && ex.getTargetType().isEnum()) {
+      String fieldName = ex.getPath().isEmpty() ? "unknown" : ex.getPath().getLast().getFieldName();
+      String invalidValue = ex.getValue() == null ? "null" : ex.getValue().toString();
+      String availableOptions =
+          Arrays.stream(ex.getTargetType().getEnumConstants())
+              .map(String::valueOf)
+              .collect(Collectors.joining(", "));
+      return String.format(
+          "The option '%s' is not available for field '%s'. Available options: %s",
+          invalidValue, fieldName, availableOptions);
+    }
+
+    if (ex.getOriginalMessage() != null && !ex.getOriginalMessage().isBlank()) {
+      return ex.getOriginalMessage();
+    }
+    return "invalid request payload";
   }
 
   private String toFieldMessage(FieldError error) {

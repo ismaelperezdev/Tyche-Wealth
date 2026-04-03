@@ -41,8 +41,30 @@ public final class PortfolioTestHelper {
     return mockMvc.perform(builder);
   }
 
+  public static ResultActions updateMeRequest(
+      MockMvc mockMvc, String userId, Long portfolioId, String requestBody) throws Exception {
+    MockHttpServletRequestBuilder builder =
+        MockMvcRequestBuilders.patch(PORTFOLIO_BASE_URL + "/me/" + portfolioId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestBody);
+    if (userId != null) {
+      builder.header(AUTHORIZATION_HEADER, createAuthorizationHeader(Long.parseLong(userId)));
+    }
+    return mockMvc.perform(builder);
+  }
+
   public static ResultActions retrieveMeRequest(MockMvc mockMvc, String userId) throws Exception {
     MockHttpServletRequestBuilder builder = MockMvcRequestBuilders.get(PORTFOLIO_BASE_URL + "/me");
+    if (userId != null) {
+      builder.header(AUTHORIZATION_HEADER, createAuthorizationHeader(Long.parseLong(userId)));
+    }
+    return mockMvc.perform(builder);
+  }
+
+  public static ResultActions retrieveMeByIdRequest(
+      MockMvc mockMvc, String userId, Long portfolioId) throws Exception {
+    MockHttpServletRequestBuilder builder =
+        MockMvcRequestBuilders.get(PORTFOLIO_BASE_URL + "/me/" + portfolioId);
     if (userId != null) {
       builder.header(AUTHORIZATION_HEADER, createAuthorizationHeader(Long.parseLong(userId)));
     }
