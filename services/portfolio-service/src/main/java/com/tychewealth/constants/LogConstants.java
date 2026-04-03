@@ -46,6 +46,8 @@ public final class LogConstants {
   public static final String RATE_LIMIT_STORE_UNAVAILABLE_MESSAGE = "rate limit store unavailable";
   public static final String IMPORT_QUEUE_STATUS = " fileName={} activeWorkers={} queuedTasks={}";
   public static final String IMPORT_QUEUEING_MESSAGE = "asset import queued";
+  public static final String IMPORT_INFLIGHT_ACQUIRED_AND_QUEUED_MESSAGE =
+      "asset import inflight lock acquired and queued";
   public static final String IMPORT_COMPLETED_MESSAGE = "asset import completed";
   public static final String IMPORT_INTERRUPTED_MESSAGE = "asset import interrupted while waiting";
   public static final String IMPORT_FAILED_MESSAGE = "asset import failed";
@@ -58,6 +60,12 @@ public final class LogConstants {
       "asset import extraction io failure";
   public static final String IMPORT_QUEUE_FULL_WAIT_MESSAGE =
       "asset import queue full, waiting for available slot";
+  public static final String IMPORT_INFLIGHT_WAIT_MESSAGE =
+      "asset import already in progress for same file, waiting for cached result";
+  public static final String IMPORT_INFLIGHT_ACQUIRED_MESSAGE =
+      "asset import inflight lock acquired";
+  public static final String IMPORT_INFLIGHT_RELEASED_MESSAGE =
+      "asset import inflight lock released";
   public static final String AI_QUEUE_STATUS = " modelType={} activeWorkers={} queuedTasks={}";
   public static final String AI_REQUEST_QUEUED_MESSAGE = "ai request queued";
   public static final String AI_REQUEST_COMPLETED_MESSAGE = "ai request completed";

@@ -41,7 +41,7 @@ public enum ErrorDefinition {
       "ATTACHMENT_TEXT_LIMIT_EXCEEDED",
       "The extracted attachment text exceeds the maximum allowed length. Maximum: ${expected:-} characters. Received: ${received:-} characters"),
   ATTACHMENT_INSPECTION_FAILED(
-      "TYCHE-504", "ATTACHMENT_INSPECTION_FAILED", "Unable to inspect attachment"),
+      "TYCHE-504", "ATTACHMENT_INSPECTION_FAILED", "Unable to inspect attachment: ${error:-}"),
   ASSET_IMPORT_AI_RESPONSE_INVALID(
       "TYCHE-505",
       "ASSET_IMPORT_AI_RESPONSE_INVALID",

@@ -113,4 +113,18 @@
 
     </changeSet>
 
+    <changeSet id="drop-assets-name-default-value" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <columnExists tableName="assets" columnName="name"/>
+        </preConditions>
+
+        <dropDefaultValue tableName="assets" columnName="name" columnDataType="VARCHAR(60)"/>
+
+        <rollback>
+            <addDefaultValue tableName="assets" columnName="name" columnDataType="VARCHAR(60)" defaultValue="Unknown Asset"/>
+        </rollback>
+
+    </changeSet>
+
 </databaseChangeLog>

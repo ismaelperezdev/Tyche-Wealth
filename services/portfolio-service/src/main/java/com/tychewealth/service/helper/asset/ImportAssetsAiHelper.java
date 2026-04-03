@@ -24,6 +24,7 @@ import com.tychewealth.dto.ai.AiModelTypeEnum;
 import com.tychewealth.dto.asset.AssetImportCandidateDto;
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.handler.ErrorDefinition;
+import com.tychewealth.utils.AiUtils;
 import jakarta.annotation.PreDestroy;
 import java.time.Duration;
 import java.util.List;
@@ -159,7 +160,8 @@ public class ImportAssetsAiHelper {
           objectMapper
               .getTypeFactory()
               .constructCollectionType(List.class, AssetImportCandidateDto.class);
-      List<AssetImportCandidateDto> assets = objectMapper.readValue(aiResponse, type);
+      String sanitizedResponse = AiUtils.sanitizeAiResponse(aiResponse);
+      List<AssetImportCandidateDto> assets = objectMapper.readValue(sanitizedResponse, type);
       assetValidationHelper.validateDetectedAssetsCount(assets.size());
       return assets;
     } catch (JsonProcessingException ex) {

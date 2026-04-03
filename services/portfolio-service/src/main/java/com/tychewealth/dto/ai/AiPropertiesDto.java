@@ -4,7 +4,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "app.ai")
 public record AiPropertiesDto(
-    String baseUrl, String apiKey, String fastModel, String complexModel, long timeoutSeconds) {
+    String baseUrl,
+    String apiKey,
+    String fastModel,
+    String complexModel,
+    long connectTimeoutSeconds,
+    long requestTimeoutSeconds) {
 
   public AiPropertiesDto {
     baseUrl = normalizeBaseUrl(baseUrl);
@@ -12,7 +17,8 @@ public record AiPropertiesDto(
     fastModel = fastModel == null || fastModel.isBlank() ? "deepseek-coder:6.7b" : fastModel.trim();
     complexModel =
         complexModel == null || complexModel.isBlank() ? "deepseek-r1:8b" : complexModel.trim();
-    timeoutSeconds = timeoutSeconds <= 0 ? 60L : timeoutSeconds;
+    connectTimeoutSeconds = connectTimeoutSeconds <= 0 ? 10L : connectTimeoutSeconds;
+    requestTimeoutSeconds = requestTimeoutSeconds <= 0 ? 60L : requestTimeoutSeconds;
   }
 
   public String modelFor(AiModelTypeEnum modelType) {

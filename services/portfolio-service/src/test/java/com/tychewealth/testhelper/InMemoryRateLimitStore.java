@@ -1,10 +1,24 @@
 package com.tychewealth.testhelper;
 
+import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import com.tychewealth.dto.ratelimit.RateLimitPropertiesDto;
+import com.tychewealth.ratelimit.RateLimitInterceptor;
+import com.tychewealth.ratelimit.RateLimitKey;
 import com.tychewealth.ratelimit.RateLimitStore;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.server.ResponseStatusException;
 
 public class InMemoryRateLimitStore implements RateLimitStore {
 
@@ -13,6 +27,28 @@ public class InMemoryRateLimitStore implements RateLimitStore {
 
   public InMemoryRateLimitStore(Clock clock) {
     this.clock = clock;
+  }
+
+  public static void assertRateLimited(
+      RateLimitKey rateLimitKey, MockHttpServletRequest request, HandlerMethod handlerMethod) {
+    InMemoryRateLimitStore rateLimitStore = new InMemoryRateLimitStore(Clock.systemUTC());
+    RateLimitPropertiesDto properties = new RateLimitPropertiesDto();
+    properties.getRules().put(rateLimitKey, new RateLimitPropertiesDto.RateLimitDto(1, 60));
+    RateLimitInterceptor interceptor = new RateLimitInterceptor(properties, rateLimitStore);
+
+    SecurityContextHolder.getContext()
+        .setAuthentication(new UsernamePasswordAuthenticationToken(TEST_USER_ID, null));
+
+    MockHttpServletResponse response = new MockHttpServletResponse();
+
+    assertDoesNotThrow(() -> interceptor.preHandle(request, response, handlerMethod));
+
+    ResponseStatusException exception =
+        assertThrows(
+            ResponseStatusException.class,
+            () -> interceptor.preHandle(request, response, handlerMethod));
+
+    assertEquals(429, exception.getStatusCode().value());
   }
 
   @Override

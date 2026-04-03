@@ -1,5 +1,6 @@
 package com.tychewealth.enums;
 
+import com.fasterxml.jackson.annotation.JsonEnumDefaultValue;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -22,7 +23,9 @@ public enum CurrencyCodeEnum {
   PYG(21L, "PYG", "Paraguayan Guarani"),
   SVC(22L, "SVC", "Salvadoran Colon"),
   UYU(23L, "UYU", "Uruguayan Peso"),
-  VES(24L, "VES", "Venezuelan Bolivar");
+  VES(24L, "VES", "Venezuelan Bolivar"),
+  @JsonEnumDefaultValue
+  UNKNOWN(25L, "UNKNOWN", "Fallback code for unrecognized currencies");
 
   private final Long id;
   private final String abbreviation;

@@ -1,6 +1,7 @@
 package com.tychewealth.utils;
 
 import static com.tychewealth.constants.CommonConstants.ERROR;
+import static com.tychewealth.constants.CommonConstants.UNKNOWN_VALUE;
 
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.exception.PortfolioException;
@@ -13,6 +14,7 @@ import java.util.Locale;
 import java.util.Map;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 public final class Utils {
@@ -73,5 +75,12 @@ public final class Utils {
     } catch (NoSuchAlgorithmException ex) {
       throw new IllegalStateException("SHA-256 algorithm not available", ex);
     }
+  }
+
+  public static String resolveFileName(MultipartFile file) {
+    String originalFilename = file.getOriginalFilename();
+    return originalFilename == null || originalFilename.isBlank()
+        ? UNKNOWN_VALUE
+        : originalFilename;
   }
 }

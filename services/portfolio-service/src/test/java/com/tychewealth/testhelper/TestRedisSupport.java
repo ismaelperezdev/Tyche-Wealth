@@ -64,6 +64,15 @@ public final class TestRedisSupport {
         .set(Mockito.anyString(), Mockito.anyString());
     Mockito.when(valueOperations.get(Mockito.anyString()))
         .thenAnswer(invocation -> state.get(invocation.getArgument(0)));
+    Mockito.when(
+            valueOperations.setIfAbsent(
+                Mockito.anyString(), Mockito.anyString(), Mockito.any(Duration.class)))
+        .thenAnswer(
+            invocation ->
+                state.setIfAbsent(
+                    invocation.getArgument(0),
+                    invocation.getArgument(1),
+                    invocation.getArgument(2)));
 
     return valueOperations;
   }
@@ -73,6 +82,11 @@ public final class TestRedisSupport {
 
     public void set(String key, String value, Duration ttl) {
       entries.put(key, new StoredValue(value, expiresAt(ttl)));
+    }
+
+    public boolean setIfAbsent(String key, String value, Duration ttl) {
+      purgeIfExpired(key);
+      return entries.putIfAbsent(key, new StoredValue(value, expiresAt(ttl))) == null;
     }
 
     public String get(String key) {

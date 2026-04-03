@@ -56,7 +56,7 @@ class PortfolioValidationHelperTest {
 
     assertEquals(ErrorDefinition.GENERIC_BAD_REQUEST, exception.getErrorDefinition());
     assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
-    assertEquals(MISSING_AUTHENTICATED_USER_MESSAGE, exception.getMetadata().get(ERROR));
+    assertEquals(MISSING_AUTHENTICATED_USER_MESSAGE, exception.getDescription().get(ERROR));
   }
 
   @Test
@@ -68,7 +68,7 @@ class PortfolioValidationHelperTest {
 
     assertEquals(ErrorDefinition.GENERIC_BAD_REQUEST, exception.getErrorDefinition());
     assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
-    assertEquals(MISSING_AUTHENTICATED_USER_MESSAGE, exception.getMetadata().get(ERROR));
+    assertEquals(MISSING_AUTHENTICATED_USER_MESSAGE, exception.getDescription().get(ERROR));
   }
 
   @Test
@@ -87,7 +87,7 @@ class PortfolioValidationHelperTest {
 
     assertEquals(ErrorDefinition.PORTFOLIO_NAME_CONFLICT, exception.getErrorDefinition());
     assertEquals(HttpStatus.CONFLICT, exception.getHttpStatus());
-    assertEquals(TEST_PORTFOLIO_NAME_RETIREMENT, exception.getMetadata().get(NAME));
+    assertEquals(TEST_PORTFOLIO_NAME_RETIREMENT, exception.getDescription().get(NAME));
   }
 
   @Test
@@ -104,7 +104,7 @@ class PortfolioValidationHelperTest {
 
     assertEquals(ErrorDefinition.PORTFOLIO_NAME_CONFLICT, exception.getErrorDefinition());
     assertEquals(HttpStatus.CONFLICT, exception.getHttpStatus());
-    assertEquals(TEST_PORTFOLIO_NAME_RETIREMENT, exception.getMetadata().get(NAME));
+    assertEquals(TEST_PORTFOLIO_NAME_RETIREMENT, exception.getDescription().get(NAME));
   }
 
   @Test
@@ -134,7 +134,7 @@ class PortfolioValidationHelperTest {
 
     assertEquals(ErrorDefinition.PORTFOLIO_NAME_CONFLICT, result.getErrorDefinition());
     assertEquals(HttpStatus.CONFLICT, result.getHttpStatus());
-    assertEquals(TEST_PORTFOLIO_NAME_RETIREMENT, result.getMetadata().get(NAME));
+    assertEquals(TEST_PORTFOLIO_NAME_RETIREMENT, result.getDescription().get(NAME));
   }
 
   @Test

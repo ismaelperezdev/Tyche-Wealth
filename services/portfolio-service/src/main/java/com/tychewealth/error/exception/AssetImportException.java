@@ -16,34 +16,50 @@ import org.springframework.http.HttpStatus;
 public class AssetImportException extends RuntimeException {
 
   private final ErrorDefinition errorDefinition;
-  private final Map<String, String> metadata;
+  private final Map<String, String> description;
   private final HttpStatus httpStatus;
 
   public AssetImportException(
-      ErrorDefinition errorDefinition, Map<String, String> metadata, HttpStatus httpStatus) {
-    super(resolveDescription(errorDefinition, metadata));
-    this.errorDefinition = resolve(errorDefinition);
-    this.metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
+      ErrorDefinition errorDefinition, Map<String, String> description, HttpStatus httpStatus) {
+    this(resolve(errorDefinition, description), description, httpStatus);
+  }
+
+  public static AssetImportException of(
+      ErrorDefinition errorDefinition, Map<String, String> description, HttpStatus httpStatus) {
+    return new AssetImportException(errorDefinition, description, httpStatus);
+  }
+
+  private AssetImportException(
+      ResolvedError resolvedError, Map<String, String> description, HttpStatus httpStatus) {
+    super(resolvedError.description());
+
+    this.errorDefinition = resolvedError.errorDefinition();
+    this.description = description == null ? Map.of() : Map.copyOf(description);
     this.httpStatus = httpStatus == null ? HttpStatus.BAD_REQUEST : httpStatus;
   }
 
-  private static ErrorDefinition resolve(ErrorDefinition errorDefinition) {
-    return errorDefinition == null
-        ? ErrorDefinition.ASSET_IMPORT_EXTRACTION_FAILED
-        : errorDefinition;
+  private static ResolvedError resolve(
+      ErrorDefinition errorDefinition, Map<String, String> description) {
+    ErrorDefinition resolvedErrorDefinition =
+        errorDefinition == null ? ErrorDefinition.ASSET_IMPORT_EXTRACTION_FAILED : errorDefinition;
+    return new ResolvedError(
+        resolvedErrorDefinition, resolveDescription(resolvedErrorDefinition, description));
   }
 
   private static String resolveDescription(
-      ErrorDefinition errorDefinition, Map<String, String> metadata) {
-    String description = resolve(errorDefinition).getDescription();
-    String error = metadata == null || metadata.get(ERROR) == null ? "" : metadata.get(ERROR);
+      ErrorDefinition errorDefinition, Map<String, String> description) {
+    String resolvedDescription = errorDefinition.getDescription();
+    String error =
+        description == null || description.get(ERROR) == null ? "" : description.get(ERROR);
     String expected =
-        metadata == null || metadata.get(EXPECTED) == null ? "" : metadata.get(EXPECTED);
+        description == null || description.get(EXPECTED) == null ? "" : description.get(EXPECTED);
     String received =
-        metadata == null || metadata.get(RECEIVED) == null ? "" : metadata.get(RECEIVED);
-    return description
+        description == null || description.get(RECEIVED) == null ? "" : description.get(RECEIVED);
+    return resolvedDescription
         .replace(ERROR_PLACEHOLDER, error)
         .replace(EXPECTED_PLACEHOLDER, expected)
         .replace(RECEIVED_PLACEHOLDER, received);
   }
+
+  private record ResolvedError(ErrorDefinition errorDefinition, String description) {}
 }

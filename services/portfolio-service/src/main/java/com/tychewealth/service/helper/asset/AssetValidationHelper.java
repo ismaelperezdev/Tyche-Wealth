@@ -3,12 +3,12 @@ package com.tychewealth.service.helper.asset;
 import static com.tychewealth.constants.CommonConstants.ERROR;
 import static com.tychewealth.constants.CommonConstants.EXPECTED;
 import static com.tychewealth.constants.CommonConstants.RECEIVED;
-import static com.tychewealth.constants.CommonConstants.UNKNOWN_VALUE;
 import static com.tychewealth.constants.LogConstants.MISSING_AUTHENTICATED_USER_MESSAGE;
 
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.error.handler.ErrorDefinition;
+import com.tychewealth.utils.Utils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
@@ -115,7 +115,7 @@ public class AssetValidationHelper {
   }
 
   public void validatePdfPageCount(MultipartFile file) {
-    String fileName = resolveFileName(file);
+    String fileName = Utils.resolveFileName(file);
     if (!fileName.toLowerCase().endsWith(".pdf")) {
       return;
     }
@@ -131,9 +131,15 @@ public class AssetValidationHelper {
                 String.valueOf(document.getNumberOfPages())),
             HttpStatus.BAD_REQUEST);
       }
-    } catch (IOException ex) {
+    } catch (AssetImportException ex) {
+      throw ex;
+    } catch (IOException | RuntimeException ex) {
       throw new AssetImportException(
-          ErrorDefinition.ATTACHMENT_INSPECTION_FAILED, Map.of(), HttpStatus.BAD_REQUEST);
+          ErrorDefinition.ATTACHMENT_INSPECTION_FAILED,
+          Map.of(
+              ERROR,
+              ex.getMessage() == null ? "invalid or unsupported PDF document" : ex.getMessage()),
+          HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -178,13 +184,6 @@ public class AssetValidationHelper {
             RECEIVED,
             String.valueOf(elapsedSeconds)),
         HttpStatus.BAD_REQUEST);
-  }
-
-  private String resolveFileName(MultipartFile file) {
-    String originalFilename = file.getOriginalFilename();
-    return originalFilename == null || originalFilename.isBlank()
-        ? UNKNOWN_VALUE
-        : originalFilename;
   }
 
   private PortfolioException genericBadRequest(String errorMessage) {

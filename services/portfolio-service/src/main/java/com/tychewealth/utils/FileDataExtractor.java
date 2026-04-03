@@ -76,8 +76,8 @@ public final class FileDataExtractor {
       }
 
       return normalizeLineEndings(builder.toString().trim());
-    } catch (IOException ex) {
-      throw extractionException(".xls or .xlsx", extension);
+    } catch (IOException | RuntimeException ex) {
+      throw extractionException(XLSX_EXTENSION, extension);
     }
   }
 

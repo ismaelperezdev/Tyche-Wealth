@@ -13,6 +13,10 @@ public final class CommonConstants {
   public static final String EXPECTED = "expected";
   public static final String RECEIVED = "received";
   public static final String UNKNOWN_VALUE = "[unknown]";
+  public static final String GET = "GET";
+  public static final String POST = "POST";
+  public static final String PATCH = "PATCH";
+  public static final String DELETE = "DELETE";
 
   public static final String NAME_PLACEHOLDER = "${name:-}";
   public static final String ERROR_PLACEHOLDER = "${error:-}";

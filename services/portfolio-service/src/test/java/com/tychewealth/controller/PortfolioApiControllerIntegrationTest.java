@@ -30,6 +30,8 @@ import static com.tychewealth.constants.TestConstants.TEST_STRATEGY_TYPE_INCOME;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
 import static com.tychewealth.testdata.EntityBuilder.buildAsset;
 import static com.tychewealth.testdata.EntityBuilder.buildPortfolio;
+import static com.tychewealth.testdata.PortfolioTestData.invalidEnumCreateRequest;
+import static com.tychewealth.testdata.PortfolioTestData.malformedCreateRequest;
 import static com.tychewealth.testhelper.AuthTestHelper.createAuthorizationHeader;
 import static com.tychewealth.testhelper.PortfolioTestHelper.createRequest;
 import static com.tychewealth.testhelper.PortfolioTestHelper.createRequestBody;
@@ -73,11 +75,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 @ContextConfiguration(initializers = PortfolioIntegrationTestConfig.Initializer.class)
 @AutoConfigureMockMvc
 class PortfolioApiControllerIntegrationTest {
-
-  private static final String MALFORMED_CREATE_REQUEST =
-      "{\"name\":\"Retirement\",\"baseCurrency\":\"EUR\"";
-  private static final String INVALID_ENUM_CREATE_REQUEST =
-      "{\"name\":\"Retirement\",\"baseCurrency\":\"INVALID\"}";
 
   @Autowired private MockMvc mockMvc;
   @Autowired private ObjectMapper objectMapper;
@@ -269,7 +266,7 @@ class PortfolioApiControllerIntegrationTest {
             MockMvcRequestBuilders.post(PORTFOLIO_BASE_URL)
                 .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(MALFORMED_CREATE_REQUEST))
+                .content(malformedCreateRequest()))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_BAD_REQUEST.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_BAD_REQUEST.getType()))
@@ -283,7 +280,7 @@ class PortfolioApiControllerIntegrationTest {
             MockMvcRequestBuilders.post(PORTFOLIO_BASE_URL)
                 .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(INVALID_ENUM_CREATE_REQUEST))
+                .content(invalidEnumCreateRequest()))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_BAD_REQUEST.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_BAD_REQUEST.getType()))

@@ -1,5 +1,7 @@
 package com.tychewealth.service.helper.asset;
 
+import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_CONTENT_TYPE_CSV;
+import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_FILE_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -22,12 +24,11 @@ class AssetValidationHelperTest {
 
   @Test
   void validateExtractionRequestRejectsNullFileNameAsGenericBadRequest() {
+    ByteArrayInputStream inputStream =
+        new ByteArrayInputStream("hello".getBytes(StandardCharsets.UTF_8));
     PortfolioException exception =
         assertThrows(
-            PortfolioException.class,
-            () ->
-                helper.validateExtractionRequest(
-                    null, new ByteArrayInputStream("hello".getBytes(StandardCharsets.UTF_8))));
+            PortfolioException.class, () -> helper.validateExtractionRequest(null, inputStream));
 
     assertEquals(ErrorDefinition.GENERIC_BAD_REQUEST, exception.getErrorDefinition());
     assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
@@ -50,7 +51,10 @@ class AssetValidationHelperTest {
   void validateImportRequestRejectsFileLargerThanConfiguredLimit() {
     MockMultipartFile file =
         new MockMultipartFile(
-            "file", "positions.csv", "text/csv", "12345678901".getBytes(StandardCharsets.UTF_8));
+            "file",
+            TEST_ASSET_FILE_NAME,
+            TEST_ASSET_CONTENT_TYPE_CSV,
+            "12345678901".getBytes(StandardCharsets.UTF_8));
 
     AssetImportException exception =
         assertThrows(AssetImportException.class, () -> helper.validateImportRequest(1L, file));

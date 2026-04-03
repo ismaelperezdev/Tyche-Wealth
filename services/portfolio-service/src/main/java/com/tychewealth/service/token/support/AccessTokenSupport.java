@@ -5,6 +5,7 @@ import static com.tychewealth.constants.LogConstants.AUTH;
 import static com.tychewealth.constants.LogConstants.INVALID_ACCESS_TOKEN_MESSAGE;
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 
+import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.utils.Utils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -59,7 +60,7 @@ public class AccessTokenSupport {
     return tokenId;
   }
 
-  private RuntimeException unauthorizedException() {
+  private AuthException unauthorizedException() {
     log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_ACCESS_TOKEN_MESSAGE);
     return Utils.unauthorized();
   }

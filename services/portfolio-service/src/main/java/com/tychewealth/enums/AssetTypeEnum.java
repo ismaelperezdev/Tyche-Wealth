@@ -1,5 +1,6 @@
 package com.tychewealth.enums;
 
+import com.fasterxml.jackson.annotation.JsonEnumDefaultValue;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -11,7 +12,9 @@ public enum AssetTypeEnum {
   CRYPTO(3L, "CRYPTO", "Cryptocurrencies traded on blockchain networks"),
   BOND(4L, "BOND", "Debt instruments issued by governments or corporations"),
   COMMODITY(5L, "COMMODITY", "Physical commodities such as gold, oil or agricultural products"),
-  FOREX(6L, "FOREX", "Foreign exchange currency pairs");
+  FOREX(6L, "FOREX", "Foreign exchange currency pairs"),
+  @JsonEnumDefaultValue
+  OTHER(7L, "OTHER", "Fallback type for unrecognized asset categories");
 
   private final Long id;
   private final String name;

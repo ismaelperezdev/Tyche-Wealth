@@ -9,6 +9,8 @@ import static org.springframework.http.ResponseEntity.status;
 
 import com.tychewealth.controller.AssetApi;
 import com.tychewealth.dto.asset.AssetImportResponseDto;
+import com.tychewealth.ratelimit.RateLimitKey;
+import com.tychewealth.ratelimit.RateLimited;
 import com.tychewealth.service.AssetService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +29,7 @@ public class AssetApiController implements AssetApi {
   private final AssetService assetService;
 
   @Override
+  @RateLimited(RateLimitKey.ASSET_IMPORT)
   public ResponseEntity<AssetImportResponseDto> importAssets(
       @AuthenticationPrincipal Long userId, @RequestPart("file") MultipartFile file) {
     log.info(REQUEST_START + USER_ID, ASSET, IMPORT_ASSETS_ACTION, userId);

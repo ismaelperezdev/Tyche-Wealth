@@ -35,17 +35,17 @@ public class ErrorHandler {
 
   @ExceptionHandler(PortfolioException.class)
   public ResponseEntity<ErrorResponse> handlePortfolioException(PortfolioException ex) {
-    return build(ex.getErrorDefinition(), ex.getHttpStatus(), ex.getMessage(), ex.getMetadata());
+    return build(ex.getErrorDefinition(), ex.getHttpStatus(), ex.getMessage(), ex.getDescription());
   }
 
   @ExceptionHandler(AssetImportException.class)
   public ResponseEntity<ErrorResponse> handleAssetImportException(AssetImportException ex) {
-    return build(ex.getErrorDefinition(), ex.getHttpStatus(), ex.getMessage(), ex.getMetadata());
+    return build(ex.getErrorDefinition(), ex.getHttpStatus(), ex.getMessage(), ex.getDescription());
   }
 
   @ExceptionHandler(AuthException.class)
   public ResponseEntity<ErrorResponse> handleAuthException(AuthException ex) {
-    return build(ex.getErrorDefinition(), ex.getHttpStatus(), ex.getMessage(), ex.getMetadata());
+    return build(ex.getErrorDefinition(), ex.getHttpStatus(), ex.getMessage(), ex.getDescription());
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)

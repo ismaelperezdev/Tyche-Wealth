@@ -14,7 +14,7 @@ public class AiConfig {
   @Bean
   public HttpClient aiHttpClient(AiPropertiesDto aiProperties) {
     return HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(aiProperties.timeoutSeconds()))
+        .connectTimeout(Duration.ofSeconds(aiProperties.connectTimeoutSeconds()))
         .build();
   }
 }

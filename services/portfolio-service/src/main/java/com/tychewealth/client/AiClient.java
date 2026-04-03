@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.tychewealth.dto.ai.AiModelTypeEnum;
 import com.tychewealth.dto.ai.AiPropertiesDto;
+import com.tychewealth.utils.Utils;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -30,7 +31,7 @@ public class AiClient {
     HttpRequest request =
         HttpRequest.newBuilder()
             .uri(URI.create(aiProperties.baseUrl().replaceAll("/+$", "") + "/chat/completions"))
-            .timeout(Duration.ofSeconds(aiProperties.timeoutSeconds()))
+            .timeout(Duration.ofSeconds(aiProperties.requestTimeoutSeconds()))
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .headers(buildAuthorizationHeaders())
             .POST(
@@ -41,7 +42,11 @@ public class AiClient {
     HttpResponse<String> response = send(request);
     if (response.statusCode() >= 400) {
       throw new IllegalStateException(
-          "AI request failed with HTTP " + response.statusCode() + ": " + response.body());
+          "AI request failed with HTTP "
+              + response.statusCode()
+              + " (responseFingerprint="
+              + Utils.sha256Hex(response.body())
+              + ")");
     }
 
     JsonNode responseBody = deserialize(response.body());
@@ -101,7 +106,9 @@ public class AiClient {
     try {
       return objectMapper.readTree(responseBody);
     } catch (IOException ex) {
-      throw new IllegalStateException("Unable to parse AI response: " + responseBody, ex);
+      throw new IllegalStateException(
+          "Unable to parse AI response (responseFingerprint=" + Utils.sha256Hex(responseBody) + ")",
+          ex);
     }
   }
 }
