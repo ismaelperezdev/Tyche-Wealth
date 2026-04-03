@@ -15,7 +15,6 @@ import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import static com.tychewealth.constants.LogConstants.UNKNOWN_PERSISTENCE_CONFLICT_MESSAGE;
 import static com.tychewealth.constants.LogConstants.UPDATE_ACTION;
 import static com.tychewealth.constants.LogConstants.USER_ID;
-import static com.tychewealth.error.handler.ErrorDefinition.GENERIC_BAD_REQUEST;
 import static com.tychewealth.error.handler.ErrorDefinition.PORTFOLIO_LIMIT_REACHED;
 import static com.tychewealth.error.handler.ErrorDefinition.PORTFOLIO_NAME_CONFLICT;
 import static com.tychewealth.error.handler.ErrorDefinition.PORTFOLIO_NOT_FOUND;
@@ -65,10 +64,7 @@ public class PortfolioValidationHelper {
     }
 
     log.warn(REQUEST_CONFLICT, PORTFOLIO, CREATE_ACTION, MISSING_AUTHENTICATED_USER_MESSAGE);
-    throw new PortfolioException(
-        GENERIC_BAD_REQUEST,
-        Map.of(ERROR, MISSING_AUTHENTICATED_USER_MESSAGE),
-        HttpStatus.BAD_REQUEST);
+    throw Utils.genericBadRequest(MISSING_AUTHENTICATED_USER_MESSAGE);
   }
 
   public void validateCreateLimit(Long userId) {

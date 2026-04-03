@@ -7,6 +7,7 @@ import static com.tychewealth.constants.LogConstants.RATE_LIMIT_STORE_UNAVAILABL
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 
 import com.tychewealth.ratelimit.support.RateLimitInterceptorConfig;
+import com.tychewealth.utils.Utils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -66,7 +67,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
     if (requestCount > config.getMaxRequests()) {
       config.getCallbacks().rateLimitedMetricRecorder().accept(request.getRequestURI());
-      throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, config.getRejectionMessage());
+      throw Utils.rateLimited(config.getRejectionMessage());
     }
 
     return true;

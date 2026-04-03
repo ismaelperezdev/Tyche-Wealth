@@ -1,11 +1,19 @@
 package com.tychewealth.utils;
 
+import static com.tychewealth.constants.CommonConstants.ERROR;
+
+import com.tychewealth.error.exception.AuthException;
+import com.tychewealth.error.exception.PortfolioException;
+import com.tychewealth.error.handler.ErrorDefinition;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Locale;
+import java.util.Map;
 import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 public final class Utils {
 
@@ -34,6 +42,23 @@ public final class Utils {
     return source != null
         && constraintName != null
         && source.toLowerCase(Locale.ROOT).contains(constraintName.toLowerCase(Locale.ROOT));
+  }
+
+  public static PortfolioException genericBadRequest(String errorMessage) {
+    return new PortfolioException(
+        ErrorDefinition.GENERIC_BAD_REQUEST, Map.of(ERROR, errorMessage), HttpStatus.BAD_REQUEST);
+  }
+
+  public static AuthException unauthorized() {
+    return new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);
+  }
+
+  public static ResponseStatusException rateLimited(String message) {
+    String resolvedMessage =
+        message == null || message.isBlank()
+            ? ErrorDefinition.RATE_LIMITED.getDescription()
+            : message;
+    return new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, resolvedMessage);
   }
 
   public static String sha256Hex(String value) {

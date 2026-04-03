@@ -1,6 +1,7 @@
 package com.tychewealth.dto.asset.request;
 
 import static com.tychewealth.constants.ValidationConstants.MUST_BE_AT_MOST_20_CHARACTERS;
+import static com.tychewealth.constants.ValidationConstants.MUST_BE_BETWEEN_3_AND_60_CHARACTERS;
 import static com.tychewealth.constants.ValidationConstants.MUST_BE_GREATER_THAN_0;
 import static com.tychewealth.constants.ValidationConstants.MUST_HAVE_UP_TO_11_INTEGER_DIGITS_AND_8_DECIMALS;
 import static com.tychewealth.constants.ValidationConstants.MUST_HAVE_UP_TO_15_INTEGER_DIGITS_AND_4_DECIMALS;
@@ -25,6 +26,10 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AssetCreateRequestDto {
+
+  @NotBlank(message = MUST_NOT_BE_BLANK)
+  @Size(min = 3, max = 60, message = MUST_BE_BETWEEN_3_AND_60_CHARACTERS)
+  private String name;
 
   @NotBlank(message = MUST_NOT_BE_BLANK)
   @Size(max = 20, message = MUST_BE_AT_MOST_20_CHARACTERS)

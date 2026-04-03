@@ -34,11 +34,13 @@ public final class EntityBuilder {
 
   public static AssetEntity buildAsset(
       PortfolioEntity portfolio,
+      String name,
       String symbol,
       AssetTypeEnum assetType,
       CurrencyCodeEnum currency) {
     AssetEntity asset = new AssetEntity();
     asset.setPortfolio(portfolio);
+    asset.setName(name);
     asset.setSymbol(symbol);
     asset.setAssetType(assetType);
     asset.setQuantity(new BigDecimal("10.00000000"));

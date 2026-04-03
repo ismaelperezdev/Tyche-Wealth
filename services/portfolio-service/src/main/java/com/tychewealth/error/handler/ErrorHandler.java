@@ -10,6 +10,7 @@ import static com.tychewealth.constants.LogConstants.SYSTEM;
 import static com.tychewealth.constants.LogConstants.UNHANDLED_EXCEPTION_MESSAGE;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.exception.PortfolioException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,6 +35,11 @@ public class ErrorHandler {
 
   @ExceptionHandler(PortfolioException.class)
   public ResponseEntity<ErrorResponse> handlePortfolioException(PortfolioException ex) {
+    return build(ex.getErrorDefinition(), ex.getHttpStatus(), ex.getMessage(), ex.getMetadata());
+  }
+
+  @ExceptionHandler(AssetImportException.class)
+  public ResponseEntity<ErrorResponse> handleAssetImportException(AssetImportException ex) {
     return build(ex.getErrorDefinition(), ex.getHttpStatus(), ex.getMessage(), ex.getMetadata());
   }
 

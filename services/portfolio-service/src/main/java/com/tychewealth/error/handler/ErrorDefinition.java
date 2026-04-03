@@ -22,7 +22,26 @@ public enum ErrorDefinition {
       "TYCHE-401",
       "PORTFOLIO_LIMIT_REACHED",
       "The maximum number of portfolios allowed per user has been reached"),
-  PORTFOLIO_NOT_FOUND("TYCHE-402", "PORTFOLIO_NOT_FOUND", "The portfolio was not found");
+  PORTFOLIO_NOT_FOUND("TYCHE-402", "PORTFOLIO_NOT_FOUND", "The portfolio was not found"),
+
+  ASSET_IMPORT_EXTRACTION_FAILED(
+      "TYCHE-500",
+      "ASSET_IMPORT_EXTRACTION_FAILED",
+      "Unable to extract text from file. Expected: ${expected:-}. Received: ${received:-}"),
+  ATTACHMENT_SIZE_LIMIT_EXCEEDED(
+      "TYCHE-501",
+      "ATTACHMENT_SIZE_LIMIT_EXCEEDED",
+      "The attachment exceeds the maximum allowed size. Maximum: ${expected:-} bytes. Received: ${received:-} bytes"),
+  ATTACHMENT_PAGE_LIMIT_EXCEEDED(
+      "TYCHE-502",
+      "ATTACHMENT_PAGE_LIMIT_EXCEEDED",
+      "The attachment exceeds the maximum allowed page count. Maximum: ${expected:-}. Received: ${received:-}"),
+  ATTACHMENT_TEXT_LIMIT_EXCEEDED(
+      "TYCHE-503",
+      "ATTACHMENT_TEXT_LIMIT_EXCEEDED",
+      "The extracted attachment text exceeds the maximum allowed length. Maximum: ${expected:-} characters. Received: ${received:-} characters"),
+  ATTACHMENT_INSPECTION_FAILED(
+      "TYCHE-504", "ATTACHMENT_INSPECTION_FAILED", "Unable to inspect attachment");
 
   private final String code;
   private final String type;

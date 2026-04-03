@@ -30,6 +30,7 @@ class AssetMapperTest {
   void setUp() {
     baseEntity = new AssetEntity();
     baseEntity.setId(10L);
+    baseEntity.setName("Microsoft Corporation");
     baseEntity.setSymbol("MSFT");
     baseEntity.setAssetType(AssetTypeEnum.STOCK);
     baseEntity.setQuantity(new BigDecimal("5.25000000"));
@@ -51,6 +52,7 @@ class AssetMapperTest {
   @Test
   void toDtoMapsEntityFields() {
     baseEntity.setSymbol("AAPL");
+    baseEntity.setName("Apple Inc.");
     baseEntity.setAssetType(AssetTypeEnum.STOCK);
     baseEntity.setQuantity(new BigDecimal("10.00000000"));
     baseEntity.setAveragePrice(new BigDecimal("180.4500"));
@@ -62,6 +64,7 @@ class AssetMapperTest {
 
     assertNotNull(dto);
     assertEquals(10L, dto.getId());
+    assertEquals("Apple Inc.", dto.getName());
     assertEquals("AAPL", dto.getSymbol());
     assertEquals(AssetTypeEnum.STOCK, dto.getAssetType());
     assertEquals(0, new BigDecimal("10.00000000").compareTo(dto.getQuantity()));
@@ -77,6 +80,7 @@ class AssetMapperTest {
 
     assertNotNull(entity);
     assertEquals(7L, entity.getId());
+    assertEquals("NVIDIA Corporation", entity.getName());
     assertEquals("NVDA", entity.getSymbol());
     assertEquals(AssetTypeEnum.STOCK, entity.getAssetType());
     assertEquals(0, new BigDecimal("2.50000000").compareTo(entity.getQuantity()));
@@ -92,6 +96,7 @@ class AssetMapperTest {
     AssetEntity entity = mapper.create(createFixture);
 
     assertNotNull(entity);
+    assertEquals("Bitcoin", entity.getName());
     assertEquals("BTC", entity.getSymbol());
     assertEquals(AssetTypeEnum.CRYPTO, entity.getAssetType());
     assertEquals(0, new BigDecimal("0.12500000").compareTo(entity.getQuantity()));
@@ -104,6 +109,7 @@ class AssetMapperTest {
   void updateOnlyChangesNonNullFields() {
     mapper.update(updateFixture, baseEntity);
 
+    assertEquals("Ethereum", baseEntity.getName());
     assertEquals("ETH", baseEntity.getSymbol());
     assertEquals(AssetTypeEnum.CRYPTO, baseEntity.getAssetType());
     assertEquals(0, new BigDecimal("5.25000000").compareTo(baseEntity.getQuantity()));

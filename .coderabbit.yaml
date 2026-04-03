@@ -16,7 +16,7 @@ reviews:
     - "!**/.idea/**"
     - "!**/*.iml"
   auto_review:
-    enabled: true
+    enabled: false
     drafts: false
     # Regex: revisar PRs para cualquier rama base (no solo main/default)
     base_branches:

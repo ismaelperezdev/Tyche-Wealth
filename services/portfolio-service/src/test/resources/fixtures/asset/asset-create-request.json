@@ -1,4 +1,5 @@
 {
+  "name": "Bitcoin",
   "symbol": "BTC",
   "assetType": "CRYPTO",
   "quantity": 0.12500000,

@@ -5,8 +5,7 @@ import static com.tychewealth.constants.LogConstants.AUTH;
 import static com.tychewealth.constants.LogConstants.INVALID_ACCESS_TOKEN_MESSAGE;
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 
-import com.tychewealth.error.exception.AuthException;
-import com.tychewealth.error.handler.ErrorDefinition;
+import com.tychewealth.utils.Utils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.JwtParser;
@@ -16,7 +15,6 @@ import java.nio.charset.StandardCharsets;
 import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -61,8 +59,8 @@ public class AccessTokenSupport {
     return tokenId;
   }
 
-  private AuthException unauthorizedException() {
+  private RuntimeException unauthorizedException() {
     log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_ACCESS_TOKEN_MESSAGE);
-    return new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);
+    return Utils.unauthorized();
   }
 }

@@ -7,11 +7,9 @@ import static com.tychewealth.constants.LogConstants.INVALID_AUTHORIZATION_HEADE
 import static com.tychewealth.constants.LogConstants.REDIS_UNAVAILABLE_MESSAGE;
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 
-import com.tychewealth.error.exception.AuthException;
-import com.tychewealth.error.handler.ErrorDefinition;
+import com.tychewealth.utils.Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -41,13 +39,13 @@ public class TokenStateSupport {
         || !authorizationHeader.regionMatches(
             true, 0, TOKEN_TYPE_BEARER_PREFIX, 0, TOKEN_TYPE_BEARER_PREFIX.length())) {
       log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_AUTHORIZATION_HEADER_MESSAGE);
-      throw new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);
+      throw Utils.unauthorized();
     }
 
     String token = authorizationHeader.substring(TOKEN_TYPE_BEARER_PREFIX.length()).trim();
     if (token.isEmpty()) {
       log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_AUTHORIZATION_HEADER_MESSAGE);
-      throw new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);
+      throw Utils.unauthorized();
     }
 
     return token;

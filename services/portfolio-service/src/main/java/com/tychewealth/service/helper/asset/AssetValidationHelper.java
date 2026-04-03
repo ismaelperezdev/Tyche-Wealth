@@ -1,0 +1,139 @@
+package com.tychewealth.service.helper.asset;
+
+import static com.tychewealth.constants.CommonConstants.ERROR;
+import static com.tychewealth.constants.CommonConstants.EXPECTED;
+import static com.tychewealth.constants.CommonConstants.RECEIVED;
+import static com.tychewealth.constants.CommonConstants.UNKNOWN_VALUE;
+import static com.tychewealth.constants.LogConstants.MISSING_AUTHENTICATED_USER_MESSAGE;
+
+import com.tychewealth.error.exception.AssetImportException;
+import com.tychewealth.error.exception.PortfolioException;
+import com.tychewealth.error.handler.ErrorDefinition;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
+
+@Component
+public class AssetValidationHelper {
+
+  private static final String MISSING_FILE_MESSAGE = "file must not be null";
+  private static final String EMPTY_FILE_MESSAGE = "file must not be empty";
+  private static final String FILE_NAME_REQUIRED_MESSAGE = "fileName must not be null";
+  private static final String INPUT_STREAM_REQUIRED_MESSAGE = "inputStream must not be null";
+  private final long maxFileSizeBytes;
+  private final int maxPdfPages;
+  private final int maxExtractedCharacters;
+
+  public AssetValidationHelper(
+      @Value("${app.asset.import.validation.max-file-size-bytes:3145728}") long maxFileSizeBytes,
+      @Value("${app.asset.import.validation.max-pdf-pages:10}") int maxPdfPages,
+      @Value("${app.asset.import.validation.max-extracted-characters:15000}")
+          int maxExtractedCharacters) {
+    this.maxFileSizeBytes = maxFileSizeBytes <= 0 ? 3145728L : maxFileSizeBytes;
+    this.maxPdfPages = maxPdfPages <= 0 ? 10 : maxPdfPages;
+    this.maxExtractedCharacters = maxExtractedCharacters <= 0 ? 15000 : maxExtractedCharacters;
+  }
+
+  public void validateImportRequest(Long userId, MultipartFile file) {
+    validateAuthenticatedUser(userId);
+    validateFile(file);
+    validateFileSize(file);
+    validatePdfPageCount(file);
+  }
+
+  public void validateExtractionRequest(String fileName, InputStream inputStream) {
+    validateFileName(fileName);
+    validateInputStream(inputStream);
+  }
+
+  public void validateAuthenticatedUser(Long userId) {
+    if (userId == null) {
+      throw genericBadRequest(MISSING_AUTHENTICATED_USER_MESSAGE);
+    }
+  }
+
+  public void validateFile(MultipartFile file) {
+    if (file == null) {
+      throw genericBadRequest(MISSING_FILE_MESSAGE);
+    }
+    if (file.isEmpty()) {
+      throw genericBadRequest(EMPTY_FILE_MESSAGE);
+    }
+  }
+
+  public void validateFileName(String fileName) {
+    if (fileName == null) {
+      throw genericBadRequest(FILE_NAME_REQUIRED_MESSAGE);
+    }
+  }
+
+  public void validateInputStream(InputStream inputStream) {
+    if (inputStream == null) {
+      throw genericBadRequest(INPUT_STREAM_REQUIRED_MESSAGE);
+    }
+  }
+
+  public void validateExtractedText(String extractedText) {
+    if (extractedText != null && extractedText.length() > maxExtractedCharacters) {
+      throw new AssetImportException(
+          ErrorDefinition.ATTACHMENT_TEXT_LIMIT_EXCEEDED,
+          Map.of(
+              EXPECTED,
+              String.valueOf(maxExtractedCharacters),
+              RECEIVED,
+              String.valueOf(extractedText.length())),
+          HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  public void validateFileSize(MultipartFile file) {
+    if (file.getSize() > maxFileSizeBytes) {
+      throw new AssetImportException(
+          ErrorDefinition.ATTACHMENT_SIZE_LIMIT_EXCEEDED,
+          Map.of(
+              EXPECTED, String.valueOf(maxFileSizeBytes), RECEIVED, String.valueOf(file.getSize())),
+          HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  public void validatePdfPageCount(MultipartFile file) {
+    String fileName = resolveFileName(file);
+    if (!fileName.toLowerCase().endsWith(".pdf")) {
+      return;
+    }
+
+    try (PDDocument document = Loader.loadPDF(file.getBytes())) {
+      if (document.getNumberOfPages() > maxPdfPages) {
+        throw new AssetImportException(
+            ErrorDefinition.ATTACHMENT_PAGE_LIMIT_EXCEEDED,
+            Map.of(
+                EXPECTED,
+                String.valueOf(maxPdfPages),
+                RECEIVED,
+                String.valueOf(document.getNumberOfPages())),
+            HttpStatus.BAD_REQUEST);
+      }
+    } catch (IOException ex) {
+      throw new AssetImportException(
+          ErrorDefinition.ATTACHMENT_INSPECTION_FAILED, Map.of(), HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  private String resolveFileName(MultipartFile file) {
+    String originalFilename = file.getOriginalFilename();
+    return originalFilename == null || originalFilename.isBlank()
+        ? UNKNOWN_VALUE
+        : originalFilename;
+  }
+
+  private PortfolioException genericBadRequest(String errorMessage) {
+    return new PortfolioException(
+        ErrorDefinition.GENERIC_BAD_REQUEST, Map.of(ERROR, errorMessage), HttpStatus.BAD_REQUEST);
+  }
+}

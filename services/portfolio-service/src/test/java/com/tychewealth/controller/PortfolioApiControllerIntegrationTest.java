@@ -538,7 +538,7 @@ class PortfolioApiControllerIntegrationTest {
                 StrategyTypeEnum.INCOME,
                 InvestmentHorizonEnum.LONG));
     assetRepository.saveAndFlush(
-        buildAsset(portfolio, "AAPL", AssetTypeEnum.STOCK, CurrencyCodeEnum.USD));
+        buildAsset(portfolio, "Apple Inc.", "AAPL", AssetTypeEnum.STOCK, CurrencyCodeEnum.USD));
 
     deleteMeRequest(mockMvc, String.valueOf(TEST_USER_ID), portfolio.getId())
         .andExpect(status().isNoContent());
