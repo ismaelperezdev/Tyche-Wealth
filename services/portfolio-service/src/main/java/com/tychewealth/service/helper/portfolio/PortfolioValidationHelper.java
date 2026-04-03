@@ -10,6 +10,7 @@ import static com.tychewealth.constants.LogConstants.PORTFOLIO_NAME;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_NAME_ALREADY_EXISTS_MESSAGE;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_NOT_FOUND_MESSAGE;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_PERSISTENCE_CONFLICT_MESSAGE;
+import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 import static com.tychewealth.constants.LogConstants.UNKNOWN_PERSISTENCE_CONFLICT_MESSAGE;
 import static com.tychewealth.constants.LogConstants.UPDATE_ACTION;
@@ -53,7 +54,7 @@ public class PortfolioValidationHelper {
       Long userId, Long portfolioId, PortfolioUpdateRequestDto updateRequest) {
     String portfolioName = updateRequest == null ? null : updateRequest.getName();
     validateAuthenticatedUser(userId);
-    PortfolioEntity portfolio = validateOwnedPortfolio(userId, portfolioId);
+    PortfolioEntity portfolio = validateOwnedPortfolio(userId, portfolioId, UPDATE_ACTION);
     validateUpdateNameConflict(userId, portfolioId, portfolioName);
     return portfolio;
   }
@@ -102,6 +103,10 @@ public class PortfolioValidationHelper {
   }
 
   public PortfolioEntity validateOwnedPortfolio(Long userId, Long portfolioId) {
+    return validateOwnedPortfolio(userId, portfolioId, RETRIEVE_ACTION);
+  }
+
+  public PortfolioEntity validateOwnedPortfolio(Long userId, Long portfolioId, String action) {
     return portfolioRepository
         .findByIdAndUserId(portfolioId, userId)
         .orElseThrow(
@@ -109,7 +114,7 @@ public class PortfolioValidationHelper {
               log.warn(
                   REQUEST_CONFLICT + PORTFOLIO_ID + USER_ID,
                   PORTFOLIO,
-                  UPDATE_ACTION,
+                  action,
                   PORTFOLIO_NOT_FOUND_MESSAGE,
                   portfolioId,
                   userId);
