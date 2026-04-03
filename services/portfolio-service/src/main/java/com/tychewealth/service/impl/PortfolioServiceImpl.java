@@ -45,4 +45,13 @@ public class PortfolioServiceImpl implements PortfolioService {
           ex, createRequest.getName());
     }
   }
+
+  @Override
+  @Transactional
+  public void delete(Long userId, Long portfolioId) {
+    portfolioValidationHelper.validateAuthenticatedUser(userId);
+    portfolioRepository
+        .findByIdAndUserId(portfolioId, userId)
+        .ifPresent(portfolioRepository::delete);
+  }
 }

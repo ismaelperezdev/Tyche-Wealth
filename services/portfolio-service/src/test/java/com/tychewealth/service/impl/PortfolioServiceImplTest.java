@@ -7,8 +7,8 @@ import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
 import static com.tychewealth.testdata.EntityBuilder.buildPortfolio;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -25,6 +25,7 @@ import com.tychewealth.mapper.portfolio.PortfolioMapper;
 import com.tychewealth.repository.PortfolioRepository;
 import com.tychewealth.service.helper.portfolio.PortfolioValidationHelper;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -137,8 +138,7 @@ class PortfolioServiceImplTest {
                 java.util.Map.of(NAME, TEST_PORTFOLIO_NAME_RETIREMENT),
                 HttpStatus.CONFLICT))
         .when(portfolioValidationHelper)
-        .validateCreatePersistenceConflict(
-            eq(persistenceException), eq(TEST_PORTFOLIO_NAME_RETIREMENT));
+        .validateCreatePersistenceConflict(persistenceException, TEST_PORTFOLIO_NAME_RETIREMENT);
 
     PortfolioException expected =
         assertThrows(PortfolioException.class, () -> portfolioService.create(42L, request));
@@ -149,7 +149,31 @@ class PortfolioServiceImplTest {
             .replace("${name:-}", TEST_PORTFOLIO_NAME_RETIREMENT),
         expected.getMessage());
     verify(portfolioValidationHelper)
-        .validateCreatePersistenceConflict(
-            eq(persistenceException), eq(TEST_PORTFOLIO_NAME_RETIREMENT));
+        .validateCreatePersistenceConflict(persistenceException, TEST_PORTFOLIO_NAME_RETIREMENT);
+  }
+
+  @Test
+  void deleteRemovesOwnedPortfolio() {
+    PortfolioEntity portfolio = new PortfolioEntity();
+    portfolio.setId(7L);
+    portfolio.setUserId(TEST_USER_ID);
+
+    when(portfolioRepository.findByIdAndUserId(7L, TEST_USER_ID))
+        .thenReturn(Optional.of(portfolio));
+
+    portfolioService.delete(TEST_USER_ID, 7L);
+
+    verify(portfolioValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
+    verify(portfolioRepository).delete(portfolio);
+  }
+
+  @Test
+  void deleteDoesNothingWhenPortfolioDoesNotBelongToUser() {
+    when(portfolioRepository.findByIdAndUserId(7L, TEST_USER_ID)).thenReturn(Optional.empty());
+
+    portfolioService.delete(TEST_USER_ID, 7L);
+
+    verify(portfolioValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
+    verify(portfolioRepository, never()).delete(org.mockito.ArgumentMatchers.any());
   }
 }

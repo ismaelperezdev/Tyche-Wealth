@@ -17,6 +17,8 @@ public interface PortfolioRepository extends JpaRepository<PortfolioEntity, Long
 
   long countByUserId(Long userId);
 
+  Optional<PortfolioEntity> findByIdAndUserId(Long id, Long userId);
+
   Optional<PortfolioEntity> findByUserIdAndName(Long userId, String name);
 
   List<PortfolioEntity> findByBaseCurrency(CurrencyCodeEnum baseCurrency);

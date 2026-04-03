@@ -29,8 +29,7 @@ public final class PortfolioTestHelper {
 
   private PortfolioTestHelper() {}
 
-  public static ResultActions createRequest(
-      MockMvc mockMvc, String userId, ObjectMapper objectMapper, String requestBody)
+  public static ResultActions createRequest(MockMvc mockMvc, String userId, String requestBody)
       throws Exception {
     MockHttpServletRequestBuilder builder =
         MockMvcRequestBuilders.post(PORTFOLIO_BASE_URL)
@@ -44,6 +43,16 @@ public final class PortfolioTestHelper {
 
   public static ResultActions retrieveMeRequest(MockMvc mockMvc, String userId) throws Exception {
     MockHttpServletRequestBuilder builder = MockMvcRequestBuilders.get(PORTFOLIO_BASE_URL + "/me");
+    if (userId != null) {
+      builder.header(AUTHORIZATION_HEADER, createAuthorizationHeader(Long.parseLong(userId)));
+    }
+    return mockMvc.perform(builder);
+  }
+
+  public static ResultActions deleteMeRequest(MockMvc mockMvc, String userId, Long portfolioId)
+      throws Exception {
+    MockHttpServletRequestBuilder builder =
+        MockMvcRequestBuilders.delete(PORTFOLIO_BASE_URL + "/me/" + portfolioId);
     if (userId != null) {
       builder.header(AUTHORIZATION_HEADER, createAuthorizationHeader(Long.parseLong(userId)));
     }

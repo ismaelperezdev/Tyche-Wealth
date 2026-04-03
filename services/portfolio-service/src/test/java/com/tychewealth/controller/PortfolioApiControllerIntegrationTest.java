@@ -27,10 +27,12 @@ import static com.tychewealth.constants.TestConstants.TEST_RISK_PROFILE_MEDIUM;
 import static com.tychewealth.constants.TestConstants.TEST_STRATEGY_TYPE_BALANCED;
 import static com.tychewealth.constants.TestConstants.TEST_STRATEGY_TYPE_INCOME;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
+import static com.tychewealth.testdata.EntityBuilder.buildAsset;
 import static com.tychewealth.testdata.EntityBuilder.buildPortfolio;
 import static com.tychewealth.testhelper.AuthTestHelper.createAuthorizationHeader;
 import static com.tychewealth.testhelper.PortfolioTestHelper.createRequest;
 import static com.tychewealth.testhelper.PortfolioTestHelper.createRequestBody;
+import static com.tychewealth.testhelper.PortfolioTestHelper.deleteMeRequest;
 import static com.tychewealth.testhelper.PortfolioTestHelper.retrieveMeRequest;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
@@ -42,6 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.config.PortfolioIntegrationTestConfig;
 import com.tychewealth.entity.PortfolioEntity;
+import com.tychewealth.enums.AssetTypeEnum;
 import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.enums.InvestmentHorizonEnum;
 import com.tychewealth.enums.RiskProfileEnum;
@@ -146,7 +149,7 @@ class PortfolioApiControllerIntegrationTest {
             TEST_STRATEGY_TYPE_INCOME,
             TEST_PORTFOLIO_MAX_RISK);
 
-    createRequest(mockMvc, String.valueOf(TEST_USER_ID), objectMapper, requestBody)
+    createRequest(mockMvc, String.valueOf(TEST_USER_ID), requestBody)
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").isNumber())
         .andExpect(jsonPath("$." + NAME).value(TEST_PORTFOLIO_NAME_RETIREMENT))
@@ -178,7 +181,7 @@ class PortfolioApiControllerIntegrationTest {
             TEST_STRATEGY_TYPE_INCOME,
             TEST_PORTFOLIO_MAX_RISK);
 
-    createRequest(mockMvc, null, objectMapper, requestBody)
+    createRequest(mockMvc, null, requestBody)
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
@@ -190,7 +193,7 @@ class PortfolioApiControllerIntegrationTest {
   @MethodSource("com.tychewealth.testdata.PortfolioTestData#invalidCreateRequests")
   void createReturnsBadRequestForInvalidPayload(String requestBody, String expectedMessage)
       throws Exception {
-    createRequest(mockMvc, String.valueOf(TEST_USER_ID), objectMapper, requestBody)
+    createRequest(mockMvc, String.valueOf(TEST_USER_ID), requestBody)
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getType()))
@@ -246,7 +249,7 @@ class PortfolioApiControllerIntegrationTest {
             TEST_STRATEGY_TYPE_INCOME,
             TEST_PORTFOLIO_MAX_RISK);
 
-    createRequest(mockMvc, String.valueOf(TEST_USER_ID), objectMapper, requestBody)
+    createRequest(mockMvc, String.valueOf(TEST_USER_ID), requestBody)
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.PORTFOLIO_NAME_CONFLICT.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.PORTFOLIO_NAME_CONFLICT.getType()))
@@ -281,7 +284,7 @@ class PortfolioApiControllerIntegrationTest {
             TEST_STRATEGY_TYPE_INCOME,
             TEST_PORTFOLIO_MAX_RISK);
 
-    createRequest(mockMvc, String.valueOf(TEST_USER_ID), objectMapper, requestBody)
+    createRequest(mockMvc, String.valueOf(TEST_USER_ID), requestBody)
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.PORTFOLIO_LIMIT_REACHED.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.PORTFOLIO_LIMIT_REACHED.getType()))
@@ -311,11 +314,65 @@ class PortfolioApiControllerIntegrationTest {
             TEST_STRATEGY_TYPE_BALANCED,
             TEST_PORTFOLIO_OTHER_MAX_RISK);
 
-    createRequest(mockMvc, String.valueOf(TEST_OTHER_USER_ID), objectMapper, requestBody)
+    createRequest(mockMvc, String.valueOf(TEST_OTHER_USER_ID), requestBody)
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$." + NAME).value(TEST_PORTFOLIO_NAME_RETIREMENT));
 
     assertEquals(1, portfolioRepository.findByUserIdOrderByCreatedAtAsc(TEST_USER_ID).size());
     assertEquals(1, portfolioRepository.findByUserIdOrderByCreatedAtAsc(TEST_OTHER_USER_ID).size());
+  }
+
+  @Test
+  void deleteReturnsNoContentAndRemovesOwnedPortfolioWithAssets() throws Exception {
+    PortfolioEntity portfolio =
+        portfolioRepository.saveAndFlush(
+            buildPortfolio(
+                TEST_USER_ID,
+                TEST_PORTFOLIO_NAME_RETIREMENT,
+                CurrencyCodeEnum.EUR,
+                RiskProfileEnum.LOW,
+                StrategyTypeEnum.INCOME,
+                InvestmentHorizonEnum.LONG));
+    assetRepository.saveAndFlush(
+        buildAsset(portfolio, "AAPL", AssetTypeEnum.STOCK, CurrencyCodeEnum.USD));
+
+    deleteMeRequest(mockMvc, String.valueOf(TEST_USER_ID), portfolio.getId())
+        .andExpect(status().isNoContent());
+
+    assertEquals(0, portfolioRepository.findByUserIdOrderByCreatedAtAsc(TEST_USER_ID).size());
+    assertEquals(0, assetRepository.findByPortfolioId(portfolio.getId()).size());
+  }
+
+  @Test
+  void deleteReturnsNoContentWhenPortfolioBelongsToAnotherUser() throws Exception {
+    PortfolioEntity otherUsersPortfolio =
+        portfolioRepository.saveAndFlush(
+            buildPortfolio(
+                TEST_OTHER_USER_ID,
+                TEST_PORTFOLIO_NAME_RETIREMENT,
+                CurrencyCodeEnum.EUR,
+                RiskProfileEnum.LOW,
+                StrategyTypeEnum.INCOME,
+                InvestmentHorizonEnum.LONG));
+
+    deleteMeRequest(mockMvc, String.valueOf(TEST_USER_ID), otherUsersPortfolio.getId())
+        .andExpect(status().isNoContent());
+
+    assertEquals(1, portfolioRepository.findByUserIdOrderByCreatedAtAsc(TEST_OTHER_USER_ID).size());
+  }
+
+  @Test
+  void deleteReturnsUnauthorizedWhenAuthenticatedUserIsMissing() throws Exception {
+    PortfolioEntity portfolio =
+        portfolioRepository.saveAndFlush(
+            buildPortfolio(
+                TEST_USER_ID,
+                TEST_PORTFOLIO_NAME_RETIREMENT,
+                CurrencyCodeEnum.EUR,
+                RiskProfileEnum.LOW,
+                StrategyTypeEnum.INCOME,
+                InvestmentHorizonEnum.LONG));
+
+    deleteMeRequest(mockMvc, null, portfolio.getId()).andExpect(status().isUnauthorized());
   }
 }
