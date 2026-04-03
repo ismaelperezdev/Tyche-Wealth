@@ -46,6 +46,21 @@ class PortfolioApiControllerTest {
   }
 
   @Test
+  void retrieveReturnsOkResponse() {
+    PortfolioResponseDto response = new PortfolioResponseDto();
+    response.setId(7L);
+    response.setName("Core");
+
+    when(portfolioService.retrieve(42L, 7L)).thenReturn(response);
+
+    ResponseEntity<PortfolioResponseDto> result = portfolioApiController.retrieve(42L, 7L);
+
+    assertEquals(HttpStatus.OK, result.getStatusCode());
+    assertEquals(response, result.getBody());
+    verify(portfolioService).retrieve(42L, 7L);
+  }
+
+  @Test
   void createReturnsCreatedResponse() {
     PortfolioCreateRequestDto request = new PortfolioCreateRequestDto();
     request.setName("Core");

@@ -7,6 +7,7 @@ import static com.tychewealth.constants.CommonConstants.DESCRIPTION;
 import static com.tychewealth.constants.CommonConstants.INVESTMENT_HORIZON;
 import static com.tychewealth.constants.CommonConstants.MAX_RISK;
 import static com.tychewealth.constants.CommonConstants.NAME;
+import static com.tychewealth.constants.CommonConstants.NAME_PLACEHOLDER;
 import static com.tychewealth.constants.CommonConstants.RISK_PROFILE;
 import static com.tychewealth.constants.CommonConstants.STRATEGY_TYPE;
 import static com.tychewealth.constants.TestConstants.TEST_BASE_CURRENCY_EUR;
@@ -33,11 +34,14 @@ import static com.tychewealth.testhelper.AuthTestHelper.createAuthorizationHeade
 import static com.tychewealth.testhelper.PortfolioTestHelper.createRequest;
 import static com.tychewealth.testhelper.PortfolioTestHelper.createRequestBody;
 import static com.tychewealth.testhelper.PortfolioTestHelper.deleteMeRequest;
+import static com.tychewealth.testhelper.PortfolioTestHelper.retrieveMeByIdRequest;
 import static com.tychewealth.testhelper.PortfolioTestHelper.retrieveMeRequest;
+import static com.tychewealth.testhelper.PortfolioTestHelper.updateMeRequest;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -138,6 +142,64 @@ class PortfolioApiControllerIntegrationTest {
   }
 
   @Test
+  void retrieveByIdReturnsOkWhenPortfolioBelongsToAuthenticatedUser() throws Exception {
+    PortfolioEntity portfolio =
+        portfolioRepository.saveAndFlush(
+            buildPortfolio(
+                TEST_USER_ID,
+                TEST_PORTFOLIO_NAME_RETIREMENT,
+                CurrencyCodeEnum.EUR,
+                RiskProfileEnum.LOW,
+                StrategyTypeEnum.INCOME,
+                InvestmentHorizonEnum.LONG));
+
+    retrieveMeByIdRequest(mockMvc, String.valueOf(TEST_USER_ID), portfolio.getId())
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(portfolio.getId()))
+        .andExpect(jsonPath("$." + NAME).value(TEST_PORTFOLIO_NAME_RETIREMENT))
+        .andExpect(jsonPath("$." + BASE_CURRENCY).value(TEST_BASE_CURRENCY_EUR));
+  }
+
+  @Test
+  void retrieveByIdReturnsUnauthorizedWhenAuthenticatedUserIsMissing() throws Exception {
+    PortfolioEntity portfolio =
+        portfolioRepository.saveAndFlush(
+            buildPortfolio(
+                TEST_USER_ID,
+                TEST_PORTFOLIO_NAME_RETIREMENT,
+                CurrencyCodeEnum.EUR,
+                RiskProfileEnum.LOW,
+                StrategyTypeEnum.INCOME,
+                InvestmentHorizonEnum.LONG));
+
+    retrieveMeByIdRequest(mockMvc, null, portfolio.getId())
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()));
+  }
+
+  @Test
+  void retrieveByIdReturnsNotFoundWhenPortfolioBelongsToAnotherUser() throws Exception {
+    PortfolioEntity portfolio =
+        portfolioRepository.saveAndFlush(
+            buildPortfolio(
+                TEST_OTHER_USER_ID,
+                TEST_PORTFOLIO_NAME_RETIREMENT,
+                CurrencyCodeEnum.EUR,
+                RiskProfileEnum.LOW,
+                StrategyTypeEnum.INCOME,
+                InvestmentHorizonEnum.LONG));
+
+    retrieveMeByIdRequest(mockMvc, String.valueOf(TEST_USER_ID), portfolio.getId())
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getType()))
+        .andExpect(
+            jsonPath("$." + DESCRIPTION)
+                .value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getDescription()));
+  }
+
+  @Test
   void createReturnsCreatedWhenPayloadIsValid() throws Exception {
     String requestBody =
         createRequestBody(
@@ -225,7 +287,11 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_BAD_REQUEST.getCode()))
         .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_BAD_REQUEST.getType()))
-        .andExpect(jsonPath("$." + DESCRIPTION).value(containsString("INVALID")));
+        .andExpect(jsonPath("$." + DESCRIPTION).value(containsString("field 'baseCurrency'")))
+        .andExpect(jsonPath("$." + DESCRIPTION).value(containsString("option 'INVALID'")))
+        .andExpect(jsonPath("$." + DESCRIPTION).value(containsString("Available options:")))
+        .andExpect(jsonPath("$." + DESCRIPTION).value(containsString("EUR")))
+        .andExpect(jsonPath("$." + DESCRIPTION).value(containsString("USD")));
   }
 
   @Test
@@ -258,7 +324,7 @@ class PortfolioApiControllerIntegrationTest {
                 .value(
                     ErrorDefinition.PORTFOLIO_NAME_CONFLICT
                         .getDescription()
-                        .replace("${name:-}", TEST_PORTFOLIO_NAME_RETIREMENT)));
+                        .replace(NAME_PLACEHOLDER, TEST_PORTFOLIO_NAME_RETIREMENT)));
   }
 
   @Test
@@ -323,6 +389,144 @@ class PortfolioApiControllerIntegrationTest {
   }
 
   @Test
+  void updateReturnsOkWhenPortfolioBelongsToAuthenticatedUser() throws Exception {
+    PortfolioEntity portfolio =
+        portfolioRepository.saveAndFlush(
+            buildPortfolio(
+                TEST_USER_ID,
+                TEST_PORTFOLIO_NAME_RETIREMENT,
+                CurrencyCodeEnum.EUR,
+                RiskProfileEnum.LOW,
+                StrategyTypeEnum.INCOME,
+                InvestmentHorizonEnum.LONG));
+
+    String requestBody =
+        createRequestBody(
+            TEST_PORTFOLIO_NAME_CORE,
+            TEST_PORTFOLIO_DESCRIPTION_ANOTHER,
+            TEST_BASE_CURRENCY_USD,
+            TEST_RISK_PROFILE_MEDIUM,
+            TEST_INVESTMENT_HORIZON_MEDIUM,
+            TEST_STRATEGY_TYPE_BALANCED,
+            TEST_PORTFOLIO_OTHER_MAX_RISK);
+
+    updateMeRequest(mockMvc, String.valueOf(TEST_USER_ID), portfolio.getId(), requestBody)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(portfolio.getId()))
+        .andExpect(jsonPath("$." + NAME).value(TEST_PORTFOLIO_NAME_CORE))
+        .andExpect(jsonPath("$." + DESCRIPTION).value(TEST_PORTFOLIO_DESCRIPTION_ANOTHER))
+        .andExpect(jsonPath("$." + BASE_CURRENCY).value(TEST_BASE_CURRENCY_USD))
+        .andExpect(jsonPath("$." + RISK_PROFILE).value(TEST_RISK_PROFILE_MEDIUM))
+        .andExpect(jsonPath("$." + INVESTMENT_HORIZON).value(TEST_INVESTMENT_HORIZON_MEDIUM))
+        .andExpect(jsonPath("$." + STRATEGY_TYPE).value(TEST_STRATEGY_TYPE_BALANCED))
+        .andExpect(jsonPath("$." + MAX_RISK).value(0.3));
+
+    PortfolioEntity updatedPortfolio =
+        portfolioRepository.findById(portfolio.getId()).orElseThrow();
+    assertEquals(TEST_PORTFOLIO_NAME_CORE, updatedPortfolio.getName());
+    assertEquals(TEST_PORTFOLIO_DESCRIPTION_ANOTHER, updatedPortfolio.getDescription());
+    assertEquals(CurrencyCodeEnum.USD, updatedPortfolio.getBaseCurrency());
+  }
+
+  @Test
+  void updateReturnsUnauthorizedWhenAuthenticatedUserIsMissing() throws Exception {
+    PortfolioEntity portfolio =
+        portfolioRepository.saveAndFlush(
+            buildPortfolio(
+                TEST_USER_ID,
+                TEST_PORTFOLIO_NAME_RETIREMENT,
+                CurrencyCodeEnum.EUR,
+                RiskProfileEnum.LOW,
+                StrategyTypeEnum.INCOME,
+                InvestmentHorizonEnum.LONG));
+
+    String requestBody =
+        createRequestBody(
+            TEST_PORTFOLIO_NAME_CORE,
+            TEST_PORTFOLIO_DESCRIPTION_ANOTHER,
+            TEST_BASE_CURRENCY_USD,
+            TEST_RISK_PROFILE_MEDIUM,
+            TEST_INVESTMENT_HORIZON_MEDIUM,
+            TEST_STRATEGY_TYPE_BALANCED,
+            TEST_PORTFOLIO_OTHER_MAX_RISK);
+
+    updateMeRequest(mockMvc, null, portfolio.getId(), requestBody)
+        .andExpect(status().isUnauthorized());
+
+    assertEquals(
+        TEST_PORTFOLIO_NAME_RETIREMENT,
+        portfolioRepository.findById(portfolio.getId()).orElseThrow().getName());
+  }
+
+  @Test
+  void updateReturnsNotFoundWhenPortfolioBelongsToAnotherUser() throws Exception {
+    PortfolioEntity portfolio =
+        portfolioRepository.saveAndFlush(
+            buildPortfolio(
+                TEST_OTHER_USER_ID,
+                TEST_PORTFOLIO_NAME_RETIREMENT,
+                CurrencyCodeEnum.EUR,
+                RiskProfileEnum.LOW,
+                StrategyTypeEnum.INCOME,
+                InvestmentHorizonEnum.LONG));
+
+    String requestBody =
+        createRequestBody(
+            TEST_PORTFOLIO_NAME_CORE,
+            TEST_PORTFOLIO_DESCRIPTION_ANOTHER,
+            TEST_BASE_CURRENCY_USD,
+            TEST_RISK_PROFILE_MEDIUM,
+            TEST_INVESTMENT_HORIZON_MEDIUM,
+            TEST_STRATEGY_TYPE_BALANCED,
+            TEST_PORTFOLIO_OTHER_MAX_RISK);
+
+    updateMeRequest(mockMvc, String.valueOf(TEST_USER_ID), portfolio.getId(), requestBody)
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getType()))
+        .andExpect(
+            jsonPath("$." + DESCRIPTION)
+                .value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getDescription()));
+  }
+
+  @Test
+  void updateReturnsConflictWhenPortfolioNameAlreadyExistsForUser() throws Exception {
+    PortfolioEntity existingPortfolio =
+        portfolioRepository.saveAndFlush(
+            buildPortfolio(
+                TEST_USER_ID,
+                TEST_PORTFOLIO_NAME_CORE,
+                CurrencyCodeEnum.USD,
+                RiskProfileEnum.MEDIUM,
+                StrategyTypeEnum.BALANCED,
+                InvestmentHorizonEnum.MEDIUM));
+    PortfolioEntity targetPortfolio =
+        portfolioRepository.saveAndFlush(
+            buildPortfolio(
+                TEST_USER_ID,
+                TEST_PORTFOLIO_NAME_RETIREMENT,
+                CurrencyCodeEnum.EUR,
+                RiskProfileEnum.LOW,
+                StrategyTypeEnum.INCOME,
+                InvestmentHorizonEnum.LONG));
+
+    String requestBody =
+        createRequestBody(
+            existingPortfolio.getName(),
+            TEST_PORTFOLIO_DESCRIPTION_ANOTHER,
+            TEST_BASE_CURRENCY_USD,
+            TEST_RISK_PROFILE_MEDIUM,
+            TEST_INVESTMENT_HORIZON_MEDIUM,
+            TEST_STRATEGY_TYPE_BALANCED,
+            TEST_PORTFOLIO_OTHER_MAX_RISK);
+
+    updateMeRequest(mockMvc, String.valueOf(TEST_USER_ID), targetPortfolio.getId(), requestBody)
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value(ErrorDefinition.PORTFOLIO_NAME_CONFLICT.getCode()))
+        .andExpect(jsonPath("$.type").value(ErrorDefinition.PORTFOLIO_NAME_CONFLICT.getType()));
+  }
+
+  @Test
   void deleteReturnsNoContentAndRemovesOwnedPortfolioWithAssets() throws Exception {
     PortfolioEntity portfolio =
         portfolioRepository.saveAndFlush(
@@ -374,5 +578,7 @@ class PortfolioApiControllerIntegrationTest {
                 InvestmentHorizonEnum.LONG));
 
     deleteMeRequest(mockMvc, null, portfolio.getId()).andExpect(status().isUnauthorized());
+
+    assertTrue(portfolioRepository.findById(portfolio.getId()).isPresent());
   }
 }

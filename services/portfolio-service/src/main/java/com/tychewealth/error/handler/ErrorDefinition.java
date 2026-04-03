@@ -21,7 +21,8 @@ public enum ErrorDefinition {
   PORTFOLIO_LIMIT_REACHED(
       "TYCHE-401",
       "PORTFOLIO_LIMIT_REACHED",
-      "The maximum number of portfolios allowed per user has been reached");
+      "The maximum number of portfolios allowed per user has been reached"),
+  PORTFOLIO_NOT_FOUND("TYCHE-402", "PORTFOLIO_NOT_FOUND", "The portfolio was not found");
 
   private final String code;
   private final String type;
