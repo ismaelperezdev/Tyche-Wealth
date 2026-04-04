@@ -24,10 +24,11 @@ public final class AiUtils {
 
     int jsonEnd = findJsonEnd(sanitized, jsonStart);
     if (jsonEnd == NOT_FOUND) {
-      return sanitized.substring(jsonStart).trim();
+      return normalizeJsonLikeContent(stripJsonComments(sanitized.substring(jsonStart).trim()));
     }
 
-    return sanitized.substring(jsonStart, jsonEnd + 1).trim();
+    return normalizeJsonLikeContent(
+        stripJsonComments(sanitized.substring(jsonStart, jsonEnd + 1).trim()));
   }
 
   private static String trimToEmpty(String value) {
@@ -115,6 +116,191 @@ public final class AiUtils {
     return !inString;
   }
 
+  private static String stripJsonComments(String value) {
+    StringBuilder sanitized = new StringBuilder(value.length());
+    boolean inString = false;
+    boolean escaping = false;
+
+    for (int index = 0; index < value.length(); index++) {
+      char current = value.charAt(index);
+
+      int commentEnd = skipComment(value, index, inString, sanitized);
+      if (commentEnd != NOT_FOUND) {
+        index = commentEnd;
+      } else {
+        sanitized.append(current);
+        boolean wasEscaping = escaping;
+        escaping = updateEscapingState(current, escaping);
+        inString = updateStringState(current, inString, wasEscaping);
+      }
+    }
+
+    return sanitized.toString().trim();
+  }
+
+  private static int skipComment(
+      String value, int index, boolean inString, StringBuilder sanitized) {
+    if (inString || value.charAt(index) != '/' || index + 1 >= value.length()) {
+      return NOT_FOUND;
+    }
+
+    char next = value.charAt(index + 1);
+    return switch (next) {
+      case '/' -> {
+        trimTrailingInlineWhitespace(sanitized);
+        yield skipLineComment(value, index + 2);
+      }
+      case '*' -> {
+        trimTrailingInlineWhitespace(sanitized);
+        yield skipBlockComment(value, index + 2);
+      }
+      default -> NOT_FOUND;
+    };
+  }
+
+  private static void trimTrailingInlineWhitespace(StringBuilder value) {
+    int index = value.length() - 1;
+    while (index >= 0) {
+      char current = value.charAt(index);
+      if (current == '\n' || current == '\r' || !Character.isWhitespace(current)) {
+        break;
+      }
+      value.deleteCharAt(index);
+      index--;
+    }
+  }
+
+  private static String normalizeJsonLikeContent(String value) {
+    return quoteUnquotedStringValues(value);
+  }
+
+  private static String quoteUnquotedStringValues(String value) {
+    StringBuilder sanitized = new StringBuilder(value.length() + 16);
+    JsonStringState state = new JsonStringState();
+
+    for (int index = 0; index < value.length(); index++) {
+      char current = value.charAt(index);
+      sanitized.append(current);
+      state.advance(current);
+
+      if (shouldSkipQuoting(current, state)) {
+        continue;
+      }
+
+      int tokenEnd = appendQuotedBareValue(value, index, sanitized);
+      if (tokenEnd != NOT_FOUND) {
+        index = tokenEnd - 1;
+      }
+    }
+
+    return sanitized.toString();
+  }
+
+  private static boolean shouldSkipQuoting(char current, JsonStringState state) {
+    return state.isEscaping() || state.isInString() || current != ':';
+  }
+
+  private static int appendQuotedBareValue(String value, int index, StringBuilder sanitized) {
+    int valueStart = skipWhitespace(value, index + 1);
+    if (valueStart >= value.length()) {
+      return NOT_FOUND;
+    }
+
+    char valueStartChar = value.charAt(valueStart);
+    if (startsJsonLiteral(valueStartChar)
+        || startsReservedLiteral(value, valueStart)
+        || startsNumber(valueStartChar)) {
+      return NOT_FOUND;
+    }
+
+    int tokenEnd = findBareTokenEnd(value, valueStart);
+    if (tokenEnd <= valueStart) {
+      return NOT_FOUND;
+    }
+
+    sanitized.append(value, index + 1, valueStart);
+    sanitized.append(QUOTE);
+    sanitized.append(escapeJsonString(value.substring(valueStart, tokenEnd).trim()));
+    sanitized.append(QUOTE);
+    return tokenEnd;
+  }
+
+  private static int skipWhitespace(String value, int index) {
+    int current = index;
+    while (current < value.length() && Character.isWhitespace(value.charAt(current))) {
+      current++;
+    }
+    return current;
+  }
+
+  private static boolean startsJsonLiteral(char current) {
+    return current == QUOTE || current == OBJECT_OPENING || current == ARRAY_OPENING;
+  }
+
+  private static boolean startsReservedLiteral(String value, int index) {
+    return startsKeyword(value, index, "true")
+        || startsKeyword(value, index, "false")
+        || startsKeyword(value, index, "null");
+  }
+
+  private static boolean startsKeyword(String value, int index, String keyword) {
+    return value.regionMatches(index, keyword, 0, keyword.length())
+        && isKeywordBoundary(value, index + keyword.length());
+  }
+
+  private static boolean isKeywordBoundary(String value, int index) {
+    return index >= value.length()
+        || Character.isWhitespace(value.charAt(index))
+        || value.charAt(index) == ','
+        || value.charAt(index) == OBJECT_CLOSING
+        || value.charAt(index) == ARRAY_CLOSING;
+  }
+
+  private static boolean startsNumber(char current) {
+    return current == '-' || Character.isDigit(current);
+  }
+
+  private static int findBareTokenEnd(String value, int start) {
+    int index = start;
+    while (index < value.length()) {
+      char current = value.charAt(index);
+      if (current == ','
+          || current == OBJECT_CLOSING
+          || current == ARRAY_CLOSING
+          || current == '\n'
+          || current == '\r') {
+        break;
+      }
+      index++;
+    }
+    return index;
+  }
+
+  private static String escapeJsonString(String value) {
+    return value.replace("\\", "\\\\").replace("\"", "\\\"");
+  }
+
+  private static int skipLineComment(String value, int index) {
+    while (index < value.length()) {
+      char current = value.charAt(index);
+      if (current == '\n' || current == '\r') {
+        return index - 1;
+      }
+      index++;
+    }
+    return value.length();
+  }
+
+  private static int skipBlockComment(String value, int index) {
+    while (index + 1 < value.length()) {
+      if (value.charAt(index) == '*' && value.charAt(index + 1) == '/') {
+        return index + 1;
+      }
+      index++;
+    }
+    return value.length();
+  }
+
   private record JsonDelimiters(char opening, char closing) {
 
     private static JsonDelimiters fromOpening(char opening) {
@@ -122,6 +308,25 @@ public final class AiUtils {
         return new JsonDelimiters(ARRAY_OPENING, ARRAY_CLOSING);
       }
       return new JsonDelimiters(OBJECT_OPENING, OBJECT_CLOSING);
+    }
+  }
+
+  private static final class JsonStringState {
+    private boolean inString;
+    private boolean escaping;
+
+    private void advance(char current) {
+      boolean wasEscaping = escaping;
+      escaping = updateEscapingState(current, escaping);
+      inString = updateStringState(current, inString, wasEscaping);
+    }
+
+    private boolean isInString() {
+      return inString;
+    }
+
+    private boolean isEscaping() {
+      return escaping;
     }
   }
 }

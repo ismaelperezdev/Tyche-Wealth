@@ -14,7 +14,7 @@ public record AiPropertiesDto(
   public AiPropertiesDto {
     baseUrl = normalizeBaseUrl(baseUrl);
     apiKey = apiKey == null ? "" : apiKey.trim();
-    fastModel = fastModel == null || fastModel.isBlank() ? "deepseek-coder:6.7b" : fastModel.trim();
+    fastModel = fastModel == null || fastModel.isBlank() ? "qwen2.5:7b-instruct" : fastModel.trim();
     complexModel =
         complexModel == null || complexModel.isBlank() ? "deepseek-r1:8b" : complexModel.trim();
     connectTimeoutSeconds = connectTimeoutSeconds <= 0 ? 10L : connectTimeoutSeconds;
@@ -22,7 +22,10 @@ public record AiPropertiesDto(
   }
 
   public String modelFor(AiModelTypeEnum modelType) {
-    return modelType == AiModelTypeEnum.COMPLEX ? complexModel : fastModel;
+    return switch (modelType) {
+      case FAST -> fastModel;
+      case COMPLEX -> complexModel;
+    };
   }
 
   private static String normalizeBaseUrl(String value) {

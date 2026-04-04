@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 import com.tychewealth.dto.asset.AssetImportCandidateDto;
+import com.tychewealth.dto.asset.AssetImportPayloadDto;
 import com.tychewealth.dto.asset.AssetImportResponseDto;
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.handler.ErrorDefinition;
@@ -45,26 +46,25 @@ class AssetServiceImplTest {
             TEST_ASSET_FILE_NAME,
             TEST_ASSET_CONTENT_TYPE_CSV,
             TEST_ASSET_EXTRACTED_TEXT.getBytes());
-    AssetImportResponseDto payload =
-        new AssetImportResponseDto(TEST_ASSET_FILE_NAME, TEST_ASSET_EXTRACTED_TEXT, null, null);
+    AssetImportPayloadDto payload =
+        new AssetImportPayloadDto(TEST_ASSET_FILE_NAME, TEST_ASSET_EXTRACTED_TEXT);
     List<AssetImportCandidateDto> parsedAssets = List.of(validImportedAssetCandidate());
 
     when(importAssetsHelper.buildImportPayload(file)).thenReturn(payload);
     when(importAssetsAiHelper.promptFast(
             org.mockito.ArgumentMatchers.contains(TEST_ASSET_EXTRACTED_TEXT)))
         .thenReturn(AI_RESPONSE);
-    when(importAssetsAiHelper.parseAiAssets(AI_RESPONSE)).thenReturn(parsedAssets);
+    when(importAssetsAiHelper.parseAiAssets(TEST_ASSET_EXTRACTED_TEXT, AI_RESPONSE))
+        .thenReturn(parsedAssets);
 
     AssetImportResponseDto result = assetService.importAssets(TEST_USER_ID, file);
 
-    assertSame(payload, result);
-    assertEquals(AI_RESPONSE, result.getAiResponse());
     assertEquals(parsedAssets, result.getAssets());
     verify(assetValidationHelper).validateImportRequest(TEST_USER_ID, file);
     verify(importAssetsHelper).buildImportPayload(file);
     verify(importAssetsAiHelper)
         .promptFast(org.mockito.ArgumentMatchers.contains(TEST_ASSET_EXTRACTED_TEXT));
-    verify(importAssetsAiHelper).parseAiAssets(AI_RESPONSE);
+    verify(importAssetsAiHelper).parseAiAssets(TEST_ASSET_EXTRACTED_TEXT, AI_RESPONSE);
   }
 
   @Test
@@ -90,6 +90,8 @@ class AssetServiceImplTest {
     verify(assetValidationHelper).validateImportRequest(TEST_USER_ID, file);
     verify(importAssetsHelper, never()).buildImportPayload(file);
     verify(importAssetsAiHelper, never()).promptFast(org.mockito.ArgumentMatchers.anyString());
-    verify(importAssetsAiHelper, never()).parseAiAssets(org.mockito.ArgumentMatchers.anyString());
+    verify(importAssetsAiHelper, never())
+        .parseAiAssets(
+            org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString());
   }
 }

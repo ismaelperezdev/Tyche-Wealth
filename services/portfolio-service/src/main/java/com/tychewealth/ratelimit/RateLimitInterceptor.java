@@ -7,6 +7,7 @@ import static com.tychewealth.constants.LogConstants.RATE_LIMIT_STORE_UNAVAILABL
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 
 import com.tychewealth.dto.ratelimit.RateLimitPropertiesDto;
+import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.utils.Utils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -72,7 +73,8 @@ public class RateLimitInterceptor implements HandlerInterceptor {
           clientKey,
           ex);
       throw new ResponseStatusException(
-          HttpStatus.SERVICE_UNAVAILABLE, "Rate limit service unavailable");
+          HttpStatus.SERVICE_UNAVAILABLE,
+          ErrorDefinition.RATE_LIMIT_BACKEND_UNAVAILABLE.getDescription());
     }
 
     if (requestCount > rule.getMaxRequests()) {

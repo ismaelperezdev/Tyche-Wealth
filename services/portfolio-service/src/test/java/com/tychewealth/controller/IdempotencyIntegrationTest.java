@@ -62,7 +62,7 @@ class IdempotencyIntegrationTest {
     portfolioRepository.deleteAll();
 
     when(importAssetsAiHelper.promptFast(anyString())).thenReturn(AI_RESPONSE);
-    when(importAssetsAiHelper.parseAiAssets(AI_RESPONSE))
+    when(importAssetsAiHelper.parseAiAssets("ticker,quantity\nAAPL,10", AI_RESPONSE))
         .thenReturn(
             List.of(
                 new AssetImportCandidateDto(
@@ -133,9 +133,7 @@ class IdempotencyIntegrationTest {
     JsonNode secondBody = objectMapper.readTree(responses.get(1).body());
 
     assertEquals(firstBody, secondBody);
-    assertEquals(IMPORT_FILE_NAME, firstBody.get("fileName").asText());
-    assertEquals("ticker,quantity\nAAPL,10", firstBody.get("extractedText").asText());
-    assertEquals(AI_RESPONSE, firstBody.get("aiResponse").asText());
+    assertEquals(1, firstBody.get("assets").size());
     assertEquals("Apple Inc.", firstBody.get("assets").get(0).get("name").asText());
     assertEquals("AAPL", firstBody.get("assets").get(0).get("symbol").asText());
   }

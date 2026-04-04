@@ -80,6 +80,46 @@ class AiUtilsTest {
             """
                 .trim()),
         Arguments.of(
-            "returns trimmed source when json is not present", "  no json here  ", "no json here"));
+            "strips line comments outside strings",
+            """
+            [
+              {
+                "name": "Apple Inc.", // equity name
+                "symbol": "AAPL",
+                "notes": "keep // inside string"
+              }
+            ]
+            """,
+            """
+            [
+              {
+                "name": "Apple Inc.",
+                "symbol": "AAPL",
+                "notes": "keep // inside string"
+              }
+            ]
+            """
+                .trim()),
+        Arguments.of(
+            "returns trimmed source when json is not present", "  no json here  ", "no json here"),
+        Arguments.of(
+            "quotes bare string values after colon",
+            """
+            [
+              {
+                "symbol": IE00B4ND3602,
+                "assetType": STOCK
+              }
+            ]
+            """,
+            """
+            [
+              {
+                "symbol": "IE00B4ND3602",
+                "assetType": "STOCK"
+              }
+            ]
+            """
+                .trim()));
   }
 }

@@ -89,7 +89,7 @@ public class ErrorHandler {
   @ExceptionHandler(ResponseStatusException.class)
   public ResponseEntity<ErrorResponse> handleResponseStatusException(ResponseStatusException ex) {
     HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
-    ErrorDefinition definition = mapByStatus(status);
+    ErrorDefinition definition = mapResponseStatusException(ex, status);
     String description = ex.getReason() == null ? definition.getDescription() : ex.getReason();
     return build(definition, status, description, null);
   }
@@ -188,5 +188,14 @@ public class ErrorHandler {
       case TOO_MANY_REQUESTS -> ErrorDefinition.RATE_LIMITED;
       default -> ErrorDefinition.GENERIC_INTERNAL_ERROR;
     };
+  }
+
+  private ErrorDefinition mapResponseStatusException(
+      ResponseStatusException ex, HttpStatus status) {
+    if (status == HttpStatus.SERVICE_UNAVAILABLE
+        && ErrorDefinition.RATE_LIMIT_BACKEND_UNAVAILABLE.getDescription().equals(ex.getReason())) {
+      return ErrorDefinition.RATE_LIMIT_BACKEND_UNAVAILABLE;
+    }
+    return mapByStatus(status);
   }
 }

@@ -1,14 +1,17 @@
 package com.tychewealth.service.helper.asset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tychewealth.dto.asset.AssetImportResponseDto;
+import com.tychewealth.dto.asset.AssetImportPayloadDto;
 import com.tychewealth.testhelper.TestRedisSupport;
 import com.tychewealth.testhelper.TestRedisSupport.InMemoryRedisState;
+import com.tychewealth.utils.Utils;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -45,20 +48,20 @@ class ImportAssetsHelperTest {
 
     ExecutorService executorService = Executors.newFixedThreadPool(2);
     try {
-      Future<AssetImportResponseDto> first =
+      Future<AssetImportPayloadDto> first =
           executorService.submit(() -> helper.buildImportPayload(file));
 
       assertTrue(
           firstStreamOpened.await(1, TimeUnit.SECONDS),
           "Timed out waiting for the first stream to open");
 
-      Future<AssetImportResponseDto> second =
+      Future<AssetImportPayloadDto> second =
           executorService.submit(() -> helper.buildImportPayload(file));
 
       releaseFirstStream.countDown();
 
-      AssetImportResponseDto firstResponse = first.get();
-      AssetImportResponseDto secondResponse = second.get();
+      AssetImportPayloadDto firstResponse = first.get();
+      AssetImportPayloadDto secondResponse = second.get();
 
       assertNotNull(firstResponse);
       assertNotNull(secondResponse);
@@ -71,6 +74,31 @@ class ImportAssetsHelperTest {
       executorService.shutdownNow();
       helper.shutdown();
     }
+  }
+
+  @Test
+  void buildImportPayloadReleasesInflightLockWhenTaskSubmissionFails() throws IOException {
+    AssetValidationHelper validationHelper = new AssetValidationHelper(1024L, 10, 5000, 5, 5, 10);
+    InMemoryRedisState redisState = new InMemoryRedisState();
+    RedisTemplate<String, String> redisTemplate = TestRedisSupport.redisTemplate(redisState);
+    MultipartFile file =
+        buildFile(new AtomicInteger(), new CountDownLatch(0), new CountDownLatch(0));
+    ImportAssetsHelper helper =
+        new ImportAssetsHelper(
+            validationHelper, redisTemplate, new ObjectMapper(), 1, 10, 10, 2, 25);
+    String cacheKey =
+        "asset-import:payload:"
+            + Utils.sha256Hex("positions.csv".toLowerCase() + ":" + Utils.sha256Hex(FILE_BYTES));
+    String inflightKey =
+        "asset-import:payload:inflight:" + cacheKey.substring("asset-import:payload:".length());
+
+    helper.shutdown();
+
+    IllegalStateException exception =
+        assertThrows(IllegalStateException.class, () -> helper.buildImportPayload(file));
+
+    assertEquals("Asset import queue is unavailable", exception.getMessage());
+    assertFalse(redisState.hasKey(inflightKey));
   }
 
   private MultipartFile buildFile(

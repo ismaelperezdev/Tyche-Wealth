@@ -31,12 +31,15 @@ public class AiClient {
     validatePrompt(prompt);
     validateModelType(modelType);
 
-    HttpRequest request =
+    HttpRequest.Builder requestBuilder =
         HttpRequest.newBuilder()
             .uri(URI.create(aiProperties.baseUrl().replaceAll("/+$", "") + "/chat/completions"))
             .timeout(Duration.ofSeconds(aiProperties.requestTimeoutSeconds()))
-            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .headers(buildAuthorizationHeaders())
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+    applyAuthorizationHeader(requestBuilder);
+
+    HttpRequest request =
+        requestBuilder
             .POST(
                 HttpRequest.BodyPublishers.ofString(
                     serialize(buildRequestBody(prompt, modelType)), StandardCharsets.UTF_8))
@@ -44,9 +47,12 @@ public class AiClient {
 
     HttpResponse<String> response = send(request);
     if (response.statusCode() >= 400) {
+      String responseBody = response.body() == null ? "" : response.body().trim();
       throw new IllegalStateException(
           "AI request failed with HTTP "
               + response.statusCode()
+              + " body="
+              + abbreviate(responseBody, 500)
               + " (responseFingerprint="
               + Utils.sha256Hex(response.body())
               + ")");
@@ -78,11 +84,12 @@ public class AiClient {
     }
   }
 
-  private String[] buildAuthorizationHeaders() {
-    if (aiProperties.apiKey().isBlank()) {
-      return new String[0];
+  private void applyAuthorizationHeader(HttpRequest.Builder requestBuilder) {
+    String apiKey = aiProperties.apiKey();
+    if (apiKey == null || apiKey.isBlank()) {
+      return;
     }
-    return new String[] {HttpHeaders.AUTHORIZATION, "Bearer " + aiProperties.apiKey()};
+    requestBuilder.header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey);
   }
 
   private HttpResponse<String> send(HttpRequest request) {
@@ -125,5 +132,12 @@ public class AiClient {
           "Unable to parse AI response (responseFingerprint=" + Utils.sha256Hex(responseBody) + ")",
           ex);
     }
+  }
+
+  private String abbreviate(String value, int maxLength) {
+    if (value == null || value.length() <= maxLength) {
+      return String.valueOf(value);
+    }
+    return value.substring(0, maxLength) + "...";
   }
 }

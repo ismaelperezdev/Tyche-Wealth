@@ -64,7 +64,7 @@ class AssetApiControllerIntegrationTest {
     portfolioRepository.deleteAll();
 
     when(importAssetsAiHelper.promptFast(anyString())).thenReturn(AI_RESPONSE);
-    when(importAssetsAiHelper.parseAiAssets(AI_RESPONSE))
+    when(importAssetsAiHelper.parseAiAssets(TEST_ASSET_EXTRACTED_TEXT, AI_RESPONSE))
         .thenReturn(List.of(validImportedAssetCandidate()));
   }
 
@@ -85,9 +85,9 @@ class AssetApiControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
-        .andExpect(jsonPath("$.fileName").value(TEST_ASSET_FILE_NAME))
-        .andExpect(jsonPath("$.extractedText").value(TEST_ASSET_EXTRACTED_TEXT))
-        .andExpect(jsonPath("$.aiResponse").value(containsString(TEST_ASSET_NAME_APPLE)))
+        .andExpect(jsonPath("$.fileName").doesNotExist())
+        .andExpect(jsonPath("$.extractedText").doesNotExist())
+        .andExpect(jsonPath("$.aiResponse").doesNotExist())
         .andExpect(jsonPath("$.assets[0].name").value(TEST_ASSET_NAME_APPLE))
         .andExpect(jsonPath("$.assets[0].symbol").value(TEST_ASSET_SYMBOL_AAPL))
         .andExpect(jsonPath("$.assets[0].assetType").value(AssetTypeEnum.STOCK.name()))

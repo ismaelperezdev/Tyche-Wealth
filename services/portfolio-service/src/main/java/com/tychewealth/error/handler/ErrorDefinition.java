@@ -13,6 +13,8 @@ public enum ErrorDefinition {
   UNAUTHORIZED("TYCHE-006", "UNAUTHORIZED", "Authentication is required"),
   FORBIDDEN("TYCHE-007", "FORBIDDEN", "You do not have permission to perform this action"),
   RATE_LIMITED("TYCHE-008", "RATE_LIMITED", "Too many requests"),
+  RATE_LIMIT_BACKEND_UNAVAILABLE(
+      "TYCHE-009", "RATE_LIMIT_BACKEND_UNAVAILABLE", "rate-limit-backend/unavailable"),
 
   PORTFOLIO_NAME_CONFLICT(
       "TYCHE-400",

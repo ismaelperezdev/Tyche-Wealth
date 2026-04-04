@@ -24,6 +24,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 public final class Utils {
 
+  private static final String CONTROL_CHARACTERS_REGEX = "[\\u0000-\\u001F\\u007F]";
+  private static final String WHITESPACE_REGEX = "\\s+";
+
   private Utils() {}
 
   public static boolean hasConstraintViolation(Throwable throwable, String constraintName) {
@@ -100,8 +103,17 @@ public final class Utils {
 
   public static String resolveFileName(MultipartFile file) {
     String originalFilename = file.getOriginalFilename();
-    return originalFilename == null || originalFilename.isBlank()
-        ? UNKNOWN_VALUE
-        : originalFilename;
+    if (originalFilename == null || originalFilename.isBlank()) {
+      return UNKNOWN_VALUE;
+    }
+
+    String sanitized =
+        originalFilename
+            .replace('\\', '/')
+            .replaceAll("^.*/", "")
+            .replaceAll(CONTROL_CHARACTERS_REGEX, "")
+            .replaceAll(WHITESPACE_REGEX, " ")
+            .trim();
+    return sanitized.isEmpty() ? UNKNOWN_VALUE : sanitized;
   }
 }

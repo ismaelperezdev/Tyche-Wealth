@@ -1,5 +1,6 @@
 package com.tychewealth.service.impl;
 
+import com.tychewealth.dto.asset.AssetImportPayloadDto;
 import com.tychewealth.dto.asset.AssetImportResponseDto;
 import com.tychewealth.service.AssetService;
 import com.tychewealth.service.helper.asset.AssetValidationHelper;
@@ -23,11 +24,10 @@ public class AssetServiceImpl implements AssetService {
   @Transactional(readOnly = true)
   public AssetImportResponseDto importAssets(Long userId, MultipartFile file) {
     assetValidationHelper.validateImportRequest(userId, file);
-    AssetImportResponseDto response = importAssetsHelper.buildImportPayload(file);
-    String prompt = AssetImportPromptUtils.buildAssetImportPrompt(response.getExtractedText());
+    AssetImportPayloadDto payload = importAssetsHelper.buildImportPayload(file);
+    String prompt = AssetImportPromptUtils.buildAssetImportPrompt(payload.getExtractedText());
     String aiResponse = importAssetsAiHelper.promptFast(prompt);
-    response.setAiResponse(aiResponse);
-    response.setAssets(importAssetsAiHelper.parseAiAssets(aiResponse));
-    return response;
+    return new AssetImportResponseDto(
+        importAssetsAiHelper.parseAiAssets(payload.getExtractedText(), aiResponse));
   }
 }
