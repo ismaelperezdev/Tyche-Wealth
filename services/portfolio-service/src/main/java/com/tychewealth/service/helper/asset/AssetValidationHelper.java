@@ -40,7 +40,7 @@ public class AssetValidationHelper {
           int maxExtractedCharacters,
       @Value("${app.asset.import.validation.max-extraction-processing-seconds:15}")
           int maxExtractionProcessingSeconds,
-      @Value("${app.asset.import.validation.max-ai-processing-seconds:30}")
+      @Value("${app.asset.import.validation.max-ai-processing-seconds:90}")
           int maxAiProcessingSeconds,
       @Value("${app.asset.import.validation.max-detected-assets:25}") int maxDetectedAssets) {
     this.maxFileSizeBytes = maxFileSizeBytes <= 0 ? 3145728L : maxFileSizeBytes;
@@ -48,7 +48,7 @@ public class AssetValidationHelper {
     this.maxExtractedCharacters = maxExtractedCharacters <= 0 ? 15000 : maxExtractedCharacters;
     this.maxExtractionProcessingSeconds =
         maxExtractionProcessingSeconds <= 0 ? 15 : maxExtractionProcessingSeconds;
-    this.maxAiProcessingSeconds = maxAiProcessingSeconds <= 0 ? 30 : maxAiProcessingSeconds;
+    this.maxAiProcessingSeconds = maxAiProcessingSeconds <= 0 ? 90 : maxAiProcessingSeconds;
     this.maxDetectedAssets = maxDetectedAssets <= 0 ? 25 : maxDetectedAssets;
   }
 

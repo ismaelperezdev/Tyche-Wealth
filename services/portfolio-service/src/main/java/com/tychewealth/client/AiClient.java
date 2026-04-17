@@ -54,7 +54,7 @@ public class AiClient {
               + " body="
               + abbreviate(responseBody, 500)
               + " (responseFingerprint="
-              + Utils.sha256Hex(response.body())
+              + Utils.sha256Hex(responseBody)
               + ")");
     }
 

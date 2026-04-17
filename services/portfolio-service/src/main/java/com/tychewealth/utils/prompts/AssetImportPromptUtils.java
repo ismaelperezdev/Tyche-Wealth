@@ -37,7 +37,7 @@ public final class AssetImportPromptUtils {
           {
             "name": "string|null",
             "symbol": "string|null",
-            "assetType": "STOCK|ETF|BOND|CRYPTO|CASH|OTHER",
+            "assetType": "STOCK|ETF|BOND|CRYPTO|COMMODITY|FOREX|OTHER",
             "quantity": number,
             "averagePrice": number,
             "currency": "string|null"
@@ -45,7 +45,7 @@ public final class AssetImportPromptUtils {
 
         Extraction guidance:
         - First reconstruct the document into the most logical reading order before extracting data.
-        - Ignore dates, we dont care about them, dont even put them in the reconstruction.
+        - Ignore dates, we don't care about them, don't even put them in the reconstruction.
         - If the text looks broken by PDF extraction, mentally regroup fragments that belong to the same row, the same column, or the same table section.
         - Identify the table headers first, then align each following row under those headers before deciding field values.
         - After reconstructing the likely table structure, read it row by row and extract one asset per logical holding row.

@@ -56,6 +56,7 @@ public class ImportAssetsAiHelper {
 
   private static final String AI_CACHE_KEY_PREFIX = "asset-import:ai:";
   private static final Duration AI_CACHE_TTL = Duration.ofHours(12);
+  private final Duration aiQueueOfferTimeout;
   private static final Pattern HOLDING_START_PATTERN =
       Pattern.compile(
           "^(?<quantity>\\d[\\d.,]*)\\s+(?<unit>[\\p{L}]{1,12}\\.?)(?:\\s+(?<name>.+))?$");
@@ -81,6 +82,8 @@ public class ImportAssetsAiHelper {
     this.assetValidationHelper = assetValidationHelper;
     this.redisTemplate = redisTemplate;
     this.objectMapper = objectMapper;
+    this.aiQueueOfferTimeout =
+        Duration.ofSeconds(Math.max(1L, assetValidationHelper.aiTimeoutSeconds()));
     this.aiExecutor =
         new ThreadPoolExecutor(
             Math.max(1, maxConcurrency),
@@ -105,7 +108,19 @@ public class ImportAssetsAiHelper {
 
   private String execute(String prompt, AiModelTypeEnum modelType) {
     String cacheKey = buildCacheKey(prompt, modelType);
-    String cachedResponse = redisTemplate.opsForValue().get(cacheKey);
+    String cachedResponse = null;
+    try {
+      cachedResponse = redisTemplate.opsForValue().get(cacheKey);
+    } catch (RuntimeException ex) {
+      log.error(
+          REQUEST_CONFLICT + " cacheKey={} " + MODEL_TYPE_CONTEXT,
+          ASSET,
+          IMPORT_ASSETS_ACTION,
+          "asset import ai cache read failed",
+          cacheKey,
+          modelType,
+          ex);
+    }
     if (cachedResponse != null && !cachedResponse.isBlank()) {
       return cachedResponse;
     }
@@ -130,7 +145,18 @@ public class ImportAssetsAiHelper {
           modelType,
           aiExecutor.getActiveCount(),
           aiExecutor.getQueue().size());
-      redisTemplate.opsForValue().set(cacheKey, response, AI_CACHE_TTL);
+      try {
+        redisTemplate.opsForValue().set(cacheKey, response, AI_CACHE_TTL);
+      } catch (RuntimeException ex) {
+        log.error(
+            REQUEST_CONFLICT + " cacheKey={} " + MODEL_TYPE_CONTEXT,
+            ASSET,
+            IMPORT_ASSETS_ACTION,
+            "asset import ai cache write failed",
+            cacheKey,
+            modelType,
+            ex);
+      }
       return response;
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
@@ -527,7 +553,7 @@ public class ImportAssetsAiHelper {
     aiExecutor.shutdown();
   }
 
-  private static final class BlockingQueuePolicy implements RejectedExecutionHandler {
+  private final class BlockingQueuePolicy implements RejectedExecutionHandler {
 
     @Override
     public void rejectedExecution(Runnable runnable, ThreadPoolExecutor executor) {
@@ -539,7 +565,16 @@ public class ImportAssetsAiHelper {
             AI_QUEUE_FULL_WAIT_MESSAGE,
             executor.getActiveCount(),
             executor.getQueue().size());
-        executor.getQueue().put(runnable);
+        boolean enqueued =
+            executor
+                .getQueue()
+                .offer(runnable, aiQueueOfferTimeout.toMillis(), TimeUnit.MILLISECONDS);
+        if (!enqueued) {
+          throw new RejectedExecutionException(
+              "Timed out while waiting for ai queue after "
+                  + aiQueueOfferTimeout.toSeconds()
+                  + " seconds");
+        }
       } catch (InterruptedException ex) {
         Thread.currentThread().interrupt();
         throw new RejectedExecutionException("Interrupted while waiting for ai queue", ex);
