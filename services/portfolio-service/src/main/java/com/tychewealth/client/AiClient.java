@@ -51,8 +51,6 @@ public class AiClient {
       throw new IllegalStateException(
           "AI request failed with HTTP "
               + response.statusCode()
-              + " body="
-              + abbreviate(responseBody)
               + " (responseFingerprint="
               + Utils.sha256Hex(responseBody)
               + ")");
@@ -132,12 +130,5 @@ public class AiClient {
           "Unable to parse AI response (responseFingerprint=" + Utils.sha256Hex(responseBody) + ")",
           ex);
     }
-  }
-
-  private String abbreviate(String value) {
-    if (value == null || value.length() <= 500) {
-      return String.valueOf(value);
-    }
-    return value.substring(0, 500) + "...";
   }
 }

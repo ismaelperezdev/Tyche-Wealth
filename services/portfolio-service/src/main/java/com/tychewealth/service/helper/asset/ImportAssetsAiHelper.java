@@ -27,10 +27,12 @@ import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.utils.AiUtils;
+import com.tychewealth.utils.Utils;
 import jakarta.annotation.PreDestroy;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -142,9 +144,15 @@ public class ImportAssetsAiHelper {
         aiExecutor.getQueue().size());
 
     long deadlineNanos = System.nanoTime() + aiRequestTimeout.toNanos();
-    Future<String> future = aiExecutor.submit(() -> callAi(prompt, modelType));
+    Future<String> future;
     try {
-      String response = future.get(remainingTimeout(deadlineNanos), TimeUnit.NANOSECONDS);
+      future = aiExecutor.submit(() -> callAi(prompt, modelType));
+    } catch (RejectedExecutionException ex) {
+      throw Utils.rateLimited("AI queue is full");
+    }
+    try {
+      long remainingTimeoutNanos = remainingTimeout(deadlineNanos);
+      String response = future.get(remainingTimeoutNanos, TimeUnit.NANOSECONDS);
       log.info(
           REQUEST_SUCCESS + AI_QUEUE_STATUS,
           ASSET,
@@ -167,6 +175,7 @@ public class ImportAssetsAiHelper {
       }
       return response;
     } catch (InterruptedException ex) {
+      future.cancel(true);
       Thread.currentThread().interrupt();
       log.warn(
           REQUEST_CONFLICT + MODEL_TYPE_CONTEXT,
@@ -179,6 +188,9 @@ public class ImportAssetsAiHelper {
     } catch (TimeoutException ex) {
       future.cancel(true);
       throw assetValidationHelper.aiTimeoutExceeded(assetValidationHelper.aiTimeoutSeconds());
+    } catch (RuntimeException ex) {
+      future.cancel(true);
+      throw ex;
     } catch (ExecutionException ex) {
       log.error(
           REQUEST_CONFLICT + MODEL_TYPE_CONTEXT,
@@ -222,6 +234,9 @@ public class ImportAssetsAiHelper {
               .constructCollectionType(List.class, AssetImportCandidateDto.class);
       String sanitizedResponse = AiUtils.sanitizeAiResponse(aiResponse);
       List<AssetImportCandidateDto> parsedAssets = objectMapper.readValue(sanitizedResponse, type);
+      if (parsedAssets == null) {
+        parsedAssets = Collections.emptyList();
+      }
       List<AssetImportCandidateDto> assets =
           parsedAssets.stream().filter(Objects::nonNull).filter(this::hasMeaningfulField).toList();
       assets = mergeWithDeterministicExtraction(extractedText, assets);
@@ -259,8 +274,8 @@ public class ImportAssetsAiHelper {
   }
 
   private boolean hasMeaningfulField(AssetImportCandidateDto asset) {
-    return asset.getName() != null
-        || asset.getSymbol() != null
+    return trimToNull(asset.getName()) != null
+        || trimToNull(asset.getSymbol()) != null
         || asset.getAssetType() != null
         || asset.getQuantity() != null
         || asset.getAveragePrice() != null

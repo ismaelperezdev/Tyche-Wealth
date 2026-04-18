@@ -80,8 +80,7 @@ class ImportAssetsHelperTest {
 
     IllegalStateException exception =
         assertThrows(
-            IllegalStateException.class,
-            () -> context.helper().buildImportPayload(context.file()));
+            IllegalStateException.class, () -> context.helper().buildImportPayload(context.file()));
 
     assertEquals("Asset import queue is unavailable", exception.getMessage());
     assertFalse(context.redisState().hasKey(inflightKey));
