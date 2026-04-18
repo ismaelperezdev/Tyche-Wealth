@@ -1,11 +1,16 @@
 package com.tychewealth.controller.impl;
 
+import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
+import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
+import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_NAME_CORE;
+import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_NAME_RETIREMENT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.tychewealth.dto.portfolio.PortfolioResponseDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
+import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
 import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.service.PortfolioService;
 import java.util.List;
@@ -28,11 +33,11 @@ class PortfolioApiControllerTest {
   void listPortfoliosReturnsOkResponse() {
     PortfolioResponseDto firstPortfolio = new PortfolioResponseDto();
     firstPortfolio.setId(7L);
-    firstPortfolio.setName("Core");
+    firstPortfolio.setName(TEST_PORTFOLIO_NAME_CORE);
 
     PortfolioResponseDto secondPortfolio = new PortfolioResponseDto();
     secondPortfolio.setId(8L);
-    secondPortfolio.setName("Retirement");
+    secondPortfolio.setName(TEST_PORTFOLIO_NAME_RETIREMENT);
 
     List<PortfolioResponseDto> response = List.of(firstPortfolio, secondPortfolio);
 
@@ -41,6 +46,8 @@ class PortfolioApiControllerTest {
     ResponseEntity<List<PortfolioResponseDto>> result = portfolioApiController.listPortfolios(42L);
 
     assertEquals(HttpStatus.OK, result.getStatusCode());
+    assertEquals(CACHE_CONTROL_NO_STORE_HEADER_VALUE, result.getHeaders().getCacheControl());
+    assertEquals(PRAGMA_NO_CACHE_HEADER_VALUE, result.getHeaders().getPragma());
     assertEquals(response, result.getBody());
     verify(portfolioService).listPortfolios(42L);
   }
@@ -49,13 +56,15 @@ class PortfolioApiControllerTest {
   void retrieveReturnsOkResponse() {
     PortfolioResponseDto response = new PortfolioResponseDto();
     response.setId(7L);
-    response.setName("Core");
+    response.setName(TEST_PORTFOLIO_NAME_CORE);
 
     when(portfolioService.retrieve(42L, 7L)).thenReturn(response);
 
     ResponseEntity<PortfolioResponseDto> result = portfolioApiController.retrieve(42L, 7L);
 
     assertEquals(HttpStatus.OK, result.getStatusCode());
+    assertEquals(CACHE_CONTROL_NO_STORE_HEADER_VALUE, result.getHeaders().getCacheControl());
+    assertEquals(PRAGMA_NO_CACHE_HEADER_VALUE, result.getHeaders().getPragma());
     assertEquals(response, result.getBody());
     verify(portfolioService).retrieve(42L, 7L);
   }
@@ -63,20 +72,43 @@ class PortfolioApiControllerTest {
   @Test
   void createReturnsCreatedResponse() {
     PortfolioCreateRequestDto request = new PortfolioCreateRequestDto();
-    request.setName("Core");
+    request.setName(TEST_PORTFOLIO_NAME_CORE);
     request.setBaseCurrency(CurrencyCodeEnum.USD);
 
     PortfolioResponseDto response = new PortfolioResponseDto();
     response.setId(7L);
-    response.setName("Core");
+    response.setName(TEST_PORTFOLIO_NAME_CORE);
 
     when(portfolioService.create(42L, request)).thenReturn(response);
 
     ResponseEntity<PortfolioResponseDto> result = portfolioApiController.create(42L, request);
 
     assertEquals(HttpStatus.CREATED, result.getStatusCode());
+    assertEquals(CACHE_CONTROL_NO_STORE_HEADER_VALUE, result.getHeaders().getCacheControl());
+    assertEquals(PRAGMA_NO_CACHE_HEADER_VALUE, result.getHeaders().getPragma());
     assertEquals(response, result.getBody());
     verify(portfolioService).create(42L, request);
+  }
+
+  @Test
+  void updateReturnsOkResponse() {
+    PortfolioUpdateRequestDto request = new PortfolioUpdateRequestDto();
+    request.setName(TEST_PORTFOLIO_NAME_CORE);
+    request.setBaseCurrency(CurrencyCodeEnum.USD);
+
+    PortfolioResponseDto response = new PortfolioResponseDto();
+    response.setId(7L);
+    response.setName(TEST_PORTFOLIO_NAME_CORE);
+
+    when(portfolioService.update(42L, 7L, request)).thenReturn(response);
+
+    ResponseEntity<PortfolioResponseDto> result = portfolioApiController.update(42L, 7L, request);
+
+    assertEquals(HttpStatus.OK, result.getStatusCode());
+    assertEquals(CACHE_CONTROL_NO_STORE_HEADER_VALUE, result.getHeaders().getCacheControl());
+    assertEquals(PRAGMA_NO_CACHE_HEADER_VALUE, result.getHeaders().getPragma());
+    assertEquals(response, result.getBody());
+    verify(portfolioService).update(42L, 7L, request);
   }
 
   @Test
@@ -84,6 +116,8 @@ class PortfolioApiControllerTest {
     ResponseEntity<Void> result = portfolioApiController.delete(42L, 7L);
 
     assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+    assertEquals(CACHE_CONTROL_NO_STORE_HEADER_VALUE, result.getHeaders().getCacheControl());
+    assertEquals(PRAGMA_NO_CACHE_HEADER_VALUE, result.getHeaders().getPragma());
     verify(portfolioService).delete(42L, 7L);
   }
 }

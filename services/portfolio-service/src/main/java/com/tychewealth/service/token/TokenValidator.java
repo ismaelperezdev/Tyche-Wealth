@@ -5,14 +5,12 @@ import static com.tychewealth.constants.LogConstants.AUTH;
 import static com.tychewealth.constants.LogConstants.INVALID_ACCESS_TOKEN_MESSAGE;
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 
-import com.tychewealth.error.exception.AuthException;
-import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.service.token.support.AccessTokenSupport;
 import com.tychewealth.service.token.support.TokenStateSupport;
+import com.tychewealth.utils.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -29,7 +27,7 @@ public class TokenValidator {
     String tokenId = accessTokenSupport.extractTokenId(token);
     if (tokenStateSupport.isAccessTokenRevoked(redisTemplate, tokenId)) {
       log.warn(REQUEST_CONFLICT, AUTH, ACCESS_TOKEN_ACTION, INVALID_ACCESS_TOKEN_MESSAGE);
-      throw new AuthException(ErrorDefinition.UNAUTHORIZED, null, HttpStatus.UNAUTHORIZED);
+      throw Utils.unauthorized();
     }
 
     return accessTokenSupport.extractUserId(token);

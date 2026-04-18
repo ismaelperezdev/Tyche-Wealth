@@ -93,4 +93,38 @@
 
     </changeSet>
 
+    <changeSet id="add-assets-name-column" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <columnExists tableName="assets" columnName="name"/>
+            </not>
+        </preConditions>
+
+        <addColumn tableName="assets">
+            <column name="name" type="VARCHAR(60)" defaultValue="Unknown Asset">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="assets" columnName="name"/>
+        </rollback>
+
+    </changeSet>
+
+    <changeSet id="drop-assets-name-default-value" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <columnExists tableName="assets" columnName="name"/>
+        </preConditions>
+
+        <dropDefaultValue tableName="assets" columnName="name" columnDataType="VARCHAR(60)"/>
+
+        <rollback>
+            <addDefaultValue tableName="assets" columnName="name" columnDataType="VARCHAR(60)" defaultValue="Unknown Asset"/>
+        </rollback>
+
+    </changeSet>
+
 </databaseChangeLog>

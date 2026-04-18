@@ -19,6 +19,7 @@ public class AssetResponseDto {
 
   private Long id;
   private CurrencyCodeEnum currency;
+  private String name;
   private String symbol;
   private AssetTypeEnum assetType;
   private BigDecimal quantity;

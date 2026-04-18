@@ -1,5 +1,6 @@
 package com.tychewealth.mapper;
 
+import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_NAME_CORE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -22,6 +23,7 @@ import org.mapstruct.factory.Mappers;
 
 class PortfolioMapperTest {
 
+  private static final String TEST_PORTFOLIO_DESCRIPTION_CORE = "Core portfolio";
   private final PortfolioMapper mapper = Mappers.getMapper(PortfolioMapper.class);
   private PortfolioEntity baseEntity;
   private PortfolioResponseDto responseFixture;
@@ -55,8 +57,8 @@ class PortfolioMapperTest {
 
   @Test
   void toDtoMapsEntityFields() {
-    baseEntity.setName("Core");
-    baseEntity.setDescription("Core portfolio");
+    baseEntity.setName(TEST_PORTFOLIO_NAME_CORE);
+    baseEntity.setDescription(TEST_PORTFOLIO_DESCRIPTION_CORE);
     baseEntity.setBaseCurrency(CurrencyCodeEnum.EUR);
     baseEntity.setRiskProfile(RiskProfileEnum.LOW);
     baseEntity.setInvestmentHorizon(InvestmentHorizonEnum.SHORT);
@@ -69,8 +71,8 @@ class PortfolioMapperTest {
 
     assertNotNull(dto);
     assertEquals(10L, dto.getId());
-    assertEquals("Core", dto.getName());
-    assertEquals("Core portfolio", dto.getDescription());
+    assertEquals(TEST_PORTFOLIO_NAME_CORE, dto.getName());
+    assertEquals(TEST_PORTFOLIO_DESCRIPTION_CORE, dto.getDescription());
     assertEquals(CurrencyCodeEnum.EUR, dto.getBaseCurrency());
     assertEquals(RiskProfileEnum.LOW, dto.getRiskProfile());
     assertEquals(InvestmentHorizonEnum.SHORT, dto.getInvestmentHorizon());

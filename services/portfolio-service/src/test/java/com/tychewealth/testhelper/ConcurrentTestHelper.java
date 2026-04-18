@@ -1,6 +1,10 @@
 package com.tychewealth.testhelper;
 
+import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
+import static com.tychewealth.testhelper.AuthTestHelper.createAuthorizationHeader;
+import static com.tychewealth.testhelper.PortfolioTestHelper.createRequest;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,6 +16,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 public final class ConcurrentTestHelper {
 
@@ -60,4 +67,35 @@ public final class ConcurrentTestHelper {
       throw ex;
     }
   }
+
+  public static IntegrationResponse executeCreate(MockMvc mockMvc, long userId, String requestBody)
+      throws Exception {
+    MvcResult result = createRequest(mockMvc, String.valueOf(userId), requestBody).andReturn();
+    return new IntegrationResponse(
+        result.getResponse().getStatus(), result.getResponse().getContentAsString());
+  }
+
+  public static IntegrationResponse executeImport(
+      MockMvc mockMvc,
+      long userId,
+      String endpoint,
+      String fileName,
+      String contentType,
+      byte[] bytes)
+      throws Exception {
+    MockMultipartFile file = new MockMultipartFile("file", fileName, contentType, bytes);
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                multipart(endpoint)
+                    .file(file)
+                    .header(AUTHORIZATION_HEADER, createAuthorizationHeader(userId)))
+            .andReturn();
+
+    return new IntegrationResponse(
+        result.getResponse().getStatus(), result.getResponse().getContentAsString());
+  }
+
+  public record IntegrationResponse(int status, String body) {}
 }

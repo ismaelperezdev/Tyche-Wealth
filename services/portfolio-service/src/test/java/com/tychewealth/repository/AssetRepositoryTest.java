@@ -48,7 +48,8 @@ class AssetRepositoryTest {
 
   @Test
   void findByPortfolioIdReturnsAssets() {
-    assetRepository.save(buildAsset(portfolio, "AAPL", AssetTypeEnum.STOCK, CurrencyCodeEnum.USD));
+    assetRepository.save(
+        buildAsset(portfolio, "Apple Inc.", "AAPL", AssetTypeEnum.STOCK, CurrencyCodeEnum.USD));
 
     List<AssetEntity> result = assetRepository.findByPortfolioId(portfolio.getId());
 
@@ -59,7 +60,9 @@ class AssetRepositoryTest {
 
   @Test
   void findByPortfolioIdAndSymbolReturnsAsset() {
-    assetRepository.save(buildAsset(portfolio, "MSFT", AssetTypeEnum.STOCK, CurrencyCodeEnum.USD));
+    assetRepository.save(
+        buildAsset(
+            portfolio, "Microsoft Corporation", "MSFT", AssetTypeEnum.STOCK, CurrencyCodeEnum.USD));
 
     Optional<AssetEntity> result =
         assetRepository.findByPortfolioIdAndSymbol(portfolio.getId(), "MSFT");
@@ -70,7 +73,8 @@ class AssetRepositoryTest {
 
   @Test
   void findByCurrencyReturnsAssets() {
-    assetRepository.save(buildAsset(portfolio, "BTC", AssetTypeEnum.CRYPTO, CurrencyCodeEnum.USD));
+    assetRepository.save(
+        buildAsset(portfolio, "Bitcoin", "BTC", AssetTypeEnum.CRYPTO, CurrencyCodeEnum.USD));
 
     List<AssetEntity> result = assetRepository.findByCurrency(CurrencyCodeEnum.USD);
 
@@ -82,7 +86,8 @@ class AssetRepositoryTest {
   @Test
   void findByAssetTypeReturnsAssets() {
     assetRepository.save(
-        buildAsset(portfolio, "GLD", AssetTypeEnum.COMMODITY, CurrencyCodeEnum.USD));
+        buildAsset(
+            portfolio, "SPDR Gold Shares", "GLD", AssetTypeEnum.COMMODITY, CurrencyCodeEnum.USD));
 
     List<AssetEntity> result = assetRepository.findByAssetType(AssetTypeEnum.COMMODITY);
 
@@ -93,7 +98,8 @@ class AssetRepositoryTest {
 
   @Test
   void existsByPortfolioIdAndSymbolReturnsTrueWhenExists() {
-    assetRepository.save(buildAsset(portfolio, "TSLA", AssetTypeEnum.STOCK, CurrencyCodeEnum.USD));
+    assetRepository.save(
+        buildAsset(portfolio, "Tesla, Inc.", "TSLA", AssetTypeEnum.STOCK, CurrencyCodeEnum.USD));
 
     Boolean exists = assetRepository.existsByPortfolioIdAndSymbol(portfolio.getId(), "TSLA");
 

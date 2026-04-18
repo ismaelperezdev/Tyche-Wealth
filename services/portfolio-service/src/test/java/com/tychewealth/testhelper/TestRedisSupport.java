@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.mockito.Mockito;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -64,6 +65,15 @@ public final class TestRedisSupport {
         .set(Mockito.anyString(), Mockito.anyString());
     Mockito.when(valueOperations.get(Mockito.anyString()))
         .thenAnswer(invocation -> state.get(invocation.getArgument(0)));
+    Mockito.when(
+            valueOperations.setIfAbsent(
+                Mockito.anyString(), Mockito.anyString(), Mockito.any(Duration.class)))
+        .thenAnswer(
+            invocation ->
+                state.setIfAbsent(
+                    invocation.getArgument(0),
+                    invocation.getArgument(1),
+                    invocation.getArgument(2)));
 
     return valueOperations;
   }
@@ -73,6 +83,22 @@ public final class TestRedisSupport {
 
     public void set(String key, String value, Duration ttl) {
       entries.put(key, new StoredValue(value, expiresAt(ttl)));
+    }
+
+    public boolean setIfAbsent(String key, String value, Duration ttl) {
+      AtomicBoolean installed = new AtomicBoolean();
+      entries.compute(
+          key,
+          (ignored, currentValue) -> {
+            if (currentValue == null
+                || (currentValue.expiresAtMillis() != null
+                    && currentValue.expiresAtMillis() <= System.currentTimeMillis())) {
+              installed.set(true);
+              return new StoredValue(value, expiresAt(ttl));
+            }
+            return currentValue;
+          });
+      return installed.get();
     }
 
     public String get(String key) {

@@ -8,8 +8,10 @@ import static com.tychewealth.constants.LogConstants.ERROR_HANDLER_ACTION;
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT_WITH_URI;
 import static com.tychewealth.constants.LogConstants.SYSTEM;
 import static com.tychewealth.constants.LogConstants.UNHANDLED_EXCEPTION_MESSAGE;
+import static com.tychewealth.utils.Utils.buildNoStoreBodyResponse;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.exception.PortfolioException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,12 +36,17 @@ public class ErrorHandler {
 
   @ExceptionHandler(PortfolioException.class)
   public ResponseEntity<ErrorResponse> handlePortfolioException(PortfolioException ex) {
-    return build(ex.getErrorDefinition(), ex.getHttpStatus(), ex.getMessage(), ex.getMetadata());
+    return build(ex.getErrorDefinition(), ex.getHttpStatus(), ex.getMessage(), ex.getDescription());
+  }
+
+  @ExceptionHandler(AssetImportException.class)
+  public ResponseEntity<ErrorResponse> handleAssetImportException(AssetImportException ex) {
+    return build(ex.getErrorDefinition(), ex.getHttpStatus(), ex.getMessage(), ex.getDescription());
   }
 
   @ExceptionHandler(AuthException.class)
   public ResponseEntity<ErrorResponse> handleAuthException(AuthException ex) {
-    return build(ex.getErrorDefinition(), ex.getHttpStatus(), ex.getMessage(), ex.getMetadata());
+    return build(ex.getErrorDefinition(), ex.getHttpStatus(), ex.getMessage(), ex.getDescription());
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -82,7 +89,7 @@ public class ErrorHandler {
   @ExceptionHandler(ResponseStatusException.class)
   public ResponseEntity<ErrorResponse> handleResponseStatusException(ResponseStatusException ex) {
     HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
-    ErrorDefinition definition = mapByStatus(status);
+    ErrorDefinition definition = mapResponseStatusException(ex, status);
     String description = ex.getReason() == null ? definition.getDescription() : ex.getReason();
     return build(definition, status, description, null);
   }
@@ -116,7 +123,7 @@ public class ErrorHandler {
             .description(resolveDescription(definition, description, metadata))
             .build();
 
-    return ResponseEntity.status(status).body(response);
+    return buildNoStoreBodyResponse(status, response);
   }
 
   private String resolveDescription(
@@ -181,5 +188,14 @@ public class ErrorHandler {
       case TOO_MANY_REQUESTS -> ErrorDefinition.RATE_LIMITED;
       default -> ErrorDefinition.GENERIC_INTERNAL_ERROR;
     };
+  }
+
+  private ErrorDefinition mapResponseStatusException(
+      ResponseStatusException ex, HttpStatus status) {
+    if (status == HttpStatus.SERVICE_UNAVAILABLE
+        && ErrorDefinition.RATE_LIMIT_BACKEND_UNAVAILABLE.getDescription().equals(ex.getReason())) {
+      return ErrorDefinition.RATE_LIMIT_BACKEND_UNAVAILABLE;
+    }
+    return mapByStatus(status);
   }
 }
