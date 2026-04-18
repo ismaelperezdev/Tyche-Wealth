@@ -52,7 +52,7 @@ public class AiClient {
           "AI request failed with HTTP "
               + response.statusCode()
               + " body="
-              + abbreviate(responseBody, 500)
+              + abbreviate(responseBody)
               + " (responseFingerprint="
               + Utils.sha256Hex(responseBody)
               + ")");
@@ -134,10 +134,10 @@ public class AiClient {
     }
   }
 
-  private String abbreviate(String value, int maxLength) {
-    if (value == null || value.length() <= maxLength) {
+  private String abbreviate(String value) {
+    if (value == null || value.length() <= 500) {
       return String.valueOf(value);
     }
-    return value.substring(0, maxLength) + "...";
+    return value.substring(0, 500) + "...";
   }
 }

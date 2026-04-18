@@ -241,5 +241,4 @@ public final class AiUtils {
             || value.charAt(boundaryIndex) == OBJECT_CLOSING
             || value.charAt(boundaryIndex) == ARRAY_CLOSING);
   }
-
 }

@@ -56,6 +56,7 @@ public class ImportAssetsAiHelper {
 
   private static final String AI_CACHE_KEY_PREFIX = "asset-import:ai:";
   private static final Duration AI_CACHE_TTL = Duration.ofHours(12);
+  private final Duration aiRequestTimeout;
   private final Duration aiQueueOfferTimeout;
   private static final Pattern HOLDING_START_PATTERN =
       Pattern.compile(
@@ -77,13 +78,19 @@ public class ImportAssetsAiHelper {
       RedisTemplate<String, String> redisTemplate,
       ObjectMapper objectMapper,
       @Value("${app.asset.import.ai.queue.max-concurrency:1}") int maxConcurrency,
-      @Value("${app.asset.import.ai.queue.capacity:20}") int queueCapacity) {
+      @Value("${app.asset.import.ai.queue.capacity:20}") int queueCapacity,
+      @Value("${app.asset.import.ai.queue.offer-timeout-seconds:5}")
+          long queueOfferTimeoutSeconds) {
     this.aiClient = aiClient;
     this.assetValidationHelper = assetValidationHelper;
     this.redisTemplate = redisTemplate;
     this.objectMapper = objectMapper;
-    this.aiQueueOfferTimeout =
+    this.aiRequestTimeout =
         Duration.ofSeconds(Math.max(1L, assetValidationHelper.aiTimeoutSeconds()));
+    this.aiQueueOfferTimeout =
+        Duration.ofSeconds(Math.max(1L, queueOfferTimeoutSeconds)).compareTo(aiRequestTimeout) > 0
+            ? aiRequestTimeout
+            : Duration.ofSeconds(Math.max(1L, queueOfferTimeoutSeconds));
     this.aiExecutor =
         new ThreadPoolExecutor(
             Math.max(1, maxConcurrency),
@@ -134,9 +141,10 @@ public class ImportAssetsAiHelper {
         aiExecutor.getActiveCount(),
         aiExecutor.getQueue().size());
 
+    long deadlineNanos = System.nanoTime() + aiRequestTimeout.toNanos();
     Future<String> future = aiExecutor.submit(() -> callAi(prompt, modelType));
     try {
-      String response = future.get(assetValidationHelper.aiTimeoutSeconds(), TimeUnit.SECONDS);
+      String response = future.get(remainingTimeout(deadlineNanos), TimeUnit.NANOSECONDS);
       log.info(
           REQUEST_SUCCESS + AI_QUEUE_STATUS,
           ASSET,
@@ -185,6 +193,14 @@ public class ImportAssetsAiHelper {
       }
       throw new IllegalStateException("AI processing failed", cause);
     }
+  }
+
+  private long remainingTimeout(long deadlineNanos) {
+    long remainingNanos = deadlineNanos - System.nanoTime();
+    if (remainingNanos <= 0) {
+      throw assetValidationHelper.aiTimeoutExceeded(aiRequestTimeout.toSeconds());
+    }
+    return remainingNanos;
   }
 
   private String buildCacheKey(String prompt, AiModelTypeEnum modelType) {
