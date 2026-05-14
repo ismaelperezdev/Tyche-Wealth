@@ -5,6 +5,7 @@ import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static com.tychewealth.constants.CommonConstants.DESCRIPTION;
 import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
+import static com.tychewealth.constants.TestConstants.TEST_FILE_PART_NAME;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
 import static com.tychewealth.testdata.AssetTestData.AI_RESPONSE;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_CONTENT_TYPE_CSV;
@@ -19,6 +20,7 @@ import static com.tychewealth.testhelper.AuthTestHelper.createAuthorizationHeade
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
 import static org.springframework.http.HttpHeaders.PRAGMA;
@@ -28,12 +30,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.tychewealth.config.AssetIntegrationTestConfig;
+import com.tychewealth.dto.ai.AiModelTypeEnum;
 import com.tychewealth.enums.AssetTypeEnum;
 import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.AssetRepository;
 import com.tychewealth.repository.PortfolioRepository;
-import com.tychewealth.service.helper.asset.ImportAssetsAiHelper;
+import com.tychewealth.service.helper.asset.ai.AiResponseParser;
+import com.tychewealth.service.helper.asset.ai.ImportAssetsAiHelper;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,14 +61,16 @@ class AssetApiControllerIntegrationTest {
   @Autowired private AssetRepository assetRepository;
 
   @MockitoBean private ImportAssetsAiHelper importAssetsAiHelper;
+  @MockitoBean private AiResponseParser aiResponseParser;
 
   @BeforeEach
   void setUp() {
     assetRepository.deleteAll();
     portfolioRepository.deleteAll();
 
-    when(importAssetsAiHelper.promptFast(anyString())).thenReturn(AI_RESPONSE);
-    when(importAssetsAiHelper.parseAiAssets(TEST_ASSET_EXTRACTED_TEXT, AI_RESPONSE))
+    when(importAssetsAiHelper.prompt(anyString(), eq(AiModelTypeEnum.FAST)))
+        .thenReturn(AI_RESPONSE);
+    when(aiResponseParser.parseAiAssets(TEST_ASSET_EXTRACTED_TEXT, AI_RESPONSE))
         .thenReturn(List.of(validImportedAssetCandidate()));
   }
 
@@ -72,7 +78,7 @@ class AssetApiControllerIntegrationTest {
   void importReturnsOkWhenAttachmentIsValid() throws Exception {
     MockMultipartFile file =
         new MockMultipartFile(
-            "file",
+            TEST_FILE_PART_NAME,
             TEST_ASSET_FILE_NAME,
             TEST_ASSET_CONTENT_TYPE_CSV,
             TEST_ASSET_EXTRACTED_TEXT.getBytes(UTF_8));
@@ -102,7 +108,7 @@ class AssetApiControllerIntegrationTest {
   void importReturnsUnauthorizedWhenAuthenticatedUserIsMissing() throws Exception {
     MockMultipartFile file =
         new MockMultipartFile(
-            "file",
+            TEST_FILE_PART_NAME,
             TEST_ASSET_FILE_NAME,
             TEST_ASSET_CONTENT_TYPE_CSV,
             TEST_ASSET_EXTRACTED_TEXT.getBytes(UTF_8));
@@ -122,7 +128,7 @@ class AssetApiControllerIntegrationTest {
   void importReturnsBadRequestWhenAttachmentIsEmpty() throws Exception {
     MockMultipartFile file =
         new MockMultipartFile(
-            "file", TEST_ASSET_FILE_NAME, TEST_ASSET_CONTENT_TYPE_CSV, new byte[0]);
+            TEST_FILE_PART_NAME, TEST_ASSET_FILE_NAME, TEST_ASSET_CONTENT_TYPE_CSV, new byte[0]);
 
     mockMvc
         .perform(
@@ -142,7 +148,10 @@ class AssetApiControllerIntegrationTest {
     byte[] oversizedContent = new byte[ATTACHMENT_SIZE_LIMIT_BYTES + 1];
     MockMultipartFile file =
         new MockMultipartFile(
-            "file", TEST_ASSET_FILE_NAME, TEST_ASSET_CONTENT_TYPE_CSV, oversizedContent);
+            TEST_FILE_PART_NAME,
+            TEST_ASSET_FILE_NAME,
+            TEST_ASSET_CONTENT_TYPE_CSV,
+            oversizedContent);
 
     mockMvc
         .perform(

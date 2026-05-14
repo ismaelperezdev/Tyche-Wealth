@@ -28,24 +28,59 @@ public class AiClient {
   private final AiPropertiesDto aiProperties;
 
   public String prompt(String prompt, AiModelTypeEnum modelType) {
-    validatePrompt(prompt);
-    validateModelType(modelType);
+
+    if (prompt == null || prompt.isBlank()) {
+      throw new IllegalArgumentException("prompt must not be null or empty");
+    }
+    if (modelType == null) {
+      throw new IllegalArgumentException("modelType must not be null");
+    }
+
+    String apiKey = aiProperties.apiKey();
+    ObjectNode requestBody = objectMapper.createObjectNode();
+    ArrayNode messages = requestBody.putArray("messages");
+    ObjectNode userMessage = messages.addObject();
+    String serializedRequestBody;
+    HttpResponse<String> response;
 
     HttpRequest.Builder requestBuilder =
         HttpRequest.newBuilder()
             .uri(URI.create(aiProperties.baseUrl().replaceAll("/+$", "") + "/chat/completions"))
             .timeout(Duration.ofSeconds(aiProperties.requestTimeoutSeconds()))
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-    applyAuthorizationHeader(requestBuilder);
+
+    if (apiKey != null && !apiKey.isBlank()) {
+      requestBuilder.header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey);
+    }
+
+    requestBody.put("model", aiProperties.modelFor(modelType));
+    requestBody.put("stream", false);
+
+    userMessage.put("role", "user");
+    userMessage.put("content", prompt);
+
+    try {
+      serializedRequestBody = objectMapper.writeValueAsString(requestBody);
+    } catch (IOException ex) {
+      throw new IllegalStateException("Unable to serialize AI request", ex);
+    }
 
     HttpRequest request =
         requestBuilder
             .POST(
-                HttpRequest.BodyPublishers.ofString(
-                    serialize(buildRequestBody(prompt, modelType)), StandardCharsets.UTF_8))
+                HttpRequest.BodyPublishers.ofString(serializedRequestBody, StandardCharsets.UTF_8))
             .build();
 
-    HttpResponse<String> response = send(request);
+    try {
+      response =
+          aiHttpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+    } catch (IOException ex) {
+      throw new IllegalStateException("Unable to reach AI server at " + aiProperties.baseUrl(), ex);
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("AI request was interrupted", ex);
+    }
+
     if (response.statusCode() >= 400) {
       String responseBody = response.body() == null ? "" : response.body().trim();
       throw new IllegalStateException(
@@ -56,79 +91,30 @@ public class AiClient {
               + ")");
     }
 
-    JsonNode responseBody = deserialize(response.body());
+    JsonNode responseBody;
+
+    try {
+      responseBody = objectMapper.readTree(response.body());
+    } catch (IOException ex) {
+      throw new IllegalStateException(
+          "Unable to parse AI response (responseFingerprint="
+              + Utils.sha256Hex(response.body())
+              + ")",
+          ex);
+    }
+
     JsonNode choicesNode = responseBody.path("choices");
+
     if (!choicesNode.isArray() || choicesNode.isEmpty()) {
       throw new IllegalStateException("AI response did not include choices");
     }
 
     String content = choicesNode.path(0).path("message").path("content").asText("");
+
     if (content.isBlank()) {
       throw new IllegalStateException("AI response did not include message content");
     }
 
     return content.trim();
-  }
-
-  private void validatePrompt(String prompt) {
-    if (prompt == null || prompt.isBlank()) {
-      throw new IllegalArgumentException("prompt must not be null or empty");
-    }
-  }
-
-  private void validateModelType(AiModelTypeEnum modelType) {
-    if (modelType == null) {
-      throw new IllegalArgumentException("modelType must not be null");
-    }
-  }
-
-  private void applyAuthorizationHeader(HttpRequest.Builder requestBuilder) {
-    String apiKey = aiProperties.apiKey();
-    if (apiKey == null || apiKey.isBlank()) {
-      return;
-    }
-    requestBuilder.header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey);
-  }
-
-  private HttpResponse<String> send(HttpRequest request) {
-    try {
-      return aiHttpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-    } catch (IOException ex) {
-      throw new IllegalStateException("Unable to reach AI server at " + aiProperties.baseUrl(), ex);
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("AI request was interrupted", ex);
-    }
-  }
-
-  private ObjectNode buildRequestBody(String prompt, AiModelTypeEnum modelType) {
-    ObjectNode root = objectMapper.createObjectNode();
-    root.put("model", aiProperties.modelFor(modelType));
-    root.put("stream", false);
-
-    ArrayNode messages = root.putArray("messages");
-    ObjectNode userMessage = messages.addObject();
-    userMessage.put("role", "user");
-    userMessage.put("content", prompt);
-
-    return root;
-  }
-
-  private String serialize(ObjectNode requestBody) {
-    try {
-      return objectMapper.writeValueAsString(requestBody);
-    } catch (IOException ex) {
-      throw new IllegalStateException("Unable to serialize AI request", ex);
-    }
-  }
-
-  private JsonNode deserialize(String responseBody) {
-    try {
-      return objectMapper.readTree(responseBody);
-    } catch (IOException ex) {
-      throw new IllegalStateException(
-          "Unable to parse AI response (responseFingerprint=" + Utils.sha256Hex(responseBody) + ")",
-          ex);
-    }
   }
 }

@@ -4,6 +4,8 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 
 public final class RedisConstants {
 
+  public static final String ASSET_IMPORT_AI_CACHE_KEY_PREFIX = "asset-import:ai:";
+
   public static final DefaultRedisScript<Long> INCREMENT_WITH_TTL_SCRIPT =
       new DefaultRedisScript<>(
           """

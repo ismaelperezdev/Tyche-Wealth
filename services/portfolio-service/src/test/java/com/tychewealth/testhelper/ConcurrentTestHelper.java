@@ -1,6 +1,7 @@
 package com.tychewealth.testhelper;
 
 import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
+import static com.tychewealth.constants.TestConstants.TEST_FILE_PART_NAME;
 import static com.tychewealth.testhelper.AuthTestHelper.createAuthorizationHeader;
 import static com.tychewealth.testhelper.PortfolioTestHelper.createRequest;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -83,7 +84,8 @@ public final class ConcurrentTestHelper {
       String contentType,
       byte[] bytes)
       throws Exception {
-    MockMultipartFile file = new MockMultipartFile("file", fileName, contentType, bytes);
+    MockMultipartFile file =
+        new MockMultipartFile(TEST_FILE_PART_NAME, fileName, contentType, bytes);
 
     MvcResult result =
         mockMvc

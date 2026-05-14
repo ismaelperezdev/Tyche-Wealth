@@ -1,5 +1,9 @@
 package com.tychewealth.service.helper.asset;
 
+import static com.tychewealth.constants.CommonConstants.ERROR;
+import static com.tychewealth.constants.CommonConstants.EXPECTED;
+import static com.tychewealth.constants.CommonConstants.RECEIVED;
+import static com.tychewealth.constants.TestConstants.TEST_FILE_PART_NAME;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_CONTENT_TYPE_CSV;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_FILE_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -12,6 +16,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.junit.jupiter.api.Test;
@@ -32,7 +37,13 @@ class AssetValidationHelperTest {
 
     assertEquals(ErrorDefinition.GENERIC_BAD_REQUEST, exception.getErrorDefinition());
     assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
-    assertEquals("The request is invalid: fileName must not be null", exception.getMessage());
+    assertEquals(
+        PortfolioException.of(
+                ErrorDefinition.GENERIC_BAD_REQUEST,
+                Map.of(ERROR, "fileName must not be null"),
+                HttpStatus.BAD_REQUEST)
+            .getMessage(),
+        exception.getMessage());
   }
 
   @Test
@@ -44,14 +55,20 @@ class AssetValidationHelperTest {
 
     assertEquals(ErrorDefinition.GENERIC_BAD_REQUEST, exception.getErrorDefinition());
     assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
-    assertEquals("The request is invalid: inputStream must not be null", exception.getMessage());
+    assertEquals(
+        PortfolioException.of(
+                ErrorDefinition.GENERIC_BAD_REQUEST,
+                Map.of(ERROR, "inputStream must not be null"),
+                HttpStatus.BAD_REQUEST)
+            .getMessage(),
+        exception.getMessage());
   }
 
   @Test
   void validateImportRequestRejectsFileLargerThanConfiguredLimit() {
     MockMultipartFile file =
         new MockMultipartFile(
-            "file",
+            TEST_FILE_PART_NAME,
             TEST_ASSET_FILE_NAME,
             TEST_ASSET_CONTENT_TYPE_CSV,
             "12345678901".getBytes(StandardCharsets.UTF_8));
@@ -61,7 +78,11 @@ class AssetValidationHelperTest {
 
     assertEquals(ErrorDefinition.ATTACHMENT_SIZE_LIMIT_EXCEEDED, exception.getErrorDefinition());
     assertEquals(
-        "The attachment exceeds the maximum allowed size. Maximum: 10 bytes. Received: 11 bytes",
+        AssetImportException.of(
+                ErrorDefinition.ATTACHMENT_SIZE_LIMIT_EXCEEDED,
+                Map.of(EXPECTED, "10", RECEIVED, "11"),
+                HttpStatus.BAD_REQUEST)
+            .getMessage(),
         exception.getMessage());
   }
 
@@ -80,7 +101,7 @@ class AssetValidationHelperTest {
     AssetValidationHelper pageLimitedHelper =
         new AssetValidationHelper(pdfBytes.length + 100L, 2, 5, 1, 1, 2);
     MockMultipartFile file =
-        new MockMultipartFile("file", "statement.pdf", "application/pdf", pdfBytes);
+        new MockMultipartFile(TEST_FILE_PART_NAME, "statement.pdf", "application/pdf", pdfBytes);
 
     AssetImportException exception =
         assertThrows(
@@ -88,7 +109,11 @@ class AssetValidationHelperTest {
 
     assertEquals(ErrorDefinition.ATTACHMENT_PAGE_LIMIT_EXCEEDED, exception.getErrorDefinition());
     assertEquals(
-        "The attachment exceeds the maximum allowed page count. Maximum: 2. Received: 3",
+        AssetImportException.of(
+                ErrorDefinition.ATTACHMENT_PAGE_LIMIT_EXCEEDED,
+                Map.of(EXPECTED, "2", RECEIVED, "3"),
+                HttpStatus.BAD_REQUEST)
+            .getMessage(),
         exception.getMessage());
   }
 
@@ -99,7 +124,11 @@ class AssetValidationHelperTest {
 
     assertEquals(ErrorDefinition.ATTACHMENT_TEXT_LIMIT_EXCEEDED, exception.getErrorDefinition());
     assertEquals(
-        "The extracted attachment text exceeds the maximum allowed length. Maximum: 5 characters. Received: 6 characters",
+        AssetImportException.of(
+                ErrorDefinition.ATTACHMENT_TEXT_LIMIT_EXCEEDED,
+                Map.of(EXPECTED, "5", RECEIVED, "6"),
+                HttpStatus.BAD_REQUEST)
+            .getMessage(),
         exception.getMessage());
   }
 }

@@ -13,6 +13,12 @@ public final class CommonConstants {
   public static final String EXPECTED = "expected";
   public static final String RECEIVED = "received";
   public static final String UNKNOWN_VALUE = "[unknown]";
+  public static final String EMPTY_VALUE = "";
+  public static final String SPACE = " ";
+  public static final String DOT = ".";
+  public static final String COMMA = ",";
+  public static final char DOT_CHAR = '.';
+  public static final char COMMA_CHAR = ',';
   public static final String GET = "GET";
   public static final String POST = "POST";
   public static final String PATCH = "PATCH";

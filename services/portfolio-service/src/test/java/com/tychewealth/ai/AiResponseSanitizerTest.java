@@ -1,4 +1,4 @@
-package com.tychewealth.utils;
+package com.tychewealth.ai;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -7,13 +7,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class AiUtilsTest {
+class AiResponseSanitizerTest {
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("sanitizeAiResponseCases")
   void sanitizeAiResponseReturnsExpectedContent(
       String testName, String aiResponse, String expectedSanitizedResponse) {
-    assertEquals(expectedSanitizedResponse, AiUtils.sanitizeAiResponse(aiResponse));
+    assertEquals(expectedSanitizedResponse, AiResponseSanitizer.sanitizeAiResponse(aiResponse));
   }
 
   private static Stream<Arguments> sanitizeAiResponseCases() {

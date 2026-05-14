@@ -16,17 +16,20 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.config.IdempotencyIntegrationTestConfig;
+import com.tychewealth.dto.ai.AiModelTypeEnum;
 import com.tychewealth.dto.asset.AssetImportCandidateDto;
 import com.tychewealth.enums.AssetTypeEnum;
 import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.repository.AssetRepository;
 import com.tychewealth.repository.PortfolioRepository;
-import com.tychewealth.service.helper.asset.ImportAssetsAiHelper;
+import com.tychewealth.service.helper.asset.ai.AiResponseParser;
+import com.tychewealth.service.helper.asset.ai.ImportAssetsAiHelper;
 import com.tychewealth.testhelper.ConcurrentTestHelper.IntegrationResponse;
 import java.math.BigDecimal;
 import java.util.List;
@@ -55,14 +58,16 @@ class IdempotencyIntegrationTest {
   @Autowired private AssetRepository assetRepository;
 
   @MockitoBean private ImportAssetsAiHelper importAssetsAiHelper;
+  @MockitoBean private AiResponseParser aiResponseParser;
 
   @BeforeEach
   void setUp() {
     assetRepository.deleteAll();
     portfolioRepository.deleteAll();
 
-    when(importAssetsAiHelper.promptFast(anyString())).thenReturn(AI_RESPONSE);
-    when(importAssetsAiHelper.parseAiAssets("ticker,quantity\nAAPL,10", AI_RESPONSE))
+    when(importAssetsAiHelper.prompt(anyString(), eq(AiModelTypeEnum.FAST)))
+        .thenReturn(AI_RESPONSE);
+    when(aiResponseParser.parseAiAssets("ticker,quantity\nAAPL,10", AI_RESPONSE))
         .thenReturn(
             List.of(
                 new AssetImportCandidateDto(

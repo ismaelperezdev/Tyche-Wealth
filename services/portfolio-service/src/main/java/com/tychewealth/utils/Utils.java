@@ -1,6 +1,12 @@
 package com.tychewealth.utils;
 
+import static com.tychewealth.constants.CommonConstants.COMMA;
+import static com.tychewealth.constants.CommonConstants.COMMA_CHAR;
+import static com.tychewealth.constants.CommonConstants.DOT;
+import static com.tychewealth.constants.CommonConstants.DOT_CHAR;
+import static com.tychewealth.constants.CommonConstants.EMPTY_VALUE;
 import static com.tychewealth.constants.CommonConstants.ERROR;
+import static com.tychewealth.constants.CommonConstants.SPACE;
 import static com.tychewealth.constants.CommonConstants.UNKNOWN_VALUE;
 import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
@@ -8,6 +14,7 @@ import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER
 import com.tychewealth.error.exception.AuthException;
 import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.error.handler.ErrorDefinition;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -115,5 +122,43 @@ public final class Utils {
             .replaceAll(WHITESPACE_REGEX, " ")
             .trim();
     return sanitized.isEmpty() ? UNKNOWN_VALUE : sanitized;
+  }
+
+  public static BigDecimal parseLocalizedNumber(String rawNumber) {
+    String normalized = trimToNull(rawNumber);
+    if (normalized == null) {
+      return null;
+    }
+
+    try {
+      return new BigDecimal(normalizeLocalizedNumber(normalized));
+    } catch (NumberFormatException ex) {
+      return null;
+    }
+  }
+
+  private static String normalizeLocalizedNumber(String rawNumber) {
+    String normalized = rawNumber.replace(SPACE, EMPTY_VALUE);
+    boolean containsComma = normalized.contains(COMMA);
+    boolean containsDot = normalized.contains(DOT);
+
+    if (!containsComma) {
+      return normalized;
+    }
+    if (!containsDot) {
+      return normalized.replace(COMMA_CHAR, DOT_CHAR);
+    }
+    if (normalized.lastIndexOf(COMMA_CHAR) > normalized.lastIndexOf(DOT_CHAR)) {
+      return normalized.replace(DOT, EMPTY_VALUE).replace(COMMA_CHAR, DOT_CHAR);
+    }
+    return normalized.replace(COMMA, EMPTY_VALUE);
+  }
+
+  public static String trimToNull(String value) {
+    if (value == null) {
+      return null;
+    }
+    String trimmed = value.trim();
+    return trimmed.isEmpty() ? null : trimmed;
   }
 }
