@@ -20,6 +20,9 @@ import static com.tychewealth.constants.LogConstants.IMPORT_QUEUE_STATUS;
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 import static com.tychewealth.constants.LogConstants.REQUEST_START;
 import static com.tychewealth.constants.LogConstants.REQUEST_SUCCESS;
+import static com.tychewealth.constants.RedisConstants.ASSET_IMPORT_INFLIGHT_KEY_PREFIX;
+import static com.tychewealth.constants.RedisConstants.ASSET_IMPORT_PAYLOAD_CACHE_KEY_PREFIX;
+import static com.tychewealth.constants.RedisConstants.ASSET_IMPORT_RESULT_KEY_PREFIX;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,9 +57,6 @@ import org.springframework.web.multipart.MultipartFile;
 @Component
 public class ImportAssetsHelper {
 
-  private static final String IMPORT_CACHE_KEY_PREFIX = "asset-import:payload:";
-  private static final String IMPORT_INFLIGHT_KEY_PREFIX = "asset-import:payload:inflight:";
-  private static final String IMPORT_RESULT_KEY_PREFIX = "asset-import:result:";
   private static final String CACHE_KEY_CONTEXT = " cacheKey={}";
   private static final Duration IMPORT_CACHE_TTL = Duration.ofHours(12);
   private static final Duration IMPORT_RESULT_TTL = Duration.ofHours(12);
@@ -103,7 +103,7 @@ public class ImportAssetsHelper {
 
     try {
       cacheKey =
-          IMPORT_CACHE_KEY_PREFIX
+          ASSET_IMPORT_PAYLOAD_CACHE_KEY_PREFIX
               + Utils.sha256Hex(
                   fileName.toLowerCase(Locale.ROOT) + ":" + Utils.sha256Hex(file.getBytes()));
     } catch (IOException ex) {
@@ -112,7 +112,8 @@ public class ImportAssetsHelper {
     }
 
     String inflightKey =
-        IMPORT_INFLIGHT_KEY_PREFIX + cacheKey.substring(IMPORT_CACHE_KEY_PREFIX.length());
+        ASSET_IMPORT_INFLIGHT_KEY_PREFIX
+            + cacheKey.substring(ASSET_IMPORT_PAYLOAD_CACHE_KEY_PREFIX.length());
     while (true) {
       AssetImportPayloadDto cachedResponse = readCachedResponse(cacheKey);
       if (cachedResponse != null) {
@@ -286,7 +287,7 @@ public class ImportAssetsHelper {
 
   public void savePersistedImportResult(AssetPersistRedisDto persistedImport) {
     String redisKey =
-        IMPORT_RESULT_KEY_PREFIX
+        ASSET_IMPORT_RESULT_KEY_PREFIX
             + persistedImport.getUserId()
             + ":"
             + persistedImport.getImportId();

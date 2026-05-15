@@ -16,6 +16,8 @@ import static com.tychewealth.constants.TestConstants.TEST_BASE_CURRENCY_EUR;
 import static com.tychewealth.constants.TestConstants.TEST_BASE_CURRENCY_USD;
 import static com.tychewealth.constants.TestConstants.TEST_INVESTMENT_HORIZON_LONG;
 import static com.tychewealth.constants.TestConstants.TEST_INVESTMENT_HORIZON_MEDIUM;
+import static com.tychewealth.constants.TestConstants.TEST_JSON_CODE_PATH;
+import static com.tychewealth.constants.TestConstants.TEST_JSON_TYPE_PATH;
 import static com.tychewealth.constants.TestConstants.TEST_MAX_PORTFOLIOS_PER_USER;
 import static com.tychewealth.constants.TestConstants.TEST_OTHER_USER_ID;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_DESCRIPTION_ANOTHER;
@@ -143,8 +145,8 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(status().isUnauthorized())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
-        .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
-        .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
+        .andExpect(jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.UNAUTHORIZED.getCode()))
+        .andExpect(jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.UNAUTHORIZED.getType()))
         .andExpect(
             jsonPath("$." + DESCRIPTION).value(ErrorDefinition.UNAUTHORIZED.getDescription()));
   }
@@ -186,8 +188,8 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(status().isUnauthorized())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
-        .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
-        .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()));
+        .andExpect(jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.UNAUTHORIZED.getCode()))
+        .andExpect(jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.UNAUTHORIZED.getType()));
   }
 
   @Test
@@ -206,8 +208,10 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(status().isNotFound())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
-        .andExpect(jsonPath("$.code").value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getCode()))
-        .andExpect(jsonPath("$.type").value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getType()))
+        .andExpect(
+            jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getCode()))
+        .andExpect(
+            jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getType()))
         .andExpect(
             jsonPath("$." + DESCRIPTION)
                 .value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getDescription()));
@@ -263,8 +267,8 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(status().isUnauthorized())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
-        .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
-        .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
+        .andExpect(jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.UNAUTHORIZED.getCode()))
+        .andExpect(jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.UNAUTHORIZED.getType()))
         .andExpect(
             jsonPath("$." + DESCRIPTION).value(ErrorDefinition.UNAUTHORIZED.getDescription()));
   }
@@ -277,8 +281,12 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(status().isBadRequest())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
-        .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getCode()))
-        .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getType()))
+        .andExpect(
+            jsonPath(TEST_JSON_CODE_PATH)
+                .value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getCode()))
+        .andExpect(
+            jsonPath(TEST_JSON_TYPE_PATH)
+                .value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getType()))
         .andExpect(jsonPath("$." + DESCRIPTION).value(containsString(expectedMessage)));
   }
 
@@ -293,8 +301,10 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(status().isBadRequest())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
-        .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_BAD_REQUEST.getCode()))
-        .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_BAD_REQUEST.getType()))
+        .andExpect(
+            jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.GENERIC_BAD_REQUEST.getCode()))
+        .andExpect(
+            jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.GENERIC_BAD_REQUEST.getType()))
         .andExpect(jsonPath("$." + DESCRIPTION).value(containsString("invalid")));
   }
 
@@ -309,8 +319,10 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(status().isBadRequest())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
-        .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_BAD_REQUEST.getCode()))
-        .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_BAD_REQUEST.getType()))
+        .andExpect(
+            jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.GENERIC_BAD_REQUEST.getCode()))
+        .andExpect(
+            jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.GENERIC_BAD_REQUEST.getType()))
         .andExpect(jsonPath("$." + DESCRIPTION).value(containsString("field 'baseCurrency'")))
         .andExpect(jsonPath("$." + DESCRIPTION).value(containsString("option 'INVALID'")))
         .andExpect(jsonPath("$." + DESCRIPTION).value(containsString("Available options:")))
@@ -343,8 +355,10 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(status().isConflict())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
-        .andExpect(jsonPath("$.code").value(ErrorDefinition.PORTFOLIO_NAME_CONFLICT.getCode()))
-        .andExpect(jsonPath("$.type").value(ErrorDefinition.PORTFOLIO_NAME_CONFLICT.getType()))
+        .andExpect(
+            jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.PORTFOLIO_NAME_CONFLICT.getCode()))
+        .andExpect(
+            jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.PORTFOLIO_NAME_CONFLICT.getType()))
         .andExpect(
             jsonPath("$." + DESCRIPTION)
                 .value(
@@ -380,8 +394,10 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(status().isConflict())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
-        .andExpect(jsonPath("$.code").value(ErrorDefinition.PORTFOLIO_LIMIT_REACHED.getCode()))
-        .andExpect(jsonPath("$.type").value(ErrorDefinition.PORTFOLIO_LIMIT_REACHED.getType()))
+        .andExpect(
+            jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.PORTFOLIO_LIMIT_REACHED.getCode()))
+        .andExpect(
+            jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.PORTFOLIO_LIMIT_REACHED.getType()))
         .andExpect(
             jsonPath("$." + DESCRIPTION)
                 .value(ErrorDefinition.PORTFOLIO_LIMIT_REACHED.getDescription()));
@@ -518,8 +534,10 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(status().isNotFound())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
-        .andExpect(jsonPath("$.code").value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getCode()))
-        .andExpect(jsonPath("$.type").value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getType()))
+        .andExpect(
+            jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getCode()))
+        .andExpect(
+            jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getType()))
         .andExpect(
             jsonPath("$." + DESCRIPTION)
                 .value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getDescription()));
@@ -560,8 +578,10 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(status().isConflict())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
-        .andExpect(jsonPath("$.code").value(ErrorDefinition.PORTFOLIO_NAME_CONFLICT.getCode()))
-        .andExpect(jsonPath("$.type").value(ErrorDefinition.PORTFOLIO_NAME_CONFLICT.getType()));
+        .andExpect(
+            jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.PORTFOLIO_NAME_CONFLICT.getCode()))
+        .andExpect(
+            jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.PORTFOLIO_NAME_CONFLICT.getType()));
   }
 
   @Test

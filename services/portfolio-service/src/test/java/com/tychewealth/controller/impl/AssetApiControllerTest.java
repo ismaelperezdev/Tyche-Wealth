@@ -1,0 +1,76 @@
+package com.tychewealth.controller.impl;
+
+import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
+import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
+import static com.tychewealth.constants.TestConstants.TEST_ASSET_IMPORT_ID;
+import static com.tychewealth.constants.TestConstants.TEST_FILE_PART_NAME;
+import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
+import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_CONTENT_TYPE_CSV;
+import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_EXTRACTED_TEXT;
+import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_FILE_NAME;
+import static com.tychewealth.testdata.AssetTestData.validImportedAssetCandidate;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.tychewealth.dto.asset.AssetImportResponseDto;
+import com.tychewealth.service.AssetService;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockMultipartFile;
+
+@ExtendWith(MockitoExtension.class)
+class AssetApiControllerTest {
+
+  @Mock private AssetService assetService;
+
+  @InjectMocks private AssetApiController assetApiController;
+
+  @Test
+  void importAssetsReturnsOkResponse() {
+    MockMultipartFile file =
+        new MockMultipartFile(
+            TEST_FILE_PART_NAME,
+            TEST_ASSET_FILE_NAME,
+            TEST_ASSET_CONTENT_TYPE_CSV,
+            TEST_ASSET_EXTRACTED_TEXT.getBytes(StandardCharsets.UTF_8));
+    AssetImportResponseDto response =
+        new AssetImportResponseDto(TEST_ASSET_IMPORT_ID, List.of(validImportedAssetCandidate()));
+
+    when(assetService.importAssets(TEST_USER_ID, file)).thenReturn(response);
+
+    ResponseEntity<AssetImportResponseDto> result =
+        assetApiController.importAssets(TEST_USER_ID, file);
+
+    assertEquals(HttpStatus.OK, result.getStatusCode());
+    assertEquals(CACHE_CONTROL_NO_STORE_HEADER_VALUE, result.getHeaders().getCacheControl());
+    assertEquals(PRAGMA_NO_CACHE_HEADER_VALUE, result.getHeaders().getPragma());
+    assertEquals(response, result.getBody());
+    verify(assetService).importAssets(TEST_USER_ID, file);
+  }
+
+  @Test
+  void retrieveImportedAssetsReturnsOkResponse() {
+    String importId = TEST_ASSET_IMPORT_ID;
+    AssetImportResponseDto response =
+        new AssetImportResponseDto(importId, List.of(validImportedAssetCandidate()));
+
+    when(assetService.retrieveImportedAssets(TEST_USER_ID, importId)).thenReturn(response);
+
+    ResponseEntity<AssetImportResponseDto> result =
+        assetApiController.retrieveImportedAssets(TEST_USER_ID, importId);
+
+    assertEquals(HttpStatus.OK, result.getStatusCode());
+    assertEquals(CACHE_CONTROL_NO_STORE_HEADER_VALUE, result.getHeaders().getCacheControl());
+    assertEquals(PRAGMA_NO_CACHE_HEADER_VALUE, result.getHeaders().getPragma());
+    assertEquals(response, result.getBody());
+    verify(assetService).retrieveImportedAssets(TEST_USER_ID, importId);
+  }
+}

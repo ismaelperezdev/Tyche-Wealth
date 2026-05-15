@@ -5,6 +5,7 @@ import static com.tychewealth.constants.CommonConstants.EXPECTED;
 import static com.tychewealth.constants.CommonConstants.RECEIVED;
 import static com.tychewealth.constants.LogConstants.MISSING_AUTHENTICATED_USER_MESSAGE;
 
+import com.tychewealth.dto.asset.AssetPersistRedisDto;
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.error.handler.ErrorDefinition;
@@ -67,6 +68,13 @@ public class AssetValidationHelper {
   public void validateAuthenticatedUser(Long userId) {
     if (userId == null) {
       throw genericBadRequest(MISSING_AUTHENTICATED_USER_MESSAGE);
+    }
+  }
+
+  public void validateRetrievedImportExists(AssetPersistRedisDto persistedImport) {
+    if (persistedImport == null) {
+      throw new PortfolioException(
+          ErrorDefinition.ASSET_IMPORT_NOT_FOUND, Map.of(), HttpStatus.NOT_FOUND);
     }
   }
 

@@ -44,6 +44,11 @@ public final class EndpointTestData {
         Arguments.of(
             RateLimitKey.ASSET_IMPORT,
             new MockHttpServletRequest(POST, "/tyche-wealth/portfolio-service/v1/assets/import"),
-            asset("importAssets", Long.class, MultipartFile.class)));
+            asset("importAssets", Long.class, MultipartFile.class)),
+        Arguments.of(
+            RateLimitKey.ASSET_IMPORT_RETRIEVE,
+            new MockHttpServletRequest(
+                GET, "/tyche-wealth/portfolio-service/v1/assets/import/import-123"),
+            asset("retrieveImportedAssets", Long.class, String.class)));
   }
 }
