@@ -23,7 +23,8 @@ import static com.tychewealth.constants.LogConstants.REQUEST_SUCCESS;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tychewealth.dto.asset.AssetImportPayloadDto;
+import com.tychewealth.dto.asset.AssetPersistRedisDto;
+import com.tychewealth.dto.asset.request.AssetImportPayloadDto;
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.utils.FileDataExtractor;
@@ -54,8 +55,10 @@ public class ImportAssetsHelper {
 
   private static final String IMPORT_CACHE_KEY_PREFIX = "asset-import:payload:";
   private static final String IMPORT_INFLIGHT_KEY_PREFIX = "asset-import:payload:inflight:";
+  private static final String IMPORT_RESULT_KEY_PREFIX = "asset-import:result:";
   private static final String CACHE_KEY_CONTEXT = " cacheKey={}";
   private static final Duration IMPORT_CACHE_TTL = Duration.ofHours(12);
+  private static final Duration IMPORT_RESULT_TTL = Duration.ofHours(12);
   private static final Duration IMPORT_QUEUE_OFFER_TIMEOUT = Duration.ofMillis(100);
   private static final Duration IMPORT_SHUTDOWN_TIMEOUT = Duration.ofSeconds(5);
 
@@ -95,39 +98,32 @@ public class ImportAssetsHelper {
 
   public AssetImportPayloadDto buildImportPayload(MultipartFile file) {
     String fileName = Utils.resolveFileName(file);
-    String cacheKey = buildCacheKey(file, fileName);
-    String inflightKey = buildInflightKey(cacheKey);
+    String cacheKey;
+
+    try {
+      cacheKey =
+          IMPORT_CACHE_KEY_PREFIX
+              + Utils.sha256Hex(fileName.toLowerCase() + ":" + Utils.sha256Hex(file.getBytes()));
+    } catch (IOException ex) {
+      throw new AssetImportException(
+          ErrorDefinition.ASSET_IMPORT_EXTRACTION_FAILED, Map.of(), HttpStatus.BAD_REQUEST);
+    }
+
+    String inflightKey =
+        IMPORT_INFLIGHT_KEY_PREFIX + cacheKey.substring(IMPORT_CACHE_KEY_PREFIX.length());
     while (true) {
       AssetImportPayloadDto cachedResponse = readCachedResponse(cacheKey);
       if (cachedResponse != null) {
         return cachedResponse;
       }
 
-      if (tryAcquireInflightLock(inflightKey)) {
+      Boolean acquired = redisTemplate.opsForValue().setIfAbsent(inflightKey, "1", inflightLockTtl);
+      if (Boolean.TRUE.equals(acquired)) {
         return processImport(file, fileName, cacheKey, inflightKey);
       }
 
       waitForInflightResult(cacheKey, inflightKey);
     }
-  }
-
-  private String buildCacheKey(MultipartFile file, String fileName) {
-    try {
-      return IMPORT_CACHE_KEY_PREFIX
-          + Utils.sha256Hex(fileName.toLowerCase() + ":" + Utils.sha256Hex(file.getBytes()));
-    } catch (IOException ex) {
-      throw new AssetImportException(
-          ErrorDefinition.ASSET_IMPORT_EXTRACTION_FAILED, Map.of(), HttpStatus.BAD_REQUEST);
-    }
-  }
-
-  private String buildInflightKey(String cacheKey) {
-    return IMPORT_INFLIGHT_KEY_PREFIX + cacheKey.substring(IMPORT_CACHE_KEY_PREFIX.length());
-  }
-
-  private boolean tryAcquireInflightLock(String inflightKey) {
-    Boolean acquired = redisTemplate.opsForValue().setIfAbsent(inflightKey, "1", inflightLockTtl);
-    return Boolean.TRUE.equals(acquired);
   }
 
   private AssetImportPayloadDto processImport(
@@ -167,9 +163,7 @@ public class ImportAssetsHelper {
           ex);
       throw new IllegalStateException("Asset import processing was interrupted", ex);
     } catch (TimeoutException ex) {
-      if (future != null) {
-        future.cancel(true);
-      }
+      future.cancel(true);
       throw assetValidationHelper.extractionTimeoutExceeded(
           assetValidationHelper.extractionTimeoutSeconds());
     } catch (ExecutionException ex) {
@@ -221,8 +215,8 @@ public class ImportAssetsHelper {
         return;
       }
 
-      Boolean inflightExists = redisTemplate.hasKey(inflightKey);
-      if (!Boolean.TRUE.equals(inflightExists)) {
+      boolean inflightExists = redisTemplate.hasKey(inflightKey);
+      if (!inflightExists) {
         return;
       }
 
@@ -285,6 +279,30 @@ public class ImportAssetsHelper {
           "asset import cache write failed",
           cacheKey,
           ex);
+    }
+  }
+
+  public void savePersistedImportResult(AssetPersistRedisDto persistedImport) {
+    String redisKey =
+        IMPORT_RESULT_KEY_PREFIX
+            + persistedImport.getUserId()
+            + ":"
+            + persistedImport.getImportId();
+    try {
+      redisTemplate
+          .opsForValue()
+          .set(redisKey, objectMapper.writeValueAsString(persistedImport), IMPORT_RESULT_TTL);
+    } catch (JsonProcessingException ex) {
+      throw new IllegalStateException("Unable to persist asset import result", ex);
+    } catch (RuntimeException ex) {
+      log.error(
+          REQUEST_CONFLICT + CACHE_KEY_CONTEXT,
+          ASSET,
+          IMPORT_ASSETS_ACTION,
+          "asset import result persistence failed",
+          redisKey,
+          ex);
+      throw ex;
     }
   }
 

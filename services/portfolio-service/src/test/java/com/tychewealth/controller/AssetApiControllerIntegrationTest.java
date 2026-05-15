@@ -29,8 +29,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.config.AssetIntegrationTestConfig;
 import com.tychewealth.dto.ai.AiModelTypeEnum;
+import com.tychewealth.dto.asset.AssetPersistRedisDto;
 import com.tychewealth.enums.AssetTypeEnum;
 import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.error.handler.ErrorDefinition;
@@ -38,7 +41,9 @@ import com.tychewealth.repository.AssetRepository;
 import com.tychewealth.repository.PortfolioRepository;
 import com.tychewealth.service.helper.asset.ai.AiResponseParser;
 import com.tychewealth.service.helper.asset.ai.ImportAssetsAiHelper;
+import com.tychewealth.testhelper.TestRedisSupport.InMemoryRedisState;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +53,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 @SpringBootTest(classes = AssetIntegrationTestConfig.class)
 @ContextConfiguration(initializers = AssetIntegrationTestConfig.Initializer.class)
@@ -57,6 +63,8 @@ class AssetApiControllerIntegrationTest {
   private static final int ATTACHMENT_SIZE_LIMIT_BYTES = 3_145_728;
 
   @Autowired private MockMvc mockMvc;
+  @Autowired private ObjectMapper objectMapper;
+  @Autowired private InMemoryRedisState redisState;
   @Autowired private PortfolioRepository portfolioRepository;
   @Autowired private AssetRepository assetRepository;
 
@@ -67,6 +75,8 @@ class AssetApiControllerIntegrationTest {
   void setUp() {
     assetRepository.deleteAll();
     portfolioRepository.deleteAll();
+    Set<String> persistedImportKeys = redisState.keys("asset-import:result:*");
+    redisState.deleteAll(persistedImportKeys);
 
     when(importAssetsAiHelper.prompt(anyString(), eq(AiModelTypeEnum.FAST)))
         .thenReturn(AI_RESPONSE);
@@ -83,25 +93,43 @@ class AssetApiControllerIntegrationTest {
             TEST_ASSET_CONTENT_TYPE_CSV,
             TEST_ASSET_EXTRACTED_TEXT.getBytes(UTF_8));
 
-    mockMvc
-        .perform(
-            multipart(ASSET_IMPORT_URL)
-                .file(file)
-                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
-        .andExpect(status().isOk())
-        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
-        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
-        .andExpect(jsonPath("$.fileName").doesNotExist())
-        .andExpect(jsonPath("$.extractedText").doesNotExist())
-        .andExpect(jsonPath("$.aiResponse").doesNotExist())
-        .andExpect(jsonPath("$.assets[0].name").value(TEST_ASSET_NAME_APPLE))
-        .andExpect(jsonPath("$.assets[0].symbol").value(TEST_ASSET_SYMBOL_AAPL))
-        .andExpect(jsonPath("$.assets[0].assetType").value(AssetTypeEnum.STOCK.name()))
-        .andExpect(jsonPath("$.assets[0].quantity").value(TEST_ASSET_RESPONSE_QUANTITY.intValue()))
-        .andExpect(
-            jsonPath("$.assets[0].averagePrice")
-                .value(TEST_ASSET_RESPONSE_AVERAGE_PRICE.doubleValue()))
-        .andExpect(jsonPath("$.assets[0].currency").value(CurrencyCodeEnum.USD.name()));
+    MvcResult mvcResult =
+        mockMvc
+            .perform(
+                multipart(ASSET_IMPORT_URL)
+                    .file(file)
+                    .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+            .andExpect(status().isOk())
+            .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+            .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+            .andExpect(jsonPath("$.fileName").doesNotExist())
+            .andExpect(jsonPath("$.extractedText").doesNotExist())
+            .andExpect(jsonPath("$.aiResponse").doesNotExist())
+            .andExpect(jsonPath("$.importId").isString())
+            .andExpect(jsonPath("$.assets[0].name").value(TEST_ASSET_NAME_APPLE))
+            .andExpect(jsonPath("$.assets[0].symbol").value(TEST_ASSET_SYMBOL_AAPL))
+            .andExpect(jsonPath("$.assets[0].assetType").value(AssetTypeEnum.STOCK.name()))
+            .andExpect(
+                jsonPath("$.assets[0].quantity").value(TEST_ASSET_RESPONSE_QUANTITY.intValue()))
+            .andExpect(
+                jsonPath("$.assets[0].averagePrice")
+                    .value(TEST_ASSET_RESPONSE_AVERAGE_PRICE.doubleValue()))
+            .andExpect(jsonPath("$.assets[0].currency").value(CurrencyCodeEnum.USD.name()))
+            .andReturn();
+
+    JsonNode responseBody = objectMapper.readTree(mvcResult.getResponse().getContentAsString());
+    String importId = responseBody.get("importId").asText();
+    String redisKey = "asset-import:result:" + TEST_USER_ID + ":" + importId;
+    String persistedImportJson = redisState.get(redisKey);
+    AssetPersistRedisDto persistedImport =
+        objectMapper.readValue(persistedImportJson, AssetPersistRedisDto.class);
+
+    org.junit.jupiter.api.Assertions.assertEquals(importId, persistedImport.getImportId());
+    org.junit.jupiter.api.Assertions.assertEquals(TEST_USER_ID, persistedImport.getUserId());
+    org.junit.jupiter.api.Assertions.assertEquals(
+        TEST_ASSET_FILE_NAME, persistedImport.getFileName());
+    org.junit.jupiter.api.Assertions.assertEquals(
+        TEST_ASSET_NAME_APPLE, persistedImport.getResult().getAssets().getFirst().getName());
   }
 
   @Test

@@ -1,15 +1,23 @@
 package com.tychewealth.service.impl;
 
 import com.tychewealth.dto.ai.AiModelTypeEnum;
-import com.tychewealth.dto.asset.AssetImportPayloadDto;
 import com.tychewealth.dto.asset.AssetImportResponseDto;
+import com.tychewealth.dto.asset.AssetPersistRedisDto;
+import com.tychewealth.dto.asset.request.AssetImportPayloadDto;
+import com.tychewealth.error.exception.AssetImportException;
+import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.service.AssetService;
 import com.tychewealth.service.helper.asset.AssetValidationHelper;
 import com.tychewealth.service.helper.asset.ImportAssetsHelper;
 import com.tychewealth.service.helper.asset.ai.AiResponseParser;
 import com.tychewealth.service.helper.asset.ai.ImportAssetsAiHelper;
+import com.tychewealth.utils.Utils;
 import com.tychewealth.utils.prompts.AssetImportPromptUtils;
+import java.io.IOException;
+import java.time.Instant;
+import java.util.Map;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,7 +38,22 @@ public class AssetServiceImpl implements AssetService {
     AssetImportPayloadDto payload = importAssetsHelper.buildImportPayload(file);
     String prompt = AssetImportPromptUtils.buildAssetImportPrompt(payload.getExtractedText());
     String aiResponse = importAssetsAiHelper.prompt(prompt, AiModelTypeEnum.FAST);
-    return new AssetImportResponseDto(
-        aiResponseParser.parseAiAssets(payload.getExtractedText(), aiResponse));
+    String importId;
+    try {
+      importId =
+          Utils.sha256Hex(
+              payload.getFileName().toLowerCase() + ":" + Utils.sha256Hex(file.getBytes()));
+    } catch (IOException ex) {
+      throw new AssetImportException(
+          ErrorDefinition.ASSET_IMPORT_EXTRACTION_FAILED, Map.of(), HttpStatus.BAD_REQUEST);
+    }
+    AssetImportResponseDto response =
+        new AssetImportResponseDto(
+            importId, aiResponseParser.parseAiAssets(payload.getExtractedText(), aiResponse));
+
+    importAssetsHelper.savePersistedImportResult(
+        new AssetPersistRedisDto(importId, userId, payload.getFileName(), Instant.now(), response));
+
+    return response;
   }
 }

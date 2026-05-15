@@ -1,4 +1,4 @@
-package com.tychewealth.dto.asset;
+package com.tychewealth.dto.asset.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
