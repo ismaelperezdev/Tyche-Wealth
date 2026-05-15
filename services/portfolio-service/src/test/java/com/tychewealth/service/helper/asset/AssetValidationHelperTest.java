@@ -10,6 +10,8 @@ import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_FILE_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.tychewealth.dto.asset.AssetImportResponseDto;
+import com.tychewealth.dto.asset.AssetPersistRedisDto;
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.error.handler.ErrorDefinition;
@@ -24,8 +26,6 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
-import com.tychewealth.dto.asset.AssetImportResponseDto;
-import com.tychewealth.dto.asset.AssetPersistRedisDto;
 
 class AssetValidationHelperTest {
 
@@ -47,8 +47,7 @@ class AssetValidationHelperTest {
   @Test
   void validateRetrievedImportExistsThrowsNotFoundWhenPersistedImportIsNull() {
     PortfolioException exception =
-        assertThrows(
-            PortfolioException.class, () -> helper.validateRetrievedImportExists(null));
+        assertThrows(PortfolioException.class, () -> helper.validateRetrievedImportExists(null));
 
     assertEquals(ErrorDefinition.ASSET_IMPORT_NOT_FOUND, exception.getErrorDefinition());
     assertEquals(HttpStatus.NOT_FOUND, exception.getHttpStatus());

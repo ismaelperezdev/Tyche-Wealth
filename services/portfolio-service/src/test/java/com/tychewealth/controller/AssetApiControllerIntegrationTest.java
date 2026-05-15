@@ -231,8 +231,7 @@ class AssetApiControllerIntegrationTest {
         .andExpect(jsonPath("$.assets[0].name").value(TEST_ASSET_NAME_APPLE))
         .andExpect(jsonPath("$.assets[0].symbol").value(TEST_ASSET_SYMBOL_AAPL))
         .andExpect(jsonPath("$.assets[0].assetType").value(AssetTypeEnum.STOCK.name()))
-        .andExpect(
-            jsonPath("$.assets[0].quantity").value(TEST_ASSET_RESPONSE_QUANTITY.intValue()))
+        .andExpect(jsonPath("$.assets[0].quantity").value(TEST_ASSET_RESPONSE_QUANTITY.intValue()))
         .andExpect(
             jsonPath("$.assets[0].averagePrice")
                 .value(TEST_ASSET_RESPONSE_AVERAGE_PRICE.doubleValue()))

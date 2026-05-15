@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.dto.ai.AiModelTypeEnum;
 import com.tychewealth.dto.asset.AssetImportCandidateDto;
 import com.tychewealth.dto.asset.AssetImportResponseDto;
@@ -29,7 +30,6 @@ import com.tychewealth.service.helper.asset.AssetValidationHelper;
 import com.tychewealth.service.helper.asset.ImportAssetsHelper;
 import com.tychewealth.service.helper.asset.ai.AiResponseParser;
 import com.tychewealth.service.helper.asset.ai.ImportAssetsAiHelper;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -131,13 +131,17 @@ class AssetServiceImplTest {
         new AssetImportResponseDto(importId, List.of(validImportedAssetCandidate()));
     AssetPersistRedisDto persistedImport =
         new AssetPersistRedisDto(
-            importId, TEST_USER_ID, TEST_ASSET_FILE_NAME, java.time.Instant.now(), persistedResponse);
+            importId,
+            TEST_USER_ID,
+            TEST_ASSET_FILE_NAME,
+            java.time.Instant.now(),
+            persistedResponse);
 
     when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-    when(valueOperations.get(redisKey)).thenReturn("{\"importId\":\"" + TEST_ASSET_IMPORT_ID + "\"}");
-    when(
-            objectMapper.readValue(
-                "{\"importId\":\"" + TEST_ASSET_IMPORT_ID + "\"}", AssetPersistRedisDto.class))
+    when(valueOperations.get(redisKey))
+        .thenReturn("{\"importId\":\"" + TEST_ASSET_IMPORT_ID + "\"}");
+    when(objectMapper.readValue(
+            "{\"importId\":\"" + TEST_ASSET_IMPORT_ID + "\"}", AssetPersistRedisDto.class))
         .thenReturn(persistedImport);
 
     AssetImportResponseDto result = assetService.retrieveImportedAssets(TEST_USER_ID, importId);
@@ -157,9 +161,7 @@ class AssetServiceImplTest {
 
     when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     when(valueOperations.get(redisKey)).thenReturn(null);
-    doThrow(notFoundException)
-        .when(assetValidationHelper)
-        .validateRetrievedImportExists(null);
+    doThrow(notFoundException).when(assetValidationHelper).validateRetrievedImportExists(null);
 
     PortfolioException thrown =
         assertThrows(

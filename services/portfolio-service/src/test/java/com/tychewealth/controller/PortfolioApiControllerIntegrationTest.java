@@ -282,11 +282,9 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(
-            jsonPath(TEST_JSON_CODE_PATH)
-                .value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getCode()))
+            jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getCode()))
         .andExpect(
-            jsonPath(TEST_JSON_TYPE_PATH)
-                .value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getType()))
+            jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.GENERIC_VALIDATION_ERROR.getType()))
         .andExpect(jsonPath("$." + DESCRIPTION).value(containsString(expectedMessage)));
   }
 

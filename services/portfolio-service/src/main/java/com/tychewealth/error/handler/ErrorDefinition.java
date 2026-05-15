@@ -61,9 +61,7 @@ public enum ErrorDefinition {
       "ASSET_IMPORT_RESULT_LIMIT_EXCEEDED",
       "The import produced too many assets. Maximum: ${expected:-}. Received: ${received:-}"),
   ASSET_IMPORT_NOT_FOUND(
-      "TYCHE-509",
-      "ASSET_IMPORT_NOT_FOUND",
-      "The imported asset result was not found");
+      "TYCHE-509", "ASSET_IMPORT_NOT_FOUND", "The imported asset result was not found");
 
   private final String code;
   private final String type;
