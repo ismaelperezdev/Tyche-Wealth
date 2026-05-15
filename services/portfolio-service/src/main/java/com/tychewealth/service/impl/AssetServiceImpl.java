@@ -15,6 +15,7 @@ import com.tychewealth.utils.Utils;
 import com.tychewealth.utils.prompts.AssetImportPromptUtils;
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -42,7 +43,9 @@ public class AssetServiceImpl implements AssetService {
     try {
       importId =
           Utils.sha256Hex(
-              payload.getFileName().toLowerCase() + ":" + Utils.sha256Hex(file.getBytes()));
+              payload.getFileName().toLowerCase(Locale.ROOT)
+                  + ":"
+                  + Utils.sha256Hex(file.getBytes()));
     } catch (IOException ex) {
       throw new AssetImportException(
           ErrorDefinition.ASSET_IMPORT_EXTRACTION_FAILED, Map.of(), HttpStatus.BAD_REQUEST);

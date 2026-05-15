@@ -33,6 +33,7 @@ import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -103,7 +104,8 @@ public class ImportAssetsHelper {
     try {
       cacheKey =
           IMPORT_CACHE_KEY_PREFIX
-              + Utils.sha256Hex(fileName.toLowerCase() + ":" + Utils.sha256Hex(file.getBytes()));
+              + Utils.sha256Hex(
+                  fileName.toLowerCase(Locale.ROOT) + ":" + Utils.sha256Hex(file.getBytes()));
     } catch (IOException ex) {
       throw new AssetImportException(
           ErrorDefinition.ASSET_IMPORT_EXTRACTION_FAILED, Map.of(), HttpStatus.BAD_REQUEST);
@@ -215,8 +217,8 @@ public class ImportAssetsHelper {
         return;
       }
 
-      boolean inflightExists = redisTemplate.hasKey(inflightKey);
-      if (!inflightExists) {
+      Boolean inflightExists = redisTemplate.hasKey(inflightKey);
+      if (!Boolean.TRUE.equals(inflightExists)) {
         return;
       }
 
