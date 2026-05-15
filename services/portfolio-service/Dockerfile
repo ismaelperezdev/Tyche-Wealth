@@ -21,6 +21,6 @@ COPY --from=build /app/services/portfolio-service/target/*.jar app.jar
 RUN useradd --system --create-home --uid 10001 appuser
 USER 10001:10001
 
-EXPOSE 8081
+EXPOSE 8082
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
