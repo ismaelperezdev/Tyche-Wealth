@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tychewealth.dto.asset.AssetImportPayloadDto;
+import com.tychewealth.dto.asset.request.AssetImportPayloadDto;
 import com.tychewealth.testhelper.TestRedisSupport;
 import com.tychewealth.testhelper.TestRedisSupport.InMemoryRedisState;
 import com.tychewealth.utils.Utils;

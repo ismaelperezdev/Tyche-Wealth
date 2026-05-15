@@ -15,8 +15,9 @@ import static org.mockito.Mockito.*;
 
 import com.tychewealth.dto.ai.AiModelTypeEnum;
 import com.tychewealth.dto.asset.AssetImportCandidateDto;
-import com.tychewealth.dto.asset.AssetImportPayloadDto;
 import com.tychewealth.dto.asset.AssetImportResponseDto;
+import com.tychewealth.dto.asset.AssetPersistRedisDto;
+import com.tychewealth.dto.asset.request.AssetImportPayloadDto;
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.service.helper.asset.AssetValidationHelper;
@@ -26,6 +27,7 @@ import com.tychewealth.service.helper.asset.ai.ImportAssetsAiHelper;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -63,8 +65,15 @@ class AssetServiceImplTest {
         .thenReturn(parsedAssets);
 
     AssetImportResponseDto result = assetService.importAssets(TEST_USER_ID, file);
+    ArgumentCaptor<AssetPersistRedisDto> persistedImportCaptor =
+        ArgumentCaptor.forClass(AssetPersistRedisDto.class);
 
     assertEquals(parsedAssets, result.getAssets());
+    verify(importAssetsHelper).savePersistedImportResult(persistedImportCaptor.capture());
+    assertEquals(persistedImportCaptor.getValue().getImportId(), result.getImportId());
+    assertEquals(TEST_USER_ID, persistedImportCaptor.getValue().getUserId());
+    assertEquals(TEST_ASSET_FILE_NAME, persistedImportCaptor.getValue().getFileName());
+    assertEquals(result, persistedImportCaptor.getValue().getResult());
     verify(assetValidationHelper).validateImportRequest(TEST_USER_ID, file);
     verify(importAssetsHelper).buildImportPayload(file);
     verify(importAssetsAiHelper)

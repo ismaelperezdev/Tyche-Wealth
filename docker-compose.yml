@@ -30,14 +30,21 @@ services:
     env_file:
       - ./application-local.properties
     ports:
-      - "127.0.0.1:${PORTFOLIO_SERVICE_PORT:-8082}:8081"
+      - "127.0.0.1:${PORTFOLIO_SERVICE_PORT:-8082}:8082"
     volumes:
       - ./application-local.properties:/app/application-local.properties:ro
     environment:
       DB_URL_PORTFOLIO: ${DB_URL_PORTFOLIO:-jdbc:postgresql://postgres:5432/tyche_wealth_portfolio}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434/v1}
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - tyche-network
 

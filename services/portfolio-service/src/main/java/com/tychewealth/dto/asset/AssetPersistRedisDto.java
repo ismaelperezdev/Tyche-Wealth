@@ -1,7 +1,7 @@
 package com.tychewealth.dto.asset;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.List;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,8 +12,11 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class AssetImportResponseDto {
+public class AssetPersistRedisDto {
 
   private String importId;
-  private List<AssetImportCandidateDto> assets;
+  private Long userId;
+  private String fileName;
+  private Instant createdAt;
+  private AssetImportResponseDto result;
 }
