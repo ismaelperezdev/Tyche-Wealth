@@ -4,6 +4,7 @@ import static com.tychewealth.constants.LogConstants.ASSET;
 import static com.tychewealth.constants.LogConstants.IMPORT_ASSETS_ACTION;
 import static com.tychewealth.constants.LogConstants.REQUEST_START;
 import static com.tychewealth.constants.LogConstants.REQUEST_SUCCESS;
+import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import static com.tychewealth.constants.LogConstants.USER_ID;
 import static com.tychewealth.utils.Utils.buildNoStoreBodyResponse;
 
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,6 +38,18 @@ public class AssetApiController implements AssetApi {
 
     AssetImportResponseDto response = assetService.importAssets(userId, file);
     log.info(REQUEST_SUCCESS + USER_ID, ASSET, IMPORT_ASSETS_ACTION, userId);
+
+    return buildNoStoreBodyResponse(HttpStatus.OK, response);
+  }
+
+  @Override
+  @RateLimited(RateLimitKey.ASSET_IMPORT_RETRIEVE)
+  public ResponseEntity<AssetImportResponseDto> retrieveImportedAssets(
+      @AuthenticationPrincipal Long userId, @PathVariable String importId) {
+    log.info(REQUEST_START + USER_ID, ASSET, RETRIEVE_ACTION, userId);
+
+    AssetImportResponseDto response = assetService.retrieveImportedAssets(userId, importId);
+    log.info(REQUEST_SUCCESS + USER_ID, ASSET, RETRIEVE_ACTION, userId);
 
     return buildNoStoreBodyResponse(HttpStatus.OK, response);
   }

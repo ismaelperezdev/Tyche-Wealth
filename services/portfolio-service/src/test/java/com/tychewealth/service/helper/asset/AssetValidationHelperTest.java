@@ -3,12 +3,15 @@ package com.tychewealth.service.helper.asset;
 import static com.tychewealth.constants.CommonConstants.ERROR;
 import static com.tychewealth.constants.CommonConstants.EXPECTED;
 import static com.tychewealth.constants.CommonConstants.RECEIVED;
+import static com.tychewealth.constants.TestConstants.TEST_ASSET_IMPORT_ID;
 import static com.tychewealth.constants.TestConstants.TEST_FILE_PART_NAME;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_CONTENT_TYPE_CSV;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_FILE_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.tychewealth.dto.asset.AssetImportResponseDto;
+import com.tychewealth.dto.asset.AssetPersistRedisDto;
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.error.handler.ErrorDefinition;
@@ -16,6 +19,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -26,6 +30,28 @@ import org.springframework.mock.web.MockMultipartFile;
 class AssetValidationHelperTest {
 
   private final AssetValidationHelper helper = new AssetValidationHelper(10L, 2, 5, 1, 1, 2);
+
+  @Test
+  void validateRetrievedImportExistsDoesNothingWhenPersistedImportExists() {
+    AssetPersistRedisDto persistedImport =
+        new AssetPersistRedisDto(
+            TEST_ASSET_IMPORT_ID,
+            1L,
+            TEST_ASSET_FILE_NAME,
+            Instant.now(),
+            new AssetImportResponseDto());
+
+    helper.validateRetrievedImportExists(persistedImport);
+  }
+
+  @Test
+  void validateRetrievedImportExistsThrowsNotFoundWhenPersistedImportIsNull() {
+    PortfolioException exception =
+        assertThrows(PortfolioException.class, () -> helper.validateRetrievedImportExists(null));
+
+    assertEquals(ErrorDefinition.ASSET_IMPORT_NOT_FOUND, exception.getErrorDefinition());
+    assertEquals(HttpStatus.NOT_FOUND, exception.getHttpStatus());
+  }
 
   @Test
   void validateExtractionRequestRejectsNullFileNameAsGenericBadRequest() {

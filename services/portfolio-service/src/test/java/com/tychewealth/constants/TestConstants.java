@@ -15,6 +15,10 @@ public final class TestConstants {
   public static final String TEST_USERNAME_VALID = "validuser";
   public static final String TEST_PASSWORD_VALID = "Secret123!";
   public static final String TEST_FILE_PART_NAME = "file";
+  public static final String TEST_JSON_CODE_PATH = "$.code";
+  public static final String TEST_JSON_TYPE_PATH = "$.type";
+  public static final String TEST_ASSET_IMPORT_ID = "import-123";
+  public static final String TEST_MISSING_ASSET_IMPORT_ID = "missing-import";
   public static final long TEST_USER_ID = 42L;
   public static final long TEST_OTHER_USER_ID = 84L;
   public static final long TEST_MAX_PORTFOLIOS_PER_USER = 5L;

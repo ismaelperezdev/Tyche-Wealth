@@ -1,11 +1,16 @@
 package com.tychewealth.controller;
 
+import static com.tychewealth.constants.ApiConstants.ASSET_IMPORT_BY_ID_URL;
 import static com.tychewealth.constants.ApiConstants.ASSET_IMPORT_URL;
 import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static com.tychewealth.constants.CommonConstants.DESCRIPTION;
 import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
+import static com.tychewealth.constants.TestConstants.TEST_ASSET_IMPORT_ID;
 import static com.tychewealth.constants.TestConstants.TEST_FILE_PART_NAME;
+import static com.tychewealth.constants.TestConstants.TEST_JSON_CODE_PATH;
+import static com.tychewealth.constants.TestConstants.TEST_JSON_TYPE_PATH;
+import static com.tychewealth.constants.TestConstants.TEST_MISSING_ASSET_IMPORT_ID;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
 import static com.tychewealth.testdata.AssetTestData.AI_RESPONSE;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_CONTENT_TYPE_CSV;
@@ -24,6 +29,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
 import static org.springframework.http.HttpHeaders.PRAGMA;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -33,6 +39,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.config.AssetIntegrationTestConfig;
 import com.tychewealth.dto.ai.AiModelTypeEnum;
+import com.tychewealth.dto.asset.AssetImportResponseDto;
 import com.tychewealth.dto.asset.AssetPersistRedisDto;
 import com.tychewealth.enums.AssetTypeEnum;
 import com.tychewealth.enums.CurrencyCodeEnum;
@@ -42,6 +49,7 @@ import com.tychewealth.repository.PortfolioRepository;
 import com.tychewealth.service.helper.asset.ai.AiResponseParser;
 import com.tychewealth.service.helper.asset.ai.ImportAssetsAiHelper;
 import com.tychewealth.testhelper.TestRedisSupport.InMemoryRedisState;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -146,8 +154,8 @@ class AssetApiControllerIntegrationTest {
         .andExpect(status().isUnauthorized())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
-        .andExpect(jsonPath("$.code").value(ErrorDefinition.UNAUTHORIZED.getCode()))
-        .andExpect(jsonPath("$.type").value(ErrorDefinition.UNAUTHORIZED.getType()))
+        .andExpect(jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.UNAUTHORIZED.getCode()))
+        .andExpect(jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.UNAUTHORIZED.getType()))
         .andExpect(
             jsonPath("$." + DESCRIPTION).value(ErrorDefinition.UNAUTHORIZED.getDescription()));
   }
@@ -166,8 +174,10 @@ class AssetApiControllerIntegrationTest {
         .andExpect(status().isBadRequest())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
-        .andExpect(jsonPath("$.code").value(ErrorDefinition.GENERIC_BAD_REQUEST.getCode()))
-        .andExpect(jsonPath("$.type").value(ErrorDefinition.GENERIC_BAD_REQUEST.getType()))
+        .andExpect(
+            jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.GENERIC_BAD_REQUEST.getCode()))
+        .andExpect(
+            jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.GENERIC_BAD_REQUEST.getType()))
         .andExpect(jsonPath("$." + DESCRIPTION).value(containsString("file must not be empty")));
   }
 
@@ -190,8 +200,59 @@ class AssetApiControllerIntegrationTest {
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(
-            jsonPath("$.code").value(ErrorDefinition.ATTACHMENT_SIZE_LIMIT_EXCEEDED.getCode()))
+            jsonPath(TEST_JSON_CODE_PATH)
+                .value(ErrorDefinition.ATTACHMENT_SIZE_LIMIT_EXCEEDED.getCode()))
         .andExpect(
-            jsonPath("$.type").value(ErrorDefinition.ATTACHMENT_SIZE_LIMIT_EXCEEDED.getType()));
+            jsonPath(TEST_JSON_TYPE_PATH)
+                .value(ErrorDefinition.ATTACHMENT_SIZE_LIMIT_EXCEEDED.getType()));
+  }
+
+  @Test
+  void retrieveImportedAssetsReturnsOkWhenPersistedImportExists() throws Exception {
+    AssetImportResponseDto response =
+        new AssetImportResponseDto(TEST_ASSET_IMPORT_ID, List.of(validImportedAssetCandidate()));
+    AssetPersistRedisDto persistedImport =
+        new AssetPersistRedisDto(
+            TEST_ASSET_IMPORT_ID, TEST_USER_ID, TEST_ASSET_FILE_NAME, Instant.now(), response);
+
+    redisState.set(
+        "asset-import:result:" + TEST_USER_ID + ":" + TEST_ASSET_IMPORT_ID,
+        objectMapper.writeValueAsString(persistedImport),
+        null);
+
+    mockMvc
+        .perform(
+            get(ASSET_IMPORT_BY_ID_URL, TEST_ASSET_IMPORT_ID)
+                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+        .andExpect(status().isOk())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(jsonPath("$.importId").value(TEST_ASSET_IMPORT_ID))
+        .andExpect(jsonPath("$.assets[0].name").value(TEST_ASSET_NAME_APPLE))
+        .andExpect(jsonPath("$.assets[0].symbol").value(TEST_ASSET_SYMBOL_AAPL))
+        .andExpect(jsonPath("$.assets[0].assetType").value(AssetTypeEnum.STOCK.name()))
+        .andExpect(jsonPath("$.assets[0].quantity").value(TEST_ASSET_RESPONSE_QUANTITY.intValue()))
+        .andExpect(
+            jsonPath("$.assets[0].averagePrice")
+                .value(TEST_ASSET_RESPONSE_AVERAGE_PRICE.doubleValue()))
+        .andExpect(jsonPath("$.assets[0].currency").value(CurrencyCodeEnum.USD.name()));
+  }
+
+  @Test
+  void retrieveImportedAssetsReturnsNotFoundWhenPersistedImportDoesNotExist() throws Exception {
+    mockMvc
+        .perform(
+            get(ASSET_IMPORT_BY_ID_URL, TEST_MISSING_ASSET_IMPORT_ID)
+                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+        .andExpect(status().isNotFound())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(
+            jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.ASSET_IMPORT_NOT_FOUND.getCode()))
+        .andExpect(
+            jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.ASSET_IMPORT_NOT_FOUND.getType()))
+        .andExpect(
+            jsonPath("$." + DESCRIPTION)
+                .value(ErrorDefinition.ASSET_IMPORT_NOT_FOUND.getDescription()));
   }
 }

@@ -1,5 +1,6 @@
 package com.tychewealth.controller;
 
+import static com.tychewealth.constants.ApiConstants.ASSET_IMPORT_BY_ID_URL;
 import static com.tychewealth.constants.ApiConstants.ASSET_IMPORT_URL;
 import static com.tychewealth.constants.ApiConstants.MULTIPART_FORM_DATA;
 import static com.tychewealth.constants.ApiConstants.REQUEST_PRODUCES;
@@ -8,6 +9,8 @@ import com.tychewealth.dto.asset.AssetImportResponseDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -23,4 +26,8 @@ public interface AssetApi {
       produces = REQUEST_PRODUCES)
   ResponseEntity<AssetImportResponseDto> importAssets(
       @AuthenticationPrincipal Long userId, @RequestPart("file") MultipartFile file);
+
+  @GetMapping(value = ASSET_IMPORT_BY_ID_URL, produces = REQUEST_PRODUCES)
+  ResponseEntity<AssetImportResponseDto> retrieveImportedAssets(
+      @AuthenticationPrincipal Long userId, @PathVariable String importId);
 }
