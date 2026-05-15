@@ -103,7 +103,9 @@ public final class AiResponseSanitizer {
 
       if (current == opening) {
         depth++;
-      } else if (current == closing && --depth == 0) {
+      }
+
+      if (current == closing && --depth == 0) {
         return currentIndex;
       }
     }
@@ -310,7 +312,7 @@ public final class AiResponseSanitizer {
   }
 
   private static boolean nextInString(char current, boolean inString, boolean escaping) {
-    return !escaping && current == QUOTE ? !inString : inString;
+    return (!escaping && current == QUOTE) != inString;
   }
 
   private record CommentStripState(int skipUntil, boolean inString, boolean escaping) {}
