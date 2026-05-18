@@ -19,7 +19,6 @@ import static com.tychewealth.utils.Utils.sha256Hex;
 
 import com.tychewealth.client.AiClient;
 import com.tychewealth.dto.ai.AiModelTypeEnum;
-import com.tychewealth.service.helper.asset.AssetValidationHelper;
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -40,19 +39,19 @@ public class ImportAssetsAiHelper {
 
   private final Duration aiRequestTimeout;
   private final AiClient aiClient;
-  private final AssetValidationHelper assetValidationHelper;
+  private final AssetAiValidationHelper assetAiValidationHelper;
   private final RedisTemplate<String, String> redisTemplate;
   private final ThreadPoolExecutor aiExecutor;
 
   public ImportAssetsAiHelper(
       AiClient aiClient,
       Duration assetImportAiRequestTimeout,
-      AssetValidationHelper assetValidationHelper,
+      AssetAiValidationHelper assetAiValidationHelper,
       RedisTemplate<String, String> redisTemplate,
       ThreadPoolExecutor assetImportAiExecutor) {
     this.aiClient = aiClient;
     this.aiRequestTimeout = assetImportAiRequestTimeout;
-    this.assetValidationHelper = assetValidationHelper;
+    this.assetAiValidationHelper = assetAiValidationHelper;
     this.redisTemplate = redisTemplate;
     this.aiExecutor = assetImportAiExecutor;
   }
@@ -112,7 +111,7 @@ public class ImportAssetsAiHelper {
       remainingTimeoutNanos = deadlineNanos - System.nanoTime();
       if (remainingTimeoutNanos <= 0) {
         future.cancel(true);
-        throw assetValidationHelper.aiTimeoutExceeded(aiRequestTimeout.toSeconds());
+        throw assetAiValidationHelper.aiTimeoutExceeded(aiRequestTimeout.toSeconds());
       }
 
       response = future.get(remainingTimeoutNanos, TimeUnit.NANOSECONDS);
@@ -144,7 +143,7 @@ public class ImportAssetsAiHelper {
 
     } catch (TimeoutException ex) {
       future.cancel(true);
-      throw assetValidationHelper.aiTimeoutExceeded(assetValidationHelper.aiTimeoutSeconds());
+      throw assetAiValidationHelper.aiTimeoutExceeded(assetAiValidationHelper.aiTimeoutSeconds());
 
     } catch (ExecutionException ex) {
       log.error(

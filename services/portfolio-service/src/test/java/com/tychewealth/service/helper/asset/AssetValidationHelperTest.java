@@ -1,160 +1,93 @@
 package com.tychewealth.service.helper.asset;
 
-import static com.tychewealth.constants.CommonConstants.ERROR;
-import static com.tychewealth.constants.CommonConstants.EXPECTED;
-import static com.tychewealth.constants.CommonConstants.RECEIVED;
-import static com.tychewealth.constants.TestConstants.TEST_ASSET_IMPORT_ID;
-import static com.tychewealth.constants.TestConstants.TEST_FILE_PART_NAME;
-import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_CONTENT_TYPE_CSV;
-import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_FILE_NAME;
+import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_ID;
+import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_NAME_APPLE;
+import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_SYMBOL_AAPL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.when;
 
-import com.tychewealth.dto.asset.AssetImportResponseDto;
-import com.tychewealth.dto.asset.AssetPersistRedisDto;
-import com.tychewealth.error.exception.AssetImportException;
+import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.error.handler.ErrorDefinition;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.Map;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
+import com.tychewealth.repository.AssetRepository;
+import java.util.Collections;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
-import org.springframework.mock.web.MockMultipartFile;
 
+@ExtendWith(MockitoExtension.class)
 class AssetValidationHelperTest {
 
-  private final AssetValidationHelper helper = new AssetValidationHelper(10L, 2, 5, 1, 1, 2);
+  @Mock private AssetRepository assetRepository;
 
   @Test
-  void validateRetrievedImportExistsDoesNothingWhenPersistedImportExists() {
-    AssetPersistRedisDto persistedImport =
-        new AssetPersistRedisDto(
-            TEST_ASSET_IMPORT_ID,
-            1L,
-            TEST_ASSET_FILE_NAME,
-            Instant.now(),
-            new AssetImportResponseDto());
+  void validateCreateLimitThrowsConflictWhenPortfolioAlreadyHasMaximumAssets() {
+    AssetValidationHelper helper = new AssetValidationHelper(assetRepository);
 
-    helper.validateRetrievedImportExists(persistedImport);
-  }
+    when(assetRepository.findByPortfolioId(TEST_PORTFOLIO_ID))
+        .thenReturn(Collections.nCopies(200, new AssetEntity()));
 
-  @Test
-  void validateRetrievedImportExistsThrowsNotFoundWhenPersistedImportIsNull() {
     PortfolioException exception =
-        assertThrows(PortfolioException.class, () -> helper.validateRetrievedImportExists(null));
+        assertThrows(PortfolioException.class, () -> helper.validateCreateLimit(TEST_PORTFOLIO_ID));
 
-    assertEquals(ErrorDefinition.ASSET_IMPORT_NOT_FOUND, exception.getErrorDefinition());
-    assertEquals(HttpStatus.NOT_FOUND, exception.getHttpStatus());
+    assertEquals(ErrorDefinition.ASSET_LIMIT_REACHED, exception.getErrorDefinition());
+    assertEquals(HttpStatus.CONFLICT, exception.getHttpStatus());
   }
 
   @Test
-  void validateExtractionRequestRejectsNullFileNameAsGenericBadRequest() {
-    ByteArrayInputStream inputStream =
-        new ByteArrayInputStream("hello".getBytes(StandardCharsets.UTF_8));
-    PortfolioException exception =
-        assertThrows(
-            PortfolioException.class, () -> helper.validateExtractionRequest(null, inputStream));
+  void validateCreateNameConflictThrowsConflictWhenAssetNameAlreadyExists() {
+    AssetValidationHelper helper = new AssetValidationHelper(assetRepository);
 
-    assertEquals(ErrorDefinition.GENERIC_BAD_REQUEST, exception.getErrorDefinition());
-    assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
-    assertEquals(
-        PortfolioException.of(
-                ErrorDefinition.GENERIC_BAD_REQUEST,
-                Map.of(ERROR, "fileName must not be null"),
-                HttpStatus.BAD_REQUEST)
-            .getMessage(),
-        exception.getMessage());
-  }
+    when(assetRepository.existsByPortfolioIdAndName(TEST_PORTFOLIO_ID, TEST_ASSET_NAME_APPLE))
+        .thenReturn(true);
 
-  @Test
-  void validateExtractionRequestRejectsNullInputStreamAsGenericBadRequest() {
     PortfolioException exception =
         assertThrows(
             PortfolioException.class,
-            () -> helper.validateExtractionRequest("statement.pdf", null));
+            () -> helper.validateCreateNameConflict(TEST_PORTFOLIO_ID, TEST_ASSET_NAME_APPLE));
 
-    assertEquals(ErrorDefinition.GENERIC_BAD_REQUEST, exception.getErrorDefinition());
-    assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
-    assertEquals(
-        PortfolioException.of(
-                ErrorDefinition.GENERIC_BAD_REQUEST,
-                Map.of(ERROR, "inputStream must not be null"),
-                HttpStatus.BAD_REQUEST)
-            .getMessage(),
-        exception.getMessage());
+    assertEquals(ErrorDefinition.ASSET_NAME_CONFLICT, exception.getErrorDefinition());
+    assertEquals(HttpStatus.CONFLICT, exception.getHttpStatus());
+    assertEquals(TEST_ASSET_NAME_APPLE, exception.getDescription().get("name"));
   }
 
   @Test
-  void validateImportRequestRejectsFileLargerThanConfiguredLimit() {
-    MockMultipartFile file =
-        new MockMultipartFile(
-            TEST_FILE_PART_NAME,
-            TEST_ASSET_FILE_NAME,
-            TEST_ASSET_CONTENT_TYPE_CSV,
-            "12345678901".getBytes(StandardCharsets.UTF_8));
+  void translateSymbolPersistenceConflictReturnsPortfolioExceptionForUniqueConstraint() {
+    AssetValidationHelper helper = new AssetValidationHelper(assetRepository);
+    DataIntegrityViolationException exception =
+        new DataIntegrityViolationException(
+            "duplicate",
+            new ConstraintViolationException(
+                "could not execute statement", null, "uq_asset_portfolio_id_symbol_index"));
 
-    AssetImportException exception =
-        assertThrows(AssetImportException.class, () -> helper.validateImportRequest(1L, file));
+    PortfolioException result =
+        helper.translateSymbolPersistenceConflict(
+            exception, TEST_PORTFOLIO_ID, TEST_ASSET_SYMBOL_AAPL);
 
-    assertEquals(ErrorDefinition.ATTACHMENT_SIZE_LIMIT_EXCEEDED, exception.getErrorDefinition());
-    assertEquals(
-        AssetImportException.of(
-                ErrorDefinition.ATTACHMENT_SIZE_LIMIT_EXCEEDED,
-                Map.of(EXPECTED, "10", RECEIVED, "11"),
-                HttpStatus.BAD_REQUEST)
-            .getMessage(),
-        exception.getMessage());
+    assertEquals(ErrorDefinition.ASSET_SYMBOL_CONFLICT, result.getErrorDefinition());
+    assertEquals(HttpStatus.CONFLICT, result.getHttpStatus());
+    assertEquals(TEST_ASSET_SYMBOL_AAPL, result.getDescription().get("name"));
   }
 
   @Test
-  void validateImportRequestRejectsPdfWithTooManyPages() throws IOException {
-    byte[] pdfBytes;
-    try (PDDocument document = new PDDocument();
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-      document.addPage(new PDPage());
-      document.addPage(new PDPage());
-      document.addPage(new PDPage());
-      document.save(outputStream);
-      pdfBytes = outputStream.toByteArray();
-    }
+  void translateSymbolPersistenceConflictRethrowsOriginalExceptionWhenConstraintIsUnrelated() {
+    AssetValidationHelper helper = new AssetValidationHelper(assetRepository);
+    DataIntegrityViolationException exception =
+        new DataIntegrityViolationException("some unrelated persistence failure");
 
-    AssetValidationHelper pageLimitedHelper =
-        new AssetValidationHelper(pdfBytes.length + 100L, 2, 5, 1, 1, 2);
-    MockMultipartFile file =
-        new MockMultipartFile(TEST_FILE_PART_NAME, "statement.pdf", "application/pdf", pdfBytes);
-
-    AssetImportException exception =
+    DataIntegrityViolationException thrown =
         assertThrows(
-            AssetImportException.class, () -> pageLimitedHelper.validateImportRequest(1L, file));
+            DataIntegrityViolationException.class,
+            () ->
+                helper.translateSymbolPersistenceConflict(
+                    exception, TEST_PORTFOLIO_ID, TEST_ASSET_SYMBOL_AAPL));
 
-    assertEquals(ErrorDefinition.ATTACHMENT_PAGE_LIMIT_EXCEEDED, exception.getErrorDefinition());
-    assertEquals(
-        AssetImportException.of(
-                ErrorDefinition.ATTACHMENT_PAGE_LIMIT_EXCEEDED,
-                Map.of(EXPECTED, "2", RECEIVED, "3"),
-                HttpStatus.BAD_REQUEST)
-            .getMessage(),
-        exception.getMessage());
-  }
-
-  @Test
-  void validateExtractedTextRejectsTooManyCharacters() {
-    AssetImportException exception =
-        assertThrows(AssetImportException.class, () -> helper.validateExtractedText("123456"));
-
-    assertEquals(ErrorDefinition.ATTACHMENT_TEXT_LIMIT_EXCEEDED, exception.getErrorDefinition());
-    assertEquals(
-        AssetImportException.of(
-                ErrorDefinition.ATTACHMENT_TEXT_LIMIT_EXCEEDED,
-                Map.of(EXPECTED, "5", RECEIVED, "6"),
-                HttpStatus.BAD_REQUEST)
-            .getMessage(),
-        exception.getMessage());
+    assertSame(exception, thrown);
   }
 }

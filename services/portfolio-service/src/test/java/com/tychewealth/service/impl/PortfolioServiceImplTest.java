@@ -2,6 +2,8 @@ package com.tychewealth.service.impl;
 
 import static com.tychewealth.constants.CommonConstants.NAME;
 import static com.tychewealth.constants.CommonConstants.NAME_PLACEHOLDER;
+import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
+import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_ID;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_MAX_RISK;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_NAME_CORE;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_NAME_RETIREMENT;
@@ -26,6 +28,7 @@ import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.mapper.portfolio.PortfolioMapper;
 import com.tychewealth.repository.PortfolioRepository;
+import com.tychewealth.service.helper.CommonValidationHelper;
 import com.tychewealth.service.helper.portfolio.PortfolioValidationHelper;
 import java.util.List;
 import java.util.Optional;
@@ -40,12 +43,12 @@ import org.springframework.http.HttpStatus;
 @ExtendWith(MockitoExtension.class)
 class PortfolioServiceImplTest {
 
-  private static final long TEST_PORTFOLIO_ID = 7L;
   private static final long TEST_SECOND_PORTFOLIO_ID = 8L;
   private static final String TEST_UPDATED_PORTFOLIO_NAME_RETIREMENT = "Updated retirement";
 
   @Mock private PortfolioRepository portfolioRepository;
   @Mock private PortfolioMapper portfolioMapper;
+  @Mock private CommonValidationHelper commonValidationHelper;
   @Mock private PortfolioValidationHelper portfolioValidationHelper;
 
   @InjectMocks private PortfolioServiceImpl portfolioService;
@@ -103,7 +106,8 @@ class PortfolioServiceImplTest {
     response.setId(TEST_PORTFOLIO_ID);
     response.setName(TEST_PORTFOLIO_NAME_CORE);
 
-    when(portfolioValidationHelper.validateOwnedPortfolio(TEST_USER_ID, TEST_PORTFOLIO_ID))
+    when(commonValidationHelper.validateOwnedPortfolio(
+            TEST_USER_ID, TEST_PORTFOLIO_ID, RETRIEVE_ACTION))
         .thenReturn(portfolio);
     when(portfolioMapper.toDto(portfolio)).thenReturn(response);
 
@@ -111,8 +115,9 @@ class PortfolioServiceImplTest {
 
     assertEquals(TEST_PORTFOLIO_ID, result.getId());
     assertEquals(TEST_PORTFOLIO_NAME_CORE, result.getName());
-    verify(portfolioValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
-    verify(portfolioValidationHelper).validateOwnedPortfolio(TEST_USER_ID, TEST_PORTFOLIO_ID);
+    verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
+    verify(commonValidationHelper)
+        .validateOwnedPortfolio(TEST_USER_ID, TEST_PORTFOLIO_ID, RETRIEVE_ACTION);
   }
 
   @Test
@@ -146,6 +151,7 @@ class PortfolioServiceImplTest {
     assertEquals(10L, result.getId());
     assertEquals(TEST_PORTFOLIO_NAME_RETIREMENT, result.getName());
     assertEquals(TEST_USER_ID, mappedEntity.getUserId());
+    verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
     verify(portfolioValidationHelper).validateCreateRequest(TEST_USER_ID, request);
   }
 
@@ -168,7 +174,7 @@ class PortfolioServiceImplTest {
                 java.util.Map.of(NAME, TEST_PORTFOLIO_NAME_RETIREMENT),
                 HttpStatus.CONFLICT))
         .when(portfolioValidationHelper)
-        .validateCreatePersistenceConflict(persistenceException, TEST_PORTFOLIO_NAME_RETIREMENT);
+        .translateNamePersistenceConflict(persistenceException, TEST_PORTFOLIO_NAME_RETIREMENT);
 
     PortfolioException expected =
         assertThrows(PortfolioException.class, () -> portfolioService.create(42L, request));
@@ -179,7 +185,7 @@ class PortfolioServiceImplTest {
             .replace(NAME_PLACEHOLDER, TEST_PORTFOLIO_NAME_RETIREMENT),
         expected.getMessage());
     verify(portfolioValidationHelper)
-        .validateCreatePersistenceConflict(persistenceException, TEST_PORTFOLIO_NAME_RETIREMENT);
+        .translateNamePersistenceConflict(persistenceException, TEST_PORTFOLIO_NAME_RETIREMENT);
   }
 
   @Test
@@ -209,6 +215,7 @@ class PortfolioServiceImplTest {
     assertEquals(TEST_UPDATED_PORTFOLIO_NAME_RETIREMENT, result.getName());
     verify(portfolioMapper).update(request, existingPortfolio);
     verify(portfolioRepository).saveAndFlush(existingPortfolio);
+    verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
   }
 
   @Test
@@ -233,7 +240,7 @@ class PortfolioServiceImplTest {
                 java.util.Map.of(NAME, TEST_PORTFOLIO_NAME_RETIREMENT),
                 HttpStatus.CONFLICT))
         .when(portfolioValidationHelper)
-        .validateUpdatePersistenceConflict(persistenceException, TEST_PORTFOLIO_NAME_RETIREMENT);
+        .translateNamePersistenceConflict(persistenceException, TEST_PORTFOLIO_NAME_RETIREMENT);
 
     PortfolioException expected =
         assertThrows(
@@ -246,7 +253,7 @@ class PortfolioServiceImplTest {
             .replace(NAME_PLACEHOLDER, TEST_PORTFOLIO_NAME_RETIREMENT),
         expected.getMessage());
     verify(portfolioValidationHelper)
-        .validateUpdatePersistenceConflict(persistenceException, TEST_PORTFOLIO_NAME_RETIREMENT);
+        .translateNamePersistenceConflict(persistenceException, TEST_PORTFOLIO_NAME_RETIREMENT);
   }
 
   @Test
@@ -260,7 +267,7 @@ class PortfolioServiceImplTest {
 
     portfolioService.delete(TEST_USER_ID, TEST_PORTFOLIO_ID);
 
-    verify(portfolioValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
+    verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
     verify(portfolioRepository).delete(portfolio);
   }
 
@@ -271,7 +278,7 @@ class PortfolioServiceImplTest {
 
     portfolioService.delete(TEST_USER_ID, TEST_PORTFOLIO_ID);
 
-    verify(portfolioValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
+    verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
     verify(portfolioRepository, never()).delete(org.mockito.ArgumentMatchers.any());
   }
 }

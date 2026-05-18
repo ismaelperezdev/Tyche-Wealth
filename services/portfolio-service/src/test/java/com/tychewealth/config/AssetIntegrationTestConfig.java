@@ -2,8 +2,11 @@ package com.tychewealth.config;
 
 import com.tychewealth.config.support.TestSupportConfig;
 import com.tychewealth.controller.impl.AssetApiController;
+import com.tychewealth.service.helper.CommonValidationHelper;
+import com.tychewealth.service.helper.asset.AssetCreateHelper;
 import com.tychewealth.service.helper.asset.AssetValidationHelper;
 import com.tychewealth.service.helper.asset.ImportAssetsHelper;
+import com.tychewealth.service.helper.asset.ai.AssetAiValidationHelper;
 import com.tychewealth.service.impl.AssetServiceImpl;
 import org.jspecify.annotations.NonNull;
 import org.springframework.boot.SpringBootConfiguration;
@@ -19,7 +22,10 @@ import org.springframework.context.annotation.Import;
   TestSupportConfig.class,
   AssetApiController.class,
   AssetServiceImpl.class,
+  AssetCreateHelper.class,
+  CommonValidationHelper.class,
   AssetValidationHelper.class,
+  AssetAiValidationHelper.class,
   ImportAssetsHelper.class
 })
 public class AssetIntegrationTestConfig {

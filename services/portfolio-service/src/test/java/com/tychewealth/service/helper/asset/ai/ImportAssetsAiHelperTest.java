@@ -31,7 +31,6 @@ import com.tychewealth.client.AiClient;
 import com.tychewealth.dto.ai.AiModelTypeEnum;
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.handler.ErrorDefinition;
-import com.tychewealth.service.helper.asset.AssetValidationHelper;
 import com.tychewealth.testhelper.TestRedisSupport;
 import com.tychewealth.testhelper.TestRedisSupport.InMemoryRedisState;
 import java.util.concurrent.CompletableFuture;
@@ -51,15 +50,15 @@ import org.springframework.web.server.ResponseStatusException;
 
 class ImportAssetsAiHelperTest {
 
-  private AssetValidationHelper validationHelper;
+  private AssetAiValidationHelper assetAiValidationHelper;
   private InMemoryRedisState redisState;
   private RedisTemplate<String, String> redisTemplate;
   private AiClient aiClient;
 
   @BeforeEach
   void setUp() {
-    validationHelper =
-        new AssetValidationHelper(
+    assetAiValidationHelper =
+        new AssetAiValidationHelper(
             TEST_MAX_FILE_SIZE_BYTES,
             TEST_MAX_PDF_PAGES,
             TEST_MAX_EXTRACTED_CHARACTERS,
@@ -74,8 +73,8 @@ class ImportAssetsAiHelperTest {
   @Test
   void promptFastUsesSingleAiTimeoutBudgetAcrossQueueWaitAndExecution()
       throws ExecutionException, InterruptedException {
-    validationHelper =
-        new AssetValidationHelper(
+    assetAiValidationHelper =
+        new AssetAiValidationHelper(
             TEST_MAX_FILE_SIZE_BYTES,
             TEST_MAX_PDF_PAGES,
             TEST_MAX_EXTRACTED_CHARACTERS,
@@ -110,12 +109,12 @@ class ImportAssetsAiHelperTest {
 
     ThreadPoolExecutor executor =
         buildAiExecutor(
-            validationHelper,
+            assetAiValidationHelper,
             TEST_EXECUTOR_CONCURRENCY,
             TEST_EXECUTOR_QUEUE_CAPACITY,
             TEST_QUEUE_OFFER_TIMEOUT_SECONDS);
     ImportAssetsAiHelper helper =
-        buildImportAssetsAiHelper(aiClient, validationHelper, redisTemplate, executor);
+        buildImportAssetsAiHelper(aiClient, assetAiValidationHelper, redisTemplate, executor);
     ExecutorService requestExecutor = Executors.newFixedThreadPool(2);
 
     try {
@@ -169,12 +168,12 @@ class ImportAssetsAiHelperTest {
 
     ThreadPoolExecutor executor =
         buildAiExecutor(
-            validationHelper,
+            assetAiValidationHelper,
             TEST_EXECUTOR_CONCURRENCY,
             TEST_EXECUTOR_QUEUE_CAPACITY,
             TEST_QUEUE_OFFER_TIMEOUT_SECONDS);
     ImportAssetsAiHelper helper =
-        buildImportAssetsAiHelper(aiClient, validationHelper, redisTemplate, executor);
+        buildImportAssetsAiHelper(aiClient, assetAiValidationHelper, redisTemplate, executor);
 
     try {
       CompletableFuture<String> first =

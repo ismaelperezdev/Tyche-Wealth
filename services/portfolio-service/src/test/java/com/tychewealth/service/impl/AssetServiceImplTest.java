@@ -1,6 +1,7 @@
 package com.tychewealth.service.impl;
 
 import static com.tychewealth.constants.CommonConstants.ERROR;
+import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import static com.tychewealth.constants.RedisConstants.ASSET_IMPORT_RESULT_KEY_PREFIX;
 import static com.tychewealth.constants.TestConstants.TEST_ASSET_IMPORT_ID;
 import static com.tychewealth.constants.TestConstants.TEST_FILE_PART_NAME;
@@ -22,13 +23,19 @@ import com.tychewealth.dto.ai.AiModelTypeEnum;
 import com.tychewealth.dto.asset.AssetImportCandidateDto;
 import com.tychewealth.dto.asset.AssetImportResponseDto;
 import com.tychewealth.dto.asset.AssetPersistRedisDto;
+import com.tychewealth.dto.asset.AssetResponseDto;
+import com.tychewealth.dto.asset.request.AssetCreateRequestDto;
 import com.tychewealth.dto.asset.request.AssetImportPayloadDto;
+import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.error.handler.ErrorDefinition;
+import com.tychewealth.service.helper.CommonValidationHelper;
+import com.tychewealth.service.helper.asset.AssetCreateHelper;
 import com.tychewealth.service.helper.asset.AssetValidationHelper;
 import com.tychewealth.service.helper.asset.ImportAssetsHelper;
 import com.tychewealth.service.helper.asset.ai.AiResponseParser;
+import com.tychewealth.service.helper.asset.ai.AssetAiValidationHelper;
 import com.tychewealth.service.helper.asset.ai.ImportAssetsAiHelper;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -45,7 +52,10 @@ import org.springframework.mock.web.MockMultipartFile;
 @ExtendWith(MockitoExtension.class)
 class AssetServiceImplTest {
 
+  @Mock private AssetCreateHelper assetCreateHelper;
   @Mock private AssetValidationHelper assetValidationHelper;
+  @Mock private AssetAiValidationHelper assetAiValidationHelper;
+  @Mock private CommonValidationHelper commonValidationHelper;
   @Mock private ImportAssetsAiHelper importAssetsAiHelper;
   @Mock private ImportAssetsHelper importAssetsHelper;
   @Mock private AiResponseParser aiResponseParser;
@@ -54,6 +64,60 @@ class AssetServiceImplTest {
   @Mock private ObjectMapper objectMapper;
 
   @InjectMocks private AssetServiceImpl assetService;
+
+  @Test
+  void createValidatesAndDelegatesToCreateHelper() {
+    Long portfolioId = 10L;
+    AssetCreateRequestDto request = new AssetCreateRequestDto();
+    request.setName("Apple");
+    request.setSymbol("AAPL");
+    PortfolioEntity portfolio = new PortfolioEntity();
+    portfolio.setId(portfolioId);
+    AssetResponseDto response = new AssetResponseDto();
+    response.setId(20L);
+
+    when(commonValidationHelper.validateOwnedPortfolio(TEST_USER_ID, portfolioId, RETRIEVE_ACTION))
+        .thenReturn(portfolio);
+    when(assetCreateHelper.create(portfolio, request)).thenReturn(response);
+
+    AssetResponseDto result = assetService.create(TEST_USER_ID, portfolioId, request);
+
+    assertSame(response, result);
+    verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
+    verify(commonValidationHelper)
+        .validateOwnedPortfolio(TEST_USER_ID, portfolioId, RETRIEVE_ACTION);
+    verify(assetValidationHelper).validateCreateLimit(portfolioId);
+    verify(assetValidationHelper).validateCreateNameConflict(portfolioId, request.getName());
+    verify(assetCreateHelper).create(portfolio, request);
+  }
+
+  @Test
+  void createStopsWhenNameValidationFails() {
+    Long portfolioId = 10L;
+    AssetCreateRequestDto request = new AssetCreateRequestDto();
+    request.setName("Apple");
+    PortfolioEntity portfolio = new PortfolioEntity();
+    portfolio.setId(portfolioId);
+    PortfolioException conflict =
+        new PortfolioException(
+            ErrorDefinition.ASSET_NAME_CONFLICT, java.util.Map.of(), HttpStatus.CONFLICT);
+
+    when(commonValidationHelper.validateOwnedPortfolio(TEST_USER_ID, portfolioId, RETRIEVE_ACTION))
+        .thenReturn(portfolio);
+    doThrow(conflict)
+        .when(assetValidationHelper)
+        .validateCreateNameConflict(portfolioId, request.getName());
+
+    PortfolioException thrown =
+        assertThrows(
+            PortfolioException.class,
+            () -> assetService.create(TEST_USER_ID, portfolioId, request));
+
+    assertSame(conflict, thrown);
+    verify(assetValidationHelper).validateCreateLimit(portfolioId);
+    verify(assetValidationHelper).validateCreateNameConflict(portfolioId, request.getName());
+    verifyNoInteractions(assetCreateHelper);
+  }
 
   @Test
   void importAssetsBuildsPromptDelegatesToAiAndReturnsEnrichedResponse() {
@@ -85,7 +149,7 @@ class AssetServiceImplTest {
     assertEquals(TEST_USER_ID, persistedImportCaptor.getValue().getUserId());
     assertEquals(TEST_ASSET_FILE_NAME, persistedImportCaptor.getValue().getFileName());
     assertEquals(result, persistedImportCaptor.getValue().getResult());
-    verify(assetValidationHelper).validateImportRequest(TEST_USER_ID, file);
+    verify(assetAiValidationHelper).validateImportRequest(file);
     verify(importAssetsHelper).buildImportPayload(file);
     verify(importAssetsAiHelper)
         .prompt(
@@ -105,16 +169,14 @@ class AssetServiceImplTest {
             java.util.Map.of(ERROR, "file must not be empty"),
             HttpStatus.BAD_REQUEST);
 
-    doThrow(validationException)
-        .when(assetValidationHelper)
-        .validateImportRequest(TEST_USER_ID, file);
+    doThrow(validationException).when(assetAiValidationHelper).validateImportRequest(file);
 
     AssetImportException thrown =
         assertThrows(
             AssetImportException.class, () -> assetService.importAssets(TEST_USER_ID, file));
 
     assertSame(validationException, thrown);
-    verify(assetValidationHelper).validateImportRequest(TEST_USER_ID, file);
+    verify(assetAiValidationHelper).validateImportRequest(file);
     verify(importAssetsHelper, never()).buildImportPayload(file);
     verify(importAssetsAiHelper, never())
         .prompt(org.mockito.ArgumentMatchers.anyString(), any(AiModelTypeEnum.class));
@@ -147,8 +209,8 @@ class AssetServiceImplTest {
     AssetImportResponseDto result = assetService.retrieveImportedAssets(TEST_USER_ID, importId);
 
     assertSame(persistedResponse, result);
-    verify(assetValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
-    verify(assetValidationHelper).validateRetrievedImportExists(persistedImport);
+    verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
+    verify(assetAiValidationHelper).validateRetrievedImportExists(persistedImport);
   }
 
   @Test
@@ -161,7 +223,7 @@ class AssetServiceImplTest {
 
     when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     when(valueOperations.get(redisKey)).thenReturn(null);
-    doThrow(notFoundException).when(assetValidationHelper).validateRetrievedImportExists(null);
+    doThrow(notFoundException).when(assetAiValidationHelper).validateRetrievedImportExists(null);
 
     PortfolioException thrown =
         assertThrows(
@@ -169,8 +231,8 @@ class AssetServiceImplTest {
             () -> assetService.retrieveImportedAssets(TEST_OTHER_USER_ID, importId));
 
     assertSame(notFoundException, thrown);
-    verify(assetValidationHelper).validateAuthenticatedUser(TEST_OTHER_USER_ID);
-    verify(assetValidationHelper).validateRetrievedImportExists(null);
+    verify(commonValidationHelper).validateAuthenticatedUser(TEST_OTHER_USER_ID);
+    verify(assetAiValidationHelper).validateRetrievedImportExists(null);
     verifyNoInteractions(objectMapper);
   }
 }

@@ -2,6 +2,7 @@ package com.tychewealth.config;
 
 import com.tychewealth.config.support.TestSupportConfig;
 import com.tychewealth.controller.impl.PortfolioApiController;
+import com.tychewealth.service.helper.CommonValidationHelper;
 import com.tychewealth.service.helper.portfolio.PortfolioValidationHelper;
 import com.tychewealth.service.impl.PortfolioServiceImpl;
 import org.jspecify.annotations.NonNull;
@@ -18,6 +19,7 @@ import org.springframework.context.annotation.Import;
   TestSupportConfig.class,
   PortfolioApiController.class,
   PortfolioServiceImpl.class,
+  CommonValidationHelper.class,
   PortfolioValidationHelper.class
 })
 public class PortfolioIntegrationTestConfig {

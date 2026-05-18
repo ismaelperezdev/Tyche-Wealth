@@ -2,7 +2,7 @@ package com.tychewealth.config;
 
 import com.tychewealth.ai.AiQueueBlockingPolicy;
 import com.tychewealth.dto.ai.AiPropertiesDto;
-import com.tychewealth.service.helper.asset.AssetValidationHelper;
+import com.tychewealth.service.helper.asset.ai.AssetAiValidationHelper;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -25,8 +25,8 @@ public class AiConfig {
   }
 
   @Bean
-  public Duration assetImportAiRequestTimeout(AssetValidationHelper assetValidationHelper) {
-    return Duration.ofSeconds(Math.max(1L, assetValidationHelper.aiTimeoutSeconds()));
+  public Duration assetImportAiRequestTimeout(AssetAiValidationHelper assetAiValidationHelper) {
+    return Duration.ofSeconds(Math.max(1L, assetAiValidationHelper.aiTimeoutSeconds()));
   }
 
   @Bean(destroyMethod = "shutdown")

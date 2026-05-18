@@ -1,29 +1,28 @@
 package com.tychewealth.service.helper.portfolio;
 
-import static com.tychewealth.constants.CommonConstants.*;
+import static com.tychewealth.constants.CommonConstants.NAME;
+import static com.tychewealth.constants.LogConstants.BASE_LOG;
 import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
-import static com.tychewealth.constants.LogConstants.MISSING_AUTHENTICATED_USER_MESSAGE;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_ID;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_LIMIT_REACHED_MESSAGE;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_NAME;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_NAME_ALREADY_EXISTS_MESSAGE;
-import static com.tychewealth.constants.LogConstants.PORTFOLIO_NOT_FOUND_MESSAGE;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_PERSISTENCE_CONFLICT_MESSAGE;
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
-import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import static com.tychewealth.constants.LogConstants.UNKNOWN_PERSISTENCE_CONFLICT_MESSAGE;
 import static com.tychewealth.constants.LogConstants.UPDATE_ACTION;
 import static com.tychewealth.constants.LogConstants.USER_ID;
+import static com.tychewealth.constants.PersistenceConstants.PORTFOLIO_UNIQUE_CONSTRAINT;
 import static com.tychewealth.error.handler.ErrorDefinition.PORTFOLIO_LIMIT_REACHED;
 import static com.tychewealth.error.handler.ErrorDefinition.PORTFOLIO_NAME_CONFLICT;
-import static com.tychewealth.error.handler.ErrorDefinition.PORTFOLIO_NOT_FOUND;
 
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.repository.PortfolioRepository;
+import com.tychewealth.service.helper.CommonValidationHelper;
 import com.tychewealth.utils.Utils;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -38,13 +37,12 @@ import org.springframework.stereotype.Component;
 public class PortfolioValidationHelper {
 
   private static final long MAX_PORTFOLIOS_PER_USER = 5L;
-  private static final String PORTFOLIO_UNIQUE_CONSTRAINT = "uq_portfolio_user_id_name";
 
+  private final CommonValidationHelper commonValidationHelper;
   private final PortfolioRepository portfolioRepository;
 
   public void validateCreateRequest(Long userId, PortfolioCreateRequestDto createRequest) {
     String portfolioName = createRequest == null ? null : createRequest.getName();
-    validateAuthenticatedUser(userId);
     validateCreateLimit(userId);
     validateCreateNameConflict(userId, portfolioName);
   }
@@ -52,19 +50,10 @@ public class PortfolioValidationHelper {
   public PortfolioEntity validateUpdateRequest(
       Long userId, Long portfolioId, PortfolioUpdateRequestDto updateRequest) {
     String portfolioName = updateRequest == null ? null : updateRequest.getName();
-    validateAuthenticatedUser(userId);
-    PortfolioEntity portfolio = validateOwnedPortfolio(userId, portfolioId, UPDATE_ACTION);
+    PortfolioEntity portfolio =
+        commonValidationHelper.validateOwnedPortfolio(userId, portfolioId, UPDATE_ACTION);
     validateUpdateNameConflict(userId, portfolioId, portfolioName);
     return portfolio;
-  }
-
-  public void validateAuthenticatedUser(Long userId) {
-    if (userId != null) {
-      return;
-    }
-
-    log.warn(REQUEST_CONFLICT, PORTFOLIO, CREATE_ACTION, MISSING_AUTHENTICATED_USER_MESSAGE);
-    throw Utils.genericBadRequest(MISSING_AUTHENTICATED_USER_MESSAGE);
   }
 
   public void validateCreateLimit(Long userId) {
@@ -98,26 +87,6 @@ public class PortfolioValidationHelper {
         HttpStatus.CONFLICT);
   }
 
-  public PortfolioEntity validateOwnedPortfolio(Long userId, Long portfolioId) {
-    return validateOwnedPortfolio(userId, portfolioId, RETRIEVE_ACTION);
-  }
-
-  public PortfolioEntity validateOwnedPortfolio(Long userId, Long portfolioId, String action) {
-    return portfolioRepository
-        .findByIdAndUserId(portfolioId, userId)
-        .orElseThrow(
-            () -> {
-              log.warn(
-                  REQUEST_CONFLICT + PORTFOLIO_ID + USER_ID,
-                  PORTFOLIO,
-                  action,
-                  PORTFOLIO_NOT_FOUND_MESSAGE,
-                  portfolioId,
-                  userId);
-              return new PortfolioException(PORTFOLIO_NOT_FOUND, Map.of(), HttpStatus.NOT_FOUND);
-            });
-  }
-
   public void validateUpdateNameConflict(Long userId, Long portfolioId, String portfolioName) {
     portfolioRepository
         .findByUserIdAndName(userId, portfolioName)
@@ -139,27 +108,17 @@ public class PortfolioValidationHelper {
             });
   }
 
-  public PortfolioException validateCreatePersistenceConflict(
+  public PortfolioException translateNamePersistenceConflict(
       DataIntegrityViolationException ex, String portfolioName) {
-    return validatePersistenceConflict(ex, CREATE_ACTION, portfolioName);
-  }
-
-  public PortfolioException validateUpdatePersistenceConflict(
-      DataIntegrityViolationException ex, String portfolioName) {
-    return validatePersistenceConflict(ex, UPDATE_ACTION, portfolioName);
-  }
-
-  private PortfolioException validatePersistenceConflict(
-      DataIntegrityViolationException ex, String action, String portfolioName) {
     if (Utils.hasConstraintViolation(ex, PORTFOLIO_UNIQUE_CONSTRAINT)) {
-      log.warn(REQUEST_CONFLICT, PORTFOLIO, action, PORTFOLIO_PERSISTENCE_CONFLICT_MESSAGE);
+      log.warn(BASE_LOG, PORTFOLIO, PORTFOLIO_PERSISTENCE_CONFLICT_MESSAGE);
       return new PortfolioException(
           PORTFOLIO_NAME_CONFLICT,
           Map.of(NAME, portfolioName == null ? "" : portfolioName),
           HttpStatus.CONFLICT);
     }
 
-    log.error(REQUEST_CONFLICT, PORTFOLIO, action, UNKNOWN_PERSISTENCE_CONFLICT_MESSAGE, ex);
+    log.error(BASE_LOG, PORTFOLIO, UNKNOWN_PERSISTENCE_CONFLICT_MESSAGE, ex);
     throw ex;
   }
 }

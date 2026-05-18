@@ -7,6 +7,7 @@ import static com.tychewealth.constants.CommonConstants.POST;
 import static com.tychewealth.testhelper.IdempotencyTestHelper.asset;
 import static com.tychewealth.testhelper.IdempotencyTestHelper.portfolio;
 
+import com.tychewealth.dto.asset.request.AssetCreateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
 import com.tychewealth.ratelimit.RateLimitKey;
@@ -41,6 +42,11 @@ public final class EndpointTestData {
             RateLimitKey.PORTFOLIO_DELETE,
             new MockHttpServletRequest(DELETE, "/tyche-wealth/portfolio-service/v1/portfolio/me/7"),
             portfolio("delete", Long.class, Long.class)),
+        Arguments.of(
+            RateLimitKey.ASSET_CREATE,
+            new MockHttpServletRequest(
+                POST, "/tyche-wealth/portfolio-service/v1/portfolio/me/7/assets"),
+            asset("create", Long.class, Long.class, AssetCreateRequestDto.class)),
         Arguments.of(
             RateLimitKey.ASSET_IMPORT,
             new MockHttpServletRequest(POST, "/tyche-wealth/portfolio-service/v1/assets/import"),

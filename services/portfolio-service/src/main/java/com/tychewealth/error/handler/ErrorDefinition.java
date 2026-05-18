@@ -25,6 +25,18 @@ public enum ErrorDefinition {
       "PORTFOLIO_LIMIT_REACHED",
       "The maximum number of portfolios allowed per user has been reached"),
   PORTFOLIO_NOT_FOUND("TYCHE-402", "PORTFOLIO_NOT_FOUND", "The portfolio was not found"),
+  ASSET_LIMIT_REACHED(
+      "TYCHE-510",
+      "ASSET_LIMIT_REACHED",
+      "The maximum number of assets allowed per portfolio has been reached"),
+  ASSET_SYMBOL_CONFLICT(
+      "TYCHE-511",
+      "ASSET_SYMBOL_CONFLICT",
+      "An asset with symbol '${name:-}' already exists for this portfolio"),
+  ASSET_NAME_CONFLICT(
+      "TYCHE-512",
+      "ASSET_NAME_CONFLICT",
+      "An asset with name '${name:-}' already exists for this portfolio"),
 
   ASSET_IMPORT_EXTRACTION_FAILED(
       "TYCHE-500",

@@ -4,18 +4,28 @@ import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
 import static com.tychewealth.constants.TestConstants.TEST_ASSET_IMPORT_ID;
 import static com.tychewealth.constants.TestConstants.TEST_FILE_PART_NAME;
+import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_ID;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
+import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_AVERAGE_PRICE;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_CONTENT_TYPE_CSV;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_EXTRACTED_TEXT;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_FILE_NAME;
+import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_NAME_APPLE;
+import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_QUANTITY;
+import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_SYMBOL_AAPL;
 import static com.tychewealth.testdata.AssetTestData.validImportedAssetCandidate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.tychewealth.dto.asset.AssetImportResponseDto;
+import com.tychewealth.dto.asset.AssetResponseDto;
+import com.tychewealth.dto.asset.request.AssetCreateRequestDto;
+import com.tychewealth.enums.AssetTypeEnum;
+import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.service.AssetService;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +42,40 @@ class AssetApiControllerTest {
   @Mock private AssetService assetService;
 
   @InjectMocks private AssetApiController assetApiController;
+
+  @Test
+  void createReturnsCreatedResponse() {
+    AssetCreateRequestDto request =
+        new AssetCreateRequestDto(
+            TEST_ASSET_NAME_APPLE,
+            TEST_ASSET_SYMBOL_AAPL,
+            AssetTypeEnum.STOCK,
+            TEST_ASSET_QUANTITY,
+            TEST_ASSET_AVERAGE_PRICE,
+            CurrencyCodeEnum.USD);
+    AssetResponseDto response =
+        new AssetResponseDto(
+            100L,
+            CurrencyCodeEnum.USD,
+            TEST_ASSET_NAME_APPLE,
+            TEST_ASSET_SYMBOL_AAPL,
+            AssetTypeEnum.STOCK,
+            TEST_ASSET_QUANTITY,
+            TEST_ASSET_AVERAGE_PRICE,
+            LocalDateTime.now(),
+            LocalDateTime.now());
+
+    when(assetService.create(TEST_USER_ID, TEST_PORTFOLIO_ID, request)).thenReturn(response);
+
+    ResponseEntity<AssetResponseDto> result =
+        assetApiController.create(TEST_USER_ID, TEST_PORTFOLIO_ID, request);
+
+    assertEquals(HttpStatus.CREATED, result.getStatusCode());
+    assertEquals(CACHE_CONTROL_NO_STORE_HEADER_VALUE, result.getHeaders().getCacheControl());
+    assertEquals(PRAGMA_NO_CACHE_HEADER_VALUE, result.getHeaders().getPragma());
+    assertEquals(response, result.getBody());
+    verify(assetService).create(TEST_USER_ID, TEST_PORTFOLIO_ID, request);
+  }
 
   @Test
   void importAssetsReturnsOkResponse() {
