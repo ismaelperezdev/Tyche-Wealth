@@ -34,8 +34,15 @@ public final class LogConstants {
       "portfolio name already exists for user";
   public static final String PORTFOLIO_LIMIT_REACHED_MESSAGE = "portfolio limit reached for user";
   public static final String PORTFOLIO_NOT_FOUND_MESSAGE = "portfolio not found for user";
+  public static final String ASSET_LIMIT_REACHED_MESSAGE = "asset limit reached for portfolio";
+  public static final String ASSET_NAME_ALREADY_EXISTS_MESSAGE =
+      "asset name already exists for portfolio";
+  public static final String ASSET_SYMBOL_ALREADY_EXISTS_MESSAGE =
+      "asset symbol already exists for portfolio";
   public static final String PORTFOLIO_PERSISTENCE_CONFLICT_MESSAGE =
       "portfolio conflict detected at persistence layer";
+  public static final String ASSET_PERSISTENCE_CONFLICT_MESSAGE =
+      "asset conflict detected at persistence layer";
   public static final String UNKNOWN_PERSISTENCE_CONFLICT_MESSAGE = "unknown persistence conflict";
   public static final String INVALID_ACCESS_TOKEN_MESSAGE = "invalid access token";
   public static final String INVALID_AUTHORIZATION_HEADER_MESSAGE = "invalid authorization header";

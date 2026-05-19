@@ -9,8 +9,8 @@ import static com.tychewealth.testdata.AiTestData.TEST_MAX_PDF_PAGES;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.ai.AiQueueBlockingPolicy;
 import com.tychewealth.client.AiClient;
-import com.tychewealth.service.helper.asset.AssetValidationHelper;
 import com.tychewealth.service.helper.asset.ai.AiResponseParser;
+import com.tychewealth.service.helper.asset.ai.AssetAiValidationHelper;
 import com.tychewealth.service.helper.asset.ai.ImportAssetsAiHelper;
 import com.tychewealth.service.helper.asset.ai.support.AiResponseParserSupport;
 import java.time.Duration;
@@ -24,12 +24,12 @@ public final class AiTestHelper {
   private AiTestHelper() {}
 
   public static ThreadPoolExecutor buildAiExecutor(
-      AssetValidationHelper validationHelper,
+      AssetAiValidationHelper assetAiValidationHelper,
       int maxConcurrency,
       int queueCapacity,
       long queueOfferTimeoutSeconds) {
     Duration aiRequestTimeout =
-        Duration.ofSeconds(Math.max(1L, validationHelper.aiTimeoutSeconds()));
+        Duration.ofSeconds(Math.max(1L, assetAiValidationHelper.aiTimeoutSeconds()));
     Duration requestedQueueOfferTimeout =
         Duration.ofSeconds(Math.max(1L, queueOfferTimeoutSeconds));
     Duration aiQueueOfferTimeout =
@@ -48,13 +48,13 @@ public final class AiTestHelper {
 
   public static ImportAssetsAiHelper buildImportAssetsAiHelper(
       AiClient aiClient,
-      AssetValidationHelper validationHelper,
+      AssetAiValidationHelper assetAiValidationHelper,
       RedisTemplate<String, String> redisTemplate,
       ThreadPoolExecutor executor) {
     return new ImportAssetsAiHelper(
         aiClient,
-        Duration.ofSeconds(Math.max(1L, validationHelper.aiTimeoutSeconds())),
-        validationHelper,
+        Duration.ofSeconds(Math.max(1L, assetAiValidationHelper.aiTimeoutSeconds())),
+        assetAiValidationHelper,
         redisTemplate,
         executor);
   }
@@ -63,7 +63,7 @@ public final class AiTestHelper {
       ObjectMapper objectMapper, AiResponseParserSupport parserSupport, int maxDetectedAssets) {
     return new AiResponseParser(
         objectMapper,
-        new AssetValidationHelper(
+        new AssetAiValidationHelper(
             TEST_MAX_FILE_SIZE_BYTES,
             TEST_MAX_PDF_PAGES,
             TEST_MAX_EXTRACTED_CHARACTERS,

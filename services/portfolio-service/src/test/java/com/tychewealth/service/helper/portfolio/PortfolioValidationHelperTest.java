@@ -1,8 +1,6 @@
 package com.tychewealth.service.helper.portfolio;
 
-import static com.tychewealth.constants.CommonConstants.ERROR;
 import static com.tychewealth.constants.CommonConstants.NAME;
-import static com.tychewealth.constants.LogConstants.MISSING_AUTHENTICATED_USER_MESSAGE;
 import static com.tychewealth.constants.TestConstants.TEST_MAX_PORTFOLIOS_PER_USER;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_NAME_RETIREMENT;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
@@ -16,6 +14,7 @@ import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.PortfolioRepository;
+import com.tychewealth.service.helper.CommonValidationHelper;
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,12 +27,14 @@ import org.springframework.http.HttpStatus;
 class PortfolioValidationHelperTest {
 
   @Mock private PortfolioRepository portfolioRepository;
+  @Mock private CommonValidationHelper commonValidationHelper;
 
   @Test
   void validateCreateRequestPassesWhenUserExistsAndPortfolioNameIsAvailable() {
     PortfolioCreateRequestDto request = new PortfolioCreateRequestDto();
     request.setName(TEST_PORTFOLIO_NAME_RETIREMENT);
-    PortfolioValidationHelper helper = new PortfolioValidationHelper(portfolioRepository);
+    PortfolioValidationHelper helper =
+        new PortfolioValidationHelper(commonValidationHelper, portfolioRepository);
 
     when(portfolioRepository.countByUserId(TEST_USER_ID)).thenReturn(0L);
     when(portfolioRepository.existsByUserIdAndName(TEST_USER_ID, TEST_PORTFOLIO_NAME_RETIREMENT))
@@ -46,36 +47,11 @@ class PortfolioValidationHelperTest {
   }
 
   @Test
-  void validateCreateRequestThrowsBadRequestWhenAuthenticatedUserIsMissing() {
-    PortfolioCreateRequestDto request = new PortfolioCreateRequestDto();
-    request.setName(TEST_PORTFOLIO_NAME_RETIREMENT);
-    PortfolioValidationHelper helper = new PortfolioValidationHelper(portfolioRepository);
-
-    PortfolioException exception =
-        assertThrows(PortfolioException.class, () -> helper.validateCreateRequest(null, request));
-
-    assertEquals(ErrorDefinition.GENERIC_BAD_REQUEST, exception.getErrorDefinition());
-    assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
-    assertEquals(MISSING_AUTHENTICATED_USER_MESSAGE, exception.getDescription().get(ERROR));
-  }
-
-  @Test
-  void validateAuthenticatedUserThrowsBadRequestWhenAuthenticatedUserIsMissing() {
-    PortfolioValidationHelper helper = new PortfolioValidationHelper(portfolioRepository);
-
-    PortfolioException exception =
-        assertThrows(PortfolioException.class, () -> helper.validateAuthenticatedUser(null));
-
-    assertEquals(ErrorDefinition.GENERIC_BAD_REQUEST, exception.getErrorDefinition());
-    assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
-    assertEquals(MISSING_AUTHENTICATED_USER_MESSAGE, exception.getDescription().get(ERROR));
-  }
-
-  @Test
   void validateCreateRequestThrowsConflictWhenPortfolioNameAlreadyExists() {
     PortfolioCreateRequestDto request = new PortfolioCreateRequestDto();
     request.setName(TEST_PORTFOLIO_NAME_RETIREMENT);
-    PortfolioValidationHelper helper = new PortfolioValidationHelper(portfolioRepository);
+    PortfolioValidationHelper helper =
+        new PortfolioValidationHelper(commonValidationHelper, portfolioRepository);
 
     when(portfolioRepository.countByUserId(TEST_USER_ID)).thenReturn(0L);
     when(portfolioRepository.existsByUserIdAndName(TEST_USER_ID, TEST_PORTFOLIO_NAME_RETIREMENT))
@@ -92,7 +68,8 @@ class PortfolioValidationHelperTest {
 
   @Test
   void validateCreateNameConflictThrowsConflictWhenPortfolioNameAlreadyExists() {
-    PortfolioValidationHelper helper = new PortfolioValidationHelper(portfolioRepository);
+    PortfolioValidationHelper helper =
+        new PortfolioValidationHelper(commonValidationHelper, portfolioRepository);
 
     when(portfolioRepository.existsByUserIdAndName(TEST_USER_ID, TEST_PORTFOLIO_NAME_RETIREMENT))
         .thenReturn(true);
@@ -109,7 +86,8 @@ class PortfolioValidationHelperTest {
 
   @Test
   void validateCreateLimitThrowsConflictWhenUserAlreadyHasMaximumPortfolios() {
-    PortfolioValidationHelper helper = new PortfolioValidationHelper(portfolioRepository);
+    PortfolioValidationHelper helper =
+        new PortfolioValidationHelper(commonValidationHelper, portfolioRepository);
 
     when(portfolioRepository.countByUserId(TEST_USER_ID)).thenReturn(TEST_MAX_PORTFOLIOS_PER_USER);
 
@@ -121,8 +99,9 @@ class PortfolioValidationHelperTest {
   }
 
   @Test
-  void validateCreatePersistenceConflictReturnsPortfolioExceptionForUniqueConstraint() {
-    PortfolioValidationHelper helper = new PortfolioValidationHelper(portfolioRepository);
+  void translateNamePersistenceConflictReturnsPortfolioExceptionForUniqueConstraint() {
+    PortfolioValidationHelper helper =
+        new PortfolioValidationHelper(commonValidationHelper, portfolioRepository);
     DataIntegrityViolationException exception =
         new DataIntegrityViolationException(
             "duplicate",
@@ -130,7 +109,7 @@ class PortfolioValidationHelperTest {
                 "could not execute statement", null, "uq_portfolio_user_id_name_index"));
 
     PortfolioException result =
-        helper.validateCreatePersistenceConflict(exception, TEST_PORTFOLIO_NAME_RETIREMENT);
+        helper.translateNamePersistenceConflict(exception, TEST_PORTFOLIO_NAME_RETIREMENT);
 
     assertEquals(ErrorDefinition.PORTFOLIO_NAME_CONFLICT, result.getErrorDefinition());
     assertEquals(HttpStatus.CONFLICT, result.getHttpStatus());
@@ -138,8 +117,9 @@ class PortfolioValidationHelperTest {
   }
 
   @Test
-  void validateCreatePersistenceConflictRethrowsOriginalExceptionWhenConstraintIsUnrelated() {
-    PortfolioValidationHelper helper = new PortfolioValidationHelper(portfolioRepository);
+  void translateNamePersistenceConflictRethrowsOriginalExceptionWhenConstraintIsUnrelated() {
+    PortfolioValidationHelper helper =
+        new PortfolioValidationHelper(commonValidationHelper, portfolioRepository);
     DataIntegrityViolationException exception =
         new DataIntegrityViolationException("some unrelated persistence failure");
 
@@ -147,8 +127,7 @@ class PortfolioValidationHelperTest {
         assertThrows(
             DataIntegrityViolationException.class,
             () ->
-                helper.validateCreatePersistenceConflict(
-                    exception, TEST_PORTFOLIO_NAME_RETIREMENT));
+                helper.translateNamePersistenceConflict(exception, TEST_PORTFOLIO_NAME_RETIREMENT));
 
     assertSame(exception, thrown);
   }

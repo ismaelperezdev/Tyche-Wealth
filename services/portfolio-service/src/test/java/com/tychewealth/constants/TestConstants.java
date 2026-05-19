@@ -21,6 +21,7 @@ public final class TestConstants {
   public static final String TEST_MISSING_ASSET_IMPORT_ID = "missing-import";
   public static final long TEST_USER_ID = 42L;
   public static final long TEST_OTHER_USER_ID = 84L;
+  public static final long TEST_PORTFOLIO_ID = 7L;
   public static final long TEST_MAX_PORTFOLIOS_PER_USER = 5L;
   public static final String TEST_PORTFOLIO_NAME_CORE = "Core";
   public static final String TEST_PORTFOLIO_NAME_RETIREMENT = "Retirement";

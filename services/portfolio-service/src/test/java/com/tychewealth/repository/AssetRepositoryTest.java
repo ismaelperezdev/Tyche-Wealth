@@ -105,4 +105,14 @@ class AssetRepositoryTest {
 
     assertEquals(Boolean.TRUE, exists);
   }
+
+  @Test
+  void existsByPortfolioIdAndNameReturnsTrueWhenExists() {
+    assetRepository.save(
+        buildAsset(portfolio, "Tesla, Inc.", "TSLA", AssetTypeEnum.STOCK, CurrencyCodeEnum.USD));
+
+    Boolean exists = assetRepository.existsByPortfolioIdAndName(portfolio.getId(), "Tesla, Inc.");
+
+    assertEquals(Boolean.TRUE, exists);
+  }
 }

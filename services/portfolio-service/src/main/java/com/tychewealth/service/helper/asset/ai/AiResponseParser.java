@@ -11,7 +11,6 @@ import com.tychewealth.enums.AssetTypeEnum;
 import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.handler.ErrorDefinition;
-import com.tychewealth.service.helper.asset.AssetValidationHelper;
 import com.tychewealth.service.helper.asset.ai.support.AiResponseParserSupport;
 import com.tychewealth.utils.Utils;
 import java.math.BigDecimal;
@@ -30,7 +29,7 @@ import org.springframework.stereotype.Component;
 @Component
 public final class AiResponseParser {
 
-  private final AssetValidationHelper assetValidationHelper;
+  private final AssetAiValidationHelper assetAiValidationHelper;
   private final ObjectMapper objectMapper;
   private final List<String> holdingSectionTerminators;
   private final List<String> metadataPrefixes;
@@ -41,9 +40,9 @@ public final class AiResponseParser {
 
   public AiResponseParser(
       ObjectMapper objectMapper,
-      AssetValidationHelper assetValidationHelper,
+      AssetAiValidationHelper assetAiValidationHelper,
       AiResponseParserSupport aiResponseParserSupport) {
-    this.assetValidationHelper = assetValidationHelper;
+    this.assetAiValidationHelper = assetAiValidationHelper;
     this.objectMapper = objectMapper;
     this.aiResponseParserSupport = aiResponseParserSupport;
     this.holdingSectionTerminators = aiResponseParserSupport.getHoldingSectionTerminators();
@@ -73,7 +72,7 @@ public final class AiResponseParser {
               .filter(aiResponseParserSupport::hasMeaningfulField)
               .toList();
       assets = mergeWithDeterministicExtraction(extractedText, assets);
-      assetValidationHelper.validateDetectedAssetsCount(assets.size());
+      assetAiValidationHelper.validateDetectedAssetsCount(assets.size());
 
       return assets;
     } catch (JsonProcessingException ex) {

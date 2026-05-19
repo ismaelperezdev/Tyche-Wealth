@@ -1,7 +1,9 @@
 package com.tychewealth.controller.impl;
 
 import static com.tychewealth.constants.LogConstants.ASSET;
+import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
 import static com.tychewealth.constants.LogConstants.IMPORT_ASSETS_ACTION;
+import static com.tychewealth.constants.LogConstants.PORTFOLIO_ID;
 import static com.tychewealth.constants.LogConstants.REQUEST_START;
 import static com.tychewealth.constants.LogConstants.REQUEST_SUCCESS;
 import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
@@ -10,15 +12,19 @@ import static com.tychewealth.utils.Utils.buildNoStoreBodyResponse;
 
 import com.tychewealth.controller.AssetApi;
 import com.tychewealth.dto.asset.AssetImportResponseDto;
+import com.tychewealth.dto.asset.AssetResponseDto;
+import com.tychewealth.dto.asset.request.AssetCreateRequestDto;
 import com.tychewealth.ratelimit.RateLimitKey;
 import com.tychewealth.ratelimit.RateLimited;
 import com.tychewealth.service.AssetService;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,6 +35,20 @@ import org.springframework.web.multipart.MultipartFile;
 public class AssetApiController implements AssetApi {
 
   private final AssetService assetService;
+
+  @Override
+  @RateLimited(RateLimitKey.ASSET_CREATE)
+  public ResponseEntity<AssetResponseDto> create(
+      @AuthenticationPrincipal Long userId,
+      Long portfolioId,
+      @Valid @RequestBody AssetCreateRequestDto createRequest) {
+    log.info(REQUEST_START + PORTFOLIO_ID + USER_ID, ASSET, CREATE_ACTION, portfolioId, userId);
+
+    AssetResponseDto response = assetService.create(userId, portfolioId, createRequest);
+    log.info(REQUEST_SUCCESS + PORTFOLIO_ID + USER_ID, ASSET, CREATE_ACTION, portfolioId, userId);
+
+    return buildNoStoreBodyResponse(HttpStatus.CREATED, response);
+  }
 
   @Override
   @RateLimited(RateLimitKey.ASSET_IMPORT)

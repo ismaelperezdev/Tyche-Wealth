@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.dto.asset.request.AssetImportPayloadDto;
+import com.tychewealth.service.helper.asset.ai.AssetAiValidationHelper;
 import com.tychewealth.testhelper.TestRedisSupport;
 import com.tychewealth.testhelper.TestRedisSupport.InMemoryRedisState;
 import com.tychewealth.utils.Utils;
@@ -88,7 +89,8 @@ class ImportAssetsHelperTest {
 
   private ImportAssetsTestContext createImportAssetsTestContext(
       int firstStreamOpenedCount, int releaseFirstStreamCount) throws IOException {
-    AssetValidationHelper validationHelper = new AssetValidationHelper(1024L, 10, 5000, 5, 5, 10);
+    AssetAiValidationHelper assetAiValidationHelper =
+        new AssetAiValidationHelper(1024L, 10, 5000, 5, 5, 10);
     InMemoryRedisState redisState = new InMemoryRedisState();
     RedisTemplate<String, String> redisTemplate = TestRedisSupport.redisTemplate(redisState);
     AtomicInteger inputStreamCalls = new AtomicInteger();
@@ -97,9 +99,9 @@ class ImportAssetsHelperTest {
     MultipartFile file = buildFile(inputStreamCalls, firstStreamOpened, releaseFirstStream);
     ImportAssetsHelper helper =
         new ImportAssetsHelper(
-            validationHelper, redisTemplate, new ObjectMapper(), 1, 10, 10, 2, 25);
+            assetAiValidationHelper, redisTemplate, new ObjectMapper(), 1, 10, 10, 2, 25);
     return new ImportAssetsTestContext(
-        validationHelper,
+        assetAiValidationHelper,
         redisState,
         redisTemplate,
         inputStreamCalls,
@@ -137,7 +139,7 @@ class ImportAssetsHelperTest {
   }
 
   private record ImportAssetsTestContext(
-      AssetValidationHelper validationHelper,
+      AssetAiValidationHelper assetAiValidationHelper,
       InMemoryRedisState redisState,
       RedisTemplate<String, String> redisTemplate,
       AtomicInteger inputStreamCalls,

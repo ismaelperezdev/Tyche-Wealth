@@ -30,6 +30,7 @@ import com.tychewealth.dto.asset.AssetPersistRedisDto;
 import com.tychewealth.dto.asset.request.AssetImportPayloadDto;
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.handler.ErrorDefinition;
+import com.tychewealth.service.helper.asset.ai.AssetAiValidationHelper;
 import com.tychewealth.utils.FileDataExtractor;
 import com.tychewealth.utils.Utils;
 import jakarta.annotation.PreDestroy;
@@ -63,7 +64,7 @@ public class ImportAssetsHelper {
   private static final Duration IMPORT_QUEUE_OFFER_TIMEOUT = Duration.ofMillis(100);
   private static final Duration IMPORT_SHUTDOWN_TIMEOUT = Duration.ofSeconds(5);
 
-  private final AssetValidationHelper assetValidationHelper;
+  private final AssetAiValidationHelper assetAiValidationHelper;
   private final RedisTemplate<String, String> redisTemplate;
   private final ObjectMapper objectMapper;
   private final ThreadPoolExecutor importExecutor;
@@ -72,7 +73,7 @@ public class ImportAssetsHelper {
   private final Duration inflightPollInterval;
 
   public ImportAssetsHelper(
-      AssetValidationHelper assetValidationHelper,
+      AssetAiValidationHelper assetAiValidationHelper,
       RedisTemplate<String, String> redisTemplate,
       ObjectMapper objectMapper,
       @Value("${app.asset.import.queue.max-concurrency:4}") int maxConcurrency,
@@ -82,7 +83,7 @@ public class ImportAssetsHelper {
           long inflightWaitTimeoutSeconds,
       @Value("${app.asset.import.inflight.poll-interval-millis:200}")
           long inflightPollIntervalMillis) {
-    this.assetValidationHelper = assetValidationHelper;
+    this.assetAiValidationHelper = assetAiValidationHelper;
     this.redisTemplate = redisTemplate;
     this.objectMapper = objectMapper;
     this.inflightLockTtl = Duration.ofSeconds(Math.max(1L, inflightLockTtlSeconds));
@@ -144,7 +145,7 @@ public class ImportAssetsHelper {
     try {
       future = submitImportTask(file, fileName);
       AssetImportPayloadDto response =
-          future.get(assetValidationHelper.extractionTimeoutSeconds(), TimeUnit.SECONDS);
+          future.get(assetAiValidationHelper.extractionTimeoutSeconds(), TimeUnit.SECONDS);
       log.info(
           REQUEST_SUCCESS + IMPORT_QUEUE_STATUS,
           ASSET,
@@ -167,8 +168,8 @@ public class ImportAssetsHelper {
       throw new IllegalStateException("Asset import processing was interrupted", ex);
     } catch (TimeoutException ex) {
       future.cancel(true);
-      throw assetValidationHelper.extractionTimeoutExceeded(
-          assetValidationHelper.extractionTimeoutSeconds());
+      throw assetAiValidationHelper.extractionTimeoutExceeded(
+          assetAiValidationHelper.extractionTimeoutSeconds());
     } catch (ExecutionException ex) {
       log.error(
           REQUEST_CONFLICT + FILE_NAME_CONTEXT,
@@ -231,7 +232,7 @@ public class ImportAssetsHelper {
       }
     }
 
-    throw assetValidationHelper.extractionTimeoutExceeded(inflightWaitTimeout.toSeconds());
+    throw assetAiValidationHelper.extractionTimeoutExceeded(inflightWaitTimeout.toSeconds());
   }
 
   private AssetImportPayloadDto readCachedResponse(String cacheKey) {
@@ -320,9 +321,9 @@ public class ImportAssetsHelper {
         importExecutor.getActiveCount(),
         importExecutor.getQueue().size());
     try (InputStream inputStream = file.getInputStream()) {
-      assetValidationHelper.validateExtractionRequest(fileName, inputStream);
+      assetAiValidationHelper.validateExtractionRequest(fileName, inputStream);
       String extractedText = FileDataExtractor.extractText(fileName, inputStream);
-      assetValidationHelper.validateExtractedText(extractedText);
+      assetAiValidationHelper.validateExtractedText(extractedText);
       long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
       log.info(
           REQUEST_SUCCESS + IMPORT_PROCESSING_SUCCESS_CONTEXT,
