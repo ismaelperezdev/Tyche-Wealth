@@ -8,24 +8,25 @@ import static com.tychewealth.constants.CommonConstants.DESCRIPTION;
 import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
 import static com.tychewealth.constants.TestConstants.TEST_ASSET_IMPORT_ID;
+import static com.tychewealth.constants.TestConstants.TEST_ASSET_SYMBOL_MSFT;
 import static com.tychewealth.constants.TestConstants.TEST_FILE_PART_NAME;
 import static com.tychewealth.constants.TestConstants.TEST_JSON_CODE_PATH;
 import static com.tychewealth.constants.TestConstants.TEST_JSON_TYPE_PATH;
 import static com.tychewealth.constants.TestConstants.TEST_MISSING_ASSET_IMPORT_ID;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
 import static com.tychewealth.testdata.AssetTestData.AI_RESPONSE;
-import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_AVERAGE_PRICE;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_CONTENT_TYPE_CSV;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_EXTRACTED_TEXT;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_FILE_NAME;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_NAME_APPLE;
-import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_QUANTITY;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_RESPONSE_AVERAGE_PRICE;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_RESPONSE_QUANTITY;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_SYMBOL_AAPL;
+import static com.tychewealth.testdata.AssetTestData.createRequestWithNameAndSymbol;
+import static com.tychewealth.testdata.AssetTestData.defaultAssetEntity;
+import static com.tychewealth.testdata.AssetTestData.defaultPortfolioEntity;
+import static com.tychewealth.testdata.AssetTestData.validCreateRequest;
 import static com.tychewealth.testdata.AssetTestData.validImportedAssetCandidate;
-import static com.tychewealth.testdata.EntityBuilder.buildAsset;
-import static com.tychewealth.testdata.EntityBuilder.buildPortfolio;
 import static com.tychewealth.testhelper.AuthTestHelper.createAuthorizationHeader;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.Matchers.containsString;
@@ -53,9 +54,6 @@ import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.enums.AssetTypeEnum;
 import com.tychewealth.enums.CurrencyCodeEnum;
-import com.tychewealth.enums.InvestmentHorizonEnum;
-import com.tychewealth.enums.RiskProfileEnum;
-import com.tychewealth.enums.StrategyTypeEnum;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.AssetRepository;
 import com.tychewealth.repository.PortfolioRepository;
@@ -155,23 +153,8 @@ class AssetApiControllerIntegrationTest {
 
   @Test
   void createReturnsCreatedWhenRequestIsValid() throws Exception {
-    PortfolioEntity portfolio =
-        portfolioRepository.saveAndFlush(
-            buildPortfolio(
-                TEST_USER_ID,
-                "Core",
-                CurrencyCodeEnum.USD,
-                RiskProfileEnum.MEDIUM,
-                StrategyTypeEnum.BALANCED,
-                InvestmentHorizonEnum.MEDIUM));
-    AssetCreateRequestDto request =
-        new AssetCreateRequestDto(
-            TEST_ASSET_NAME_APPLE,
-            TEST_ASSET_SYMBOL_AAPL,
-            AssetTypeEnum.STOCK,
-            TEST_ASSET_QUANTITY,
-            TEST_ASSET_AVERAGE_PRICE,
-            CurrencyCodeEnum.USD);
+    PortfolioEntity portfolio = portfolioRepository.saveAndFlush(defaultPortfolioEntity());
+    AssetCreateRequestDto request = validCreateRequest();
 
     mockMvc
         .perform(
@@ -194,32 +177,12 @@ class AssetApiControllerIntegrationTest {
 
   @Test
   void createReturnsConflictWhenAssetNameAlreadyExistsInPortfolio() throws Exception {
-    PortfolioEntity portfolio =
-        portfolioRepository.saveAndFlush(
-            buildPortfolio(
-                TEST_USER_ID,
-                "Core",
-                CurrencyCodeEnum.USD,
-                RiskProfileEnum.MEDIUM,
-                StrategyTypeEnum.BALANCED,
-                InvestmentHorizonEnum.MEDIUM));
-    AssetEntity existingAsset =
-        buildAsset(
-            portfolio,
-            TEST_ASSET_NAME_APPLE,
-            TEST_ASSET_SYMBOL_AAPL,
-            AssetTypeEnum.STOCK,
-            CurrencyCodeEnum.USD);
+    PortfolioEntity portfolio = portfolioRepository.saveAndFlush(defaultPortfolioEntity());
+    AssetEntity existingAsset = defaultAssetEntity(portfolio);
     assetRepository.saveAndFlush(existingAsset);
 
     AssetCreateRequestDto request =
-        new AssetCreateRequestDto(
-            TEST_ASSET_NAME_APPLE,
-            "MSFT",
-            AssetTypeEnum.STOCK,
-            TEST_ASSET_QUANTITY,
-            TEST_ASSET_AVERAGE_PRICE,
-            CurrencyCodeEnum.USD);
+        createRequestWithNameAndSymbol(TEST_ASSET_NAME_APPLE, TEST_ASSET_SYMBOL_MSFT);
 
     mockMvc
         .perform(
@@ -239,32 +202,12 @@ class AssetApiControllerIntegrationTest {
 
   @Test
   void createReturnsConflictWhenAssetSymbolAlreadyExistsInPortfolio() throws Exception {
-    PortfolioEntity portfolio =
-        portfolioRepository.saveAndFlush(
-            buildPortfolio(
-                TEST_USER_ID,
-                "Core",
-                CurrencyCodeEnum.USD,
-                RiskProfileEnum.MEDIUM,
-                StrategyTypeEnum.BALANCED,
-                InvestmentHorizonEnum.MEDIUM));
-    AssetEntity existingAsset =
-        buildAsset(
-            portfolio,
-            TEST_ASSET_NAME_APPLE,
-            TEST_ASSET_SYMBOL_AAPL,
-            AssetTypeEnum.STOCK,
-            CurrencyCodeEnum.USD);
+    PortfolioEntity portfolio = portfolioRepository.saveAndFlush(defaultPortfolioEntity());
+    AssetEntity existingAsset = defaultAssetEntity(portfolio);
     assetRepository.saveAndFlush(existingAsset);
 
     AssetCreateRequestDto request =
-        new AssetCreateRequestDto(
-            "Microsoft Corporation",
-            TEST_ASSET_SYMBOL_AAPL,
-            AssetTypeEnum.STOCK,
-            TEST_ASSET_QUANTITY,
-            TEST_ASSET_AVERAGE_PRICE,
-            CurrencyCodeEnum.USD);
+        createRequestWithNameAndSymbol("Microsoft Corporation", TEST_ASSET_SYMBOL_AAPL);
 
     mockMvc
         .perform(
@@ -280,6 +223,27 @@ class AssetApiControllerIntegrationTest {
         .andExpect(
             jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.ASSET_SYMBOL_CONFLICT.getType()))
         .andExpect(jsonPath("$." + DESCRIPTION).value(containsString(TEST_ASSET_SYMBOL_AAPL)));
+  }
+
+  @Test
+  void retrieveReturnsOkWhenAssetExistsInPortfolio() throws Exception {
+    PortfolioEntity portfolio = portfolioRepository.saveAndFlush(defaultPortfolioEntity());
+    AssetEntity existingAsset = assetRepository.saveAndFlush(defaultAssetEntity(portfolio));
+
+    mockMvc
+        .perform(
+            get(PORTFOLIO_ASSET_BASE_URL + "/{assetId}", portfolio.getId(), existingAsset.getId())
+                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+        .andExpect(status().isOk())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(jsonPath("$.id").value(existingAsset.getId()))
+        .andExpect(jsonPath("$.name").value(TEST_ASSET_NAME_APPLE))
+        .andExpect(jsonPath("$.symbol").value(TEST_ASSET_SYMBOL_AAPL))
+        .andExpect(jsonPath("$.assetType").value(AssetTypeEnum.STOCK.name()))
+        .andExpect(jsonPath("$.quantity").value(TEST_ASSET_RESPONSE_QUANTITY.intValue()))
+        .andExpect(jsonPath("$.averagePrice").value(123.4567))
+        .andExpect(jsonPath("$.currency").value(CurrencyCodeEnum.USD.name()));
   }
 
   @Test

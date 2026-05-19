@@ -1,5 +1,6 @@
 package com.tychewealth.service.helper.asset;
 
+import static com.tychewealth.constants.TestConstants.TEST_ASSET_ID;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_ID;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_NAME_APPLE;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_SYMBOL_AAPL;
@@ -73,6 +74,38 @@ class AssetValidationHelperTest {
     assertEquals(ErrorDefinition.ASSET_SYMBOL_CONFLICT, result.getErrorDefinition());
     assertEquals(HttpStatus.CONFLICT, result.getHttpStatus());
     assertEquals(TEST_ASSET_SYMBOL_AAPL, result.getDescription().get("name"));
+  }
+
+  @Test
+  void validateRetrievedAssetExistsReturnsAssetWhenItExistsInPortfolio() {
+    AssetValidationHelper helper = new AssetValidationHelper(assetRepository);
+    Long assetId = TEST_ASSET_ID;
+    AssetEntity asset = new AssetEntity();
+    asset.setId(assetId);
+
+    when(assetRepository.findByIdAndPortfolioId(assetId, TEST_PORTFOLIO_ID))
+        .thenReturn(java.util.Optional.of(asset));
+
+    AssetEntity result = helper.validateRetrievedAssetExists(TEST_PORTFOLIO_ID, assetId);
+
+    assertSame(asset, result);
+  }
+
+  @Test
+  void validateRetrievedAssetExistsThrowsNotFoundWhenAssetDoesNotExistInPortfolio() {
+    AssetValidationHelper helper = new AssetValidationHelper(assetRepository);
+    Long assetId = TEST_ASSET_ID;
+
+    when(assetRepository.findByIdAndPortfolioId(assetId, TEST_PORTFOLIO_ID))
+        .thenReturn(java.util.Optional.empty());
+
+    PortfolioException exception =
+        assertThrows(
+            PortfolioException.class,
+            () -> helper.validateRetrievedAssetExists(TEST_PORTFOLIO_ID, assetId));
+
+    assertEquals(ErrorDefinition.ASSET_NOT_FOUND, exception.getErrorDefinition());
+    assertEquals(HttpStatus.NOT_FOUND, exception.getHttpStatus());
   }
 
   @Test

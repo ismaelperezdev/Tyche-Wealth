@@ -4,17 +4,21 @@ import static com.tychewealth.constants.CommonConstants.NAME;
 import static com.tychewealth.constants.LogConstants.ASSET;
 import static com.tychewealth.constants.LogConstants.ASSET_LIMIT_REACHED_MESSAGE;
 import static com.tychewealth.constants.LogConstants.ASSET_NAME_ALREADY_EXISTS_MESSAGE;
+import static com.tychewealth.constants.LogConstants.ASSET_NOT_FOUND_MESSAGE;
 import static com.tychewealth.constants.LogConstants.ASSET_PERSISTENCE_CONFLICT_MESSAGE;
 import static com.tychewealth.constants.LogConstants.BASE_LOG;
 import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_ID;
 import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
+import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import static com.tychewealth.constants.LogConstants.UNKNOWN_PERSISTENCE_CONFLICT_MESSAGE;
 import static com.tychewealth.constants.PersistenceConstants.ASSET_SYMBOL_UNIQUE_CONSTRAINT;
 import static com.tychewealth.error.handler.ErrorDefinition.ASSET_LIMIT_REACHED;
 import static com.tychewealth.error.handler.ErrorDefinition.ASSET_NAME_CONFLICT;
+import static com.tychewealth.error.handler.ErrorDefinition.ASSET_NOT_FOUND;
 import static com.tychewealth.error.handler.ErrorDefinition.ASSET_SYMBOL_CONFLICT;
 
+import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.repository.AssetRepository;
 import com.tychewealth.utils.Utils;
@@ -60,6 +64,21 @@ public class AssetValidationHelper {
         portfolioId);
     throw new PortfolioException(
         ASSET_NAME_CONFLICT, Map.of(NAME, assetName == null ? "" : assetName), HttpStatus.CONFLICT);
+  }
+
+  public AssetEntity validateRetrievedAssetExists(Long portfolioId, Long assetId) {
+    return assetRepository
+        .findByIdAndPortfolioId(assetId, portfolioId)
+        .orElseThrow(
+            () -> {
+              log.warn(
+                  REQUEST_CONFLICT + PORTFOLIO_ID,
+                  ASSET,
+                  RETRIEVE_ACTION,
+                  ASSET_NOT_FOUND_MESSAGE,
+                  portfolioId);
+              return new PortfolioException(ASSET_NOT_FOUND, Map.of(), HttpStatus.NOT_FOUND);
+            });
   }
 
   public PortfolioException translateSymbolPersistenceConflict(
