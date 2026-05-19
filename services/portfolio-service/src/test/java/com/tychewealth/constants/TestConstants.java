@@ -17,8 +17,11 @@ public final class TestConstants {
   public static final String TEST_FILE_PART_NAME = "file";
   public static final String TEST_JSON_CODE_PATH = "$.code";
   public static final String TEST_JSON_TYPE_PATH = "$.type";
+  public static final String TEST_ME_PATH_SEGMENT = "/me/";
+  public static final String TEST_PORTFOLIO_ID_TEMPLATE = "{portfolioId}";
   public static final String TEST_ASSET_IMPORT_ID = "import-123";
   public static final String TEST_MISSING_ASSET_IMPORT_ID = "missing-import";
+  public static final long TEST_ASSET_ID = 11L;
   public static final long TEST_USER_ID = 42L;
   public static final long TEST_OTHER_USER_ID = 84L;
   public static final long TEST_PORTFOLIO_ID = 7L;
@@ -39,6 +42,7 @@ public final class TestConstants {
   public static final String TEST_INVESTMENT_HORIZON_MEDIUM = InvestmentHorizonEnum.MEDIUM.name();
   public static final String TEST_STRATEGY_TYPE_INCOME = StrategyTypeEnum.INCOME.name();
   public static final String TEST_STRATEGY_TYPE_BALANCED = StrategyTypeEnum.BALANCED.name();
+  public static final String TEST_ASSET_SYMBOL_MSFT = "MSFT";
 
   private TestConstants() {}
 }

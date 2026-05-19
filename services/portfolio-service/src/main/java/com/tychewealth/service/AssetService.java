@@ -9,6 +9,8 @@ public interface AssetService {
 
   AssetResponseDto create(Long userId, Long portfolioId, AssetCreateRequestDto createRequest);
 
+  AssetResponseDto retrieve(Long userId, Long portfolioId, Long assetId);
+
   AssetImportResponseDto importAssets(Long userId, MultipartFile file);
 
   AssetImportResponseDto retrieveImportedAssets(Long userId, String importId);

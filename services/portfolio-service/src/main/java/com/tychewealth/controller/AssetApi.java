@@ -1,9 +1,12 @@
 package com.tychewealth.controller;
 
+import static com.tychewealth.constants.ApiConstants.ASSET_ID_PATH;
 import static com.tychewealth.constants.ApiConstants.ASSET_IMPORT_BY_ID_URL;
 import static com.tychewealth.constants.ApiConstants.ASSET_IMPORT_URL;
 import static com.tychewealth.constants.ApiConstants.MULTIPART_FORM_DATA;
 import static com.tychewealth.constants.ApiConstants.PORTFOLIO_ASSET_BASE_URL;
+import static com.tychewealth.constants.ApiConstants.PORTFOLIO_ASSET_BY_ID_URL;
+import static com.tychewealth.constants.ApiConstants.PORTFOLIO_ID_PATH;
 import static com.tychewealth.constants.ApiConstants.REQUEST_CONSUMES;
 import static com.tychewealth.constants.ApiConstants.REQUEST_PRODUCES;
 
@@ -32,8 +35,14 @@ public interface AssetApi {
       produces = REQUEST_PRODUCES)
   ResponseEntity<AssetResponseDto> create(
       @AuthenticationPrincipal Long userId,
-      @PathVariable("portfolioId") Long portfolioId,
+      @PathVariable(PORTFOLIO_ID_PATH) Long portfolioId,
       @Valid @RequestBody AssetCreateRequestDto createRequest);
+
+  @GetMapping(value = PORTFOLIO_ASSET_BY_ID_URL, produces = REQUEST_PRODUCES)
+  ResponseEntity<AssetResponseDto> retrieve(
+      @AuthenticationPrincipal Long userId,
+      @PathVariable(PORTFOLIO_ID_PATH) Long portfolioId,
+      @PathVariable(ASSET_ID_PATH) Long assetId);
 
   @PostMapping(
       value = ASSET_IMPORT_URL,

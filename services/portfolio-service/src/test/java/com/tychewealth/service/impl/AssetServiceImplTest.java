@@ -2,11 +2,14 @@ package com.tychewealth.service.impl;
 
 import static com.tychewealth.constants.CommonConstants.ERROR;
 import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
+import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import static com.tychewealth.constants.RedisConstants.ASSET_IMPORT_RESULT_KEY_PREFIX;
+import static com.tychewealth.constants.TestConstants.TEST_ASSET_ID;
 import static com.tychewealth.constants.TestConstants.TEST_ASSET_IMPORT_ID;
 import static com.tychewealth.constants.TestConstants.TEST_FILE_PART_NAME;
 import static com.tychewealth.constants.TestConstants.TEST_MISSING_ASSET_IMPORT_ID;
 import static com.tychewealth.constants.TestConstants.TEST_OTHER_USER_ID;
+import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_ID;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
 import static com.tychewealth.testdata.AssetTestData.AI_RESPONSE;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_CONTENT_TYPE_CSV;
@@ -26,10 +29,12 @@ import com.tychewealth.dto.asset.AssetPersistRedisDto;
 import com.tychewealth.dto.asset.AssetResponseDto;
 import com.tychewealth.dto.asset.request.AssetCreateRequestDto;
 import com.tychewealth.dto.asset.request.AssetImportPayloadDto;
+import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.error.handler.ErrorDefinition;
+import com.tychewealth.mapper.asset.AssetMapper;
 import com.tychewealth.service.helper.CommonValidationHelper;
 import com.tychewealth.service.helper.asset.AssetCreateHelper;
 import com.tychewealth.service.helper.asset.AssetValidationHelper;
@@ -53,6 +58,7 @@ import org.springframework.mock.web.MockMultipartFile;
 class AssetServiceImplTest {
 
   @Mock private AssetCreateHelper assetCreateHelper;
+  @Mock private AssetMapper assetMapper;
   @Mock private AssetValidationHelper assetValidationHelper;
   @Mock private AssetAiValidationHelper assetAiValidationHelper;
   @Mock private CommonValidationHelper commonValidationHelper;
@@ -116,6 +122,61 @@ class AssetServiceImplTest {
     verify(assetValidationHelper).validateCreateLimit(portfolioId);
     verify(assetValidationHelper).validateCreateNameConflict(portfolioId, request.getName());
     verifyNoInteractions(assetCreateHelper);
+  }
+
+  @Test
+  void retrieveValidatesAndReturnsMappedAsset() {
+    Long assetId = TEST_ASSET_ID;
+    PortfolioEntity portfolio = new PortfolioEntity();
+    portfolio.setId(TEST_PORTFOLIO_ID);
+    AssetEntity asset = new AssetEntity();
+    asset.setId(assetId);
+    AssetResponseDto response = new AssetResponseDto();
+    response.setId(assetId);
+
+    when(commonValidationHelper.validateOwnedPortfolio(
+            TEST_USER_ID, TEST_PORTFOLIO_ID, RETRIEVE_ACTION))
+        .thenReturn(portfolio);
+    when(assetValidationHelper.validateRetrievedAssetExists(TEST_PORTFOLIO_ID, assetId))
+        .thenReturn(asset);
+    when(assetMapper.toDto(asset)).thenReturn(response);
+
+    AssetResponseDto result = assetService.retrieve(TEST_USER_ID, TEST_PORTFOLIO_ID, assetId);
+
+    assertSame(response, result);
+    verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
+    verify(commonValidationHelper)
+        .validateOwnedPortfolio(TEST_USER_ID, TEST_PORTFOLIO_ID, RETRIEVE_ACTION);
+    verify(assetValidationHelper).validateRetrievedAssetExists(TEST_PORTFOLIO_ID, assetId);
+    verify(assetMapper).toDto(asset);
+  }
+
+  @Test
+  void retrieveStopsWhenAssetDoesNotExist() {
+    Long assetId = TEST_ASSET_ID;
+    PortfolioEntity portfolio = new PortfolioEntity();
+    portfolio.setId(TEST_PORTFOLIO_ID);
+    PortfolioException notFound =
+        new PortfolioException(
+            ErrorDefinition.ASSET_NOT_FOUND, java.util.Map.of(), HttpStatus.NOT_FOUND);
+
+    when(commonValidationHelper.validateOwnedPortfolio(
+            TEST_USER_ID, TEST_PORTFOLIO_ID, RETRIEVE_ACTION))
+        .thenReturn(portfolio);
+    when(assetValidationHelper.validateRetrievedAssetExists(TEST_PORTFOLIO_ID, assetId))
+        .thenThrow(notFound);
+
+    PortfolioException thrown =
+        assertThrows(
+            PortfolioException.class,
+            () -> assetService.retrieve(TEST_USER_ID, TEST_PORTFOLIO_ID, assetId));
+
+    assertSame(notFound, thrown);
+    verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
+    verify(commonValidationHelper)
+        .validateOwnedPortfolio(TEST_USER_ID, TEST_PORTFOLIO_ID, RETRIEVE_ACTION);
+    verify(assetValidationHelper).validateRetrievedAssetExists(TEST_PORTFOLIO_ID, assetId);
+    verifyNoInteractions(assetMapper);
   }
 
   @Test

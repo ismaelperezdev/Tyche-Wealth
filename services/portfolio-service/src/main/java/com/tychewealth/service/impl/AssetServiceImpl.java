@@ -1,6 +1,7 @@
 package com.tychewealth.service.impl;
 
 import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
+import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import static com.tychewealth.constants.RedisConstants.ASSET_IMPORT_RESULT_KEY_PREFIX;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -11,9 +12,11 @@ import com.tychewealth.dto.asset.AssetPersistRedisDto;
 import com.tychewealth.dto.asset.AssetResponseDto;
 import com.tychewealth.dto.asset.request.AssetCreateRequestDto;
 import com.tychewealth.dto.asset.request.AssetImportPayloadDto;
+import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.handler.ErrorDefinition;
+import com.tychewealth.mapper.asset.AssetMapper;
 import com.tychewealth.service.AssetService;
 import com.tychewealth.service.helper.CommonValidationHelper;
 import com.tychewealth.service.helper.asset.AssetCreateHelper;
@@ -42,6 +45,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class AssetServiceImpl implements AssetService {
 
   private final AssetCreateHelper assetCreateHelper;
+  private final AssetMapper assetMapper;
   private final AssetValidationHelper assetValidationHelper;
   private final AssetAiValidationHelper assetAiValidationHelper;
   private final CommonValidationHelper commonValidationHelper;
@@ -66,6 +70,15 @@ public class AssetServiceImpl implements AssetService {
       throw assetValidationHelper.translateSymbolPersistenceConflict(
           ex, portfolioId, createRequest.getSymbol());
     }
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public AssetResponseDto retrieve(Long userId, Long portfolioId, Long assetId) {
+    commonValidationHelper.validateAuthenticatedUser(userId);
+    commonValidationHelper.validateOwnedPortfolio(userId, portfolioId, RETRIEVE_ACTION);
+    AssetEntity asset = assetValidationHelper.validateRetrievedAssetExists(portfolioId, assetId);
+    return assetMapper.toDto(asset);
   }
 
   @Override

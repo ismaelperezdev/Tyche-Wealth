@@ -11,6 +11,7 @@ import static com.tychewealth.constants.ValidationConstants.MUST_NOT_BE_BLANK;
 import static com.tychewealth.constants.ValidationConstants.MUST_NOT_BE_NULL;
 
 import com.tychewealth.dto.asset.AssetImportCandidateDto;
+import com.tychewealth.dto.asset.AssetResponseDto;
 import com.tychewealth.dto.asset.request.AssetCreateRequestDto;
 import com.tychewealth.dto.asset.request.AssetUpdateRequestDto;
 import com.tychewealth.entity.AssetEntity;
@@ -162,6 +163,58 @@ public final class AssetTestData {
         TEST_ASSET_QUANTITY,
         TEST_ASSET_AVERAGE_PRICE,
         CurrencyCodeEnum.USD);
+  }
+
+  public static AssetCreateRequestDto validCreateRequest() {
+    return new AssetCreateRequestDto(
+        TEST_ASSET_NAME_APPLE,
+        TEST_ASSET_SYMBOL_AAPL,
+        AssetTypeEnum.STOCK,
+        TEST_ASSET_QUANTITY,
+        TEST_ASSET_AVERAGE_PRICE,
+        CurrencyCodeEnum.USD);
+  }
+
+  public static AssetCreateRequestDto createRequestWithNameAndSymbol(String name, String symbol) {
+    return new AssetCreateRequestDto(
+        name,
+        symbol,
+        AssetTypeEnum.STOCK,
+        TEST_ASSET_QUANTITY,
+        TEST_ASSET_AVERAGE_PRICE,
+        CurrencyCodeEnum.USD);
+  }
+
+  public static PortfolioEntity defaultPortfolioEntity() {
+    return EntityBuilder.buildPortfolio(
+        TEST_USER_ID,
+        TEST_PORTFOLIO_NAME_CORE,
+        CurrencyCodeEnum.USD,
+        RiskProfileEnum.MEDIUM,
+        StrategyTypeEnum.BALANCED,
+        InvestmentHorizonEnum.MEDIUM);
+  }
+
+  public static AssetEntity defaultAssetEntity(PortfolioEntity portfolio) {
+    return EntityBuilder.buildAsset(
+        portfolio,
+        TEST_ASSET_NAME_APPLE,
+        TEST_ASSET_SYMBOL_AAPL,
+        AssetTypeEnum.STOCK,
+        CurrencyCodeEnum.USD);
+  }
+
+  public static AssetResponseDto defaultAssetResponseDto(Long id) {
+    return new AssetResponseDto(
+        id,
+        CurrencyCodeEnum.USD,
+        TEST_ASSET_NAME_APPLE,
+        TEST_ASSET_SYMBOL_AAPL,
+        AssetTypeEnum.STOCK,
+        TEST_ASSET_QUANTITY,
+        TEST_ASSET_AVERAGE_PRICE,
+        java.time.LocalDateTime.now(),
+        java.time.LocalDateTime.now());
   }
 
   private static AssetUpdateRequestDto validUpdate() {

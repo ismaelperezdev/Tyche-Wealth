@@ -51,6 +51,18 @@ public class AssetApiController implements AssetApi {
   }
 
   @Override
+  @RateLimited(RateLimitKey.ASSET_RETRIEVE)
+  public ResponseEntity<AssetResponseDto> retrieve(
+      @AuthenticationPrincipal Long userId, Long portfolioId, Long assetId) {
+    log.info(REQUEST_START + PORTFOLIO_ID + USER_ID, ASSET, RETRIEVE_ACTION, portfolioId, userId);
+
+    AssetResponseDto response = assetService.retrieve(userId, portfolioId, assetId);
+    log.info(REQUEST_SUCCESS + PORTFOLIO_ID + USER_ID, ASSET, RETRIEVE_ACTION, portfolioId, userId);
+
+    return buildNoStoreBodyResponse(HttpStatus.OK, response);
+  }
+
+  @Override
   @RateLimited(RateLimitKey.ASSET_IMPORT)
   public ResponseEntity<AssetImportResponseDto> importAssets(
       @AuthenticationPrincipal Long userId, @RequestPart("file") MultipartFile file) {

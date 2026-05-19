@@ -39,6 +39,7 @@ public final class LogConstants {
       "asset name already exists for portfolio";
   public static final String ASSET_SYMBOL_ALREADY_EXISTS_MESSAGE =
       "asset symbol already exists for portfolio";
+  public static final String ASSET_NOT_FOUND_MESSAGE = "asset not found for portfolio";
   public static final String PORTFOLIO_PERSISTENCE_CONFLICT_MESSAGE =
       "portfolio conflict detected at persistence layer";
   public static final String ASSET_PERSISTENCE_CONFLICT_MESSAGE =

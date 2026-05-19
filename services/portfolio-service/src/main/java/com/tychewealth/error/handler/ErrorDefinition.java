@@ -25,18 +25,6 @@ public enum ErrorDefinition {
       "PORTFOLIO_LIMIT_REACHED",
       "The maximum number of portfolios allowed per user has been reached"),
   PORTFOLIO_NOT_FOUND("TYCHE-402", "PORTFOLIO_NOT_FOUND", "The portfolio was not found"),
-  ASSET_LIMIT_REACHED(
-      "TYCHE-510",
-      "ASSET_LIMIT_REACHED",
-      "The maximum number of assets allowed per portfolio has been reached"),
-  ASSET_SYMBOL_CONFLICT(
-      "TYCHE-511",
-      "ASSET_SYMBOL_CONFLICT",
-      "An asset with symbol '${name:-}' already exists for this portfolio"),
-  ASSET_NAME_CONFLICT(
-      "TYCHE-512",
-      "ASSET_NAME_CONFLICT",
-      "An asset with name '${name:-}' already exists for this portfolio"),
 
   ASSET_IMPORT_EXTRACTION_FAILED(
       "TYCHE-500",
@@ -73,7 +61,20 @@ public enum ErrorDefinition {
       "ASSET_IMPORT_RESULT_LIMIT_EXCEEDED",
       "The import produced too many assets. Maximum: ${expected:-}. Received: ${received:-}"),
   ASSET_IMPORT_NOT_FOUND(
-      "TYCHE-509", "ASSET_IMPORT_NOT_FOUND", "The imported asset result was not found");
+      "TYCHE-509", "ASSET_IMPORT_NOT_FOUND", "The imported asset result was not found"),
+  ASSET_LIMIT_REACHED(
+      "TYCHE-510",
+      "ASSET_LIMIT_REACHED",
+      "The maximum number of assets allowed per portfolio has been reached"),
+  ASSET_SYMBOL_CONFLICT(
+      "TYCHE-511",
+      "ASSET_SYMBOL_CONFLICT",
+      "An asset with symbol '${name:-}' already exists for this portfolio"),
+  ASSET_NAME_CONFLICT(
+      "TYCHE-512",
+      "ASSET_NAME_CONFLICT",
+      "An asset with name '${name:-}' already exists for this portfolio"),
+  ASSET_NOT_FOUND("TYCHE-513", "ASSET_NOT_FOUND", "The asset was not found");
 
   private final String code;
   private final String type;
