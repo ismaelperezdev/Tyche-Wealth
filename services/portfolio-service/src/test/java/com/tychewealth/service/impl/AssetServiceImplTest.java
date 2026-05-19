@@ -148,6 +148,7 @@ class AssetServiceImplTest {
     assertEquals(TEST_USER_ID, persistedImportCaptor.getValue().getUserId());
     assertEquals(TEST_ASSET_FILE_NAME, persistedImportCaptor.getValue().getFileName());
     assertEquals(result, persistedImportCaptor.getValue().getResult());
+    verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
     verify(assetAiValidationHelper).validateImportRequest(file);
     verify(importAssetsHelper).buildImportPayload(file);
     verify(importAssetsAiHelper)
@@ -175,6 +176,7 @@ class AssetServiceImplTest {
             AssetImportException.class, () -> assetService.importAssets(TEST_USER_ID, file));
 
     assertSame(validationException, thrown);
+    verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
     verify(assetAiValidationHelper).validateImportRequest(file);
     verify(importAssetsHelper, never()).buildImportPayload(file);
     verify(importAssetsAiHelper, never())
