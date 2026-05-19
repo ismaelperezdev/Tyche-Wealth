@@ -129,8 +129,25 @@
 
     <changeSet id="cleanup-duplicate-assets-portfolio-symbol" author="tyche-wealth">
 
-        <preConditions onFail="MARK_RAN" onError="HALT">
+        <preConditions onFail="HALT" onError="HALT"
+                       onFailMessage="Inconsistent duplicate assets detected for (portfolio_id, symbol). Resolve conflicting rows before applying uq_asset_portfolio_id_symbol.">
             <tableExists tableName="assets"/>
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*)
+                FROM (
+                    SELECT portfolio_id, symbol
+                    FROM assets
+                    GROUP BY portfolio_id, symbol
+                    HAVING COUNT(*) &gt; 1
+                       AND (
+                           MIN(quantity) &lt;&gt; MAX(quantity)
+                        OR MIN(average_price) &lt;&gt; MAX(average_price)
+                        OR MIN(name) &lt;&gt; MAX(name)
+                        OR MIN(created_at) &lt;&gt; MAX(created_at)
+                        OR MIN(COALESCE(CAST(updated_at AS VARCHAR(64)), '')) &lt;&gt; MAX(COALESCE(CAST(updated_at AS VARCHAR(64)), ''))
+                       )
+                ) inconsistent_duplicates
+            </sqlCheck>
         </preConditions>
 
         <sql>
