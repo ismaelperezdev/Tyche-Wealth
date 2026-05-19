@@ -143,7 +143,7 @@ public class ImportAssetsAiHelper {
 
     } catch (TimeoutException ex) {
       future.cancel(true);
-      throw assetAiValidationHelper.aiTimeoutExceeded(assetAiValidationHelper.aiTimeoutSeconds());
+      throw assetAiValidationHelper.aiTimeoutExceeded(aiRequestTimeout.toSeconds());
 
     } catch (ExecutionException ex) {
       log.error(

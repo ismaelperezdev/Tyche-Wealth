@@ -63,13 +63,7 @@ class AssetAiValidationHelperTest {
 
     assertEquals(ErrorDefinition.GENERIC_BAD_REQUEST, exception.getErrorDefinition());
     assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
-    assertEquals(
-        PortfolioException.of(
-                ErrorDefinition.GENERIC_BAD_REQUEST,
-                Map.of(ERROR, "fileName must not be null"),
-                HttpStatus.BAD_REQUEST)
-            .getMessage(),
-        exception.getMessage());
+    assertEquals("fileName must not be null", exception.getDescription().get(ERROR));
   }
 
   @Test
@@ -81,13 +75,7 @@ class AssetAiValidationHelperTest {
 
     assertEquals(ErrorDefinition.GENERIC_BAD_REQUEST, exception.getErrorDefinition());
     assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
-    assertEquals(
-        PortfolioException.of(
-                ErrorDefinition.GENERIC_BAD_REQUEST,
-                Map.of(ERROR, "inputStream must not be null"),
-                HttpStatus.BAD_REQUEST)
-            .getMessage(),
-        exception.getMessage());
+    assertEquals("inputStream must not be null", exception.getDescription().get(ERROR));
   }
 
   @Test

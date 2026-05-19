@@ -127,6 +127,27 @@
 
     </changeSet>
 
+    <changeSet id="cleanup-duplicate-assets-portfolio-symbol" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <tableExists tableName="assets"/>
+        </preConditions>
+
+        <sql>
+            DELETE FROM assets
+            WHERE id IN (
+                SELECT id
+                FROM (
+                    SELECT id,
+                           ROW_NUMBER() OVER (PARTITION BY portfolio_id, symbol ORDER BY id) AS rn
+                    FROM assets
+                ) duplicates
+                WHERE duplicates.rn &gt; 1
+            );
+        </sql>
+
+    </changeSet>
+
     <changeSet id="add-assets-portfolio-symbol-unique-constraint" author="tyche-wealth">
 
         <preConditions onFail="MARK_RAN" onError="HALT">

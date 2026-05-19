@@ -44,8 +44,7 @@ public final class EndpointTestData {
             portfolio("delete", Long.class, Long.class)),
         Arguments.of(
             RateLimitKey.ASSET_CREATE,
-            new MockHttpServletRequest(
-                POST, "/tyche-wealth/portfolio-service/v1/portfolio/me/7/assets"),
+            new MockHttpServletRequest(POST, "/tyche-wealth/portfolio-service/v1/me/7/assets"),
             asset("create", Long.class, Long.class, AssetCreateRequestDto.class)),
         Arguments.of(
             RateLimitKey.ASSET_IMPORT,

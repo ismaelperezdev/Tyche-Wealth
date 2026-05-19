@@ -238,6 +238,51 @@ class AssetApiControllerIntegrationTest {
   }
 
   @Test
+  void createReturnsConflictWhenAssetSymbolAlreadyExistsInPortfolio() throws Exception {
+    PortfolioEntity portfolio =
+        portfolioRepository.saveAndFlush(
+            buildPortfolio(
+                TEST_USER_ID,
+                "Core",
+                CurrencyCodeEnum.USD,
+                RiskProfileEnum.MEDIUM,
+                StrategyTypeEnum.BALANCED,
+                InvestmentHorizonEnum.MEDIUM));
+    AssetEntity existingAsset =
+        buildAsset(
+            portfolio,
+            TEST_ASSET_NAME_APPLE,
+            TEST_ASSET_SYMBOL_AAPL,
+            AssetTypeEnum.STOCK,
+            CurrencyCodeEnum.USD);
+    assetRepository.saveAndFlush(existingAsset);
+
+    AssetCreateRequestDto request =
+        new AssetCreateRequestDto(
+            "Microsoft Corporation",
+            TEST_ASSET_SYMBOL_AAPL,
+            AssetTypeEnum.STOCK,
+            TEST_ASSET_QUANTITY,
+            TEST_ASSET_AVERAGE_PRICE,
+            CurrencyCodeEnum.USD);
+
+    mockMvc
+        .perform(
+            post(PORTFOLIO_ASSET_BASE_URL, portfolio.getId())
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsBytes(request))
+                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+        .andExpect(status().isConflict())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(
+            jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.ASSET_SYMBOL_CONFLICT.getCode()))
+        .andExpect(
+            jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.ASSET_SYMBOL_CONFLICT.getType()))
+        .andExpect(jsonPath("$." + DESCRIPTION).value(containsString(TEST_ASSET_SYMBOL_AAPL)));
+  }
+
+  @Test
   void importReturnsUnauthorizedWhenAuthenticatedUserIsMissing() throws Exception {
     MockMultipartFile file =
         new MockMultipartFile(

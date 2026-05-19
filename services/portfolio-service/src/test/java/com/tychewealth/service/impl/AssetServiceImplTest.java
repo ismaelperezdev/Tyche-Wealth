@@ -1,7 +1,7 @@
 package com.tychewealth.service.impl;
 
 import static com.tychewealth.constants.CommonConstants.ERROR;
-import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
+import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
 import static com.tychewealth.constants.RedisConstants.ASSET_IMPORT_RESULT_KEY_PREFIX;
 import static com.tychewealth.constants.TestConstants.TEST_ASSET_IMPORT_ID;
 import static com.tychewealth.constants.TestConstants.TEST_FILE_PART_NAME;
@@ -76,7 +76,7 @@ class AssetServiceImplTest {
     AssetResponseDto response = new AssetResponseDto();
     response.setId(20L);
 
-    when(commonValidationHelper.validateOwnedPortfolio(TEST_USER_ID, portfolioId, RETRIEVE_ACTION))
+    when(commonValidationHelper.validateOwnedPortfolio(TEST_USER_ID, portfolioId, CREATE_ACTION))
         .thenReturn(portfolio);
     when(assetCreateHelper.create(portfolio, request)).thenReturn(response);
 
@@ -84,8 +84,7 @@ class AssetServiceImplTest {
 
     assertSame(response, result);
     verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
-    verify(commonValidationHelper)
-        .validateOwnedPortfolio(TEST_USER_ID, portfolioId, RETRIEVE_ACTION);
+    verify(commonValidationHelper).validateOwnedPortfolio(TEST_USER_ID, portfolioId, CREATE_ACTION);
     verify(assetValidationHelper).validateCreateLimit(portfolioId);
     verify(assetValidationHelper).validateCreateNameConflict(portfolioId, request.getName());
     verify(assetCreateHelper).create(portfolio, request);
@@ -102,7 +101,7 @@ class AssetServiceImplTest {
         new PortfolioException(
             ErrorDefinition.ASSET_NAME_CONFLICT, java.util.Map.of(), HttpStatus.CONFLICT);
 
-    when(commonValidationHelper.validateOwnedPortfolio(TEST_USER_ID, portfolioId, RETRIEVE_ACTION))
+    when(commonValidationHelper.validateOwnedPortfolio(TEST_USER_ID, portfolioId, CREATE_ACTION))
         .thenReturn(portfolio);
     doThrow(conflict)
         .when(assetValidationHelper)

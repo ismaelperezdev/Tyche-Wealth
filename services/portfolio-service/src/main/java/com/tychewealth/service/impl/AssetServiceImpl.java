@@ -1,6 +1,6 @@
 package com.tychewealth.service.impl;
 
-import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
+import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
 import static com.tychewealth.constants.RedisConstants.ASSET_IMPORT_RESULT_KEY_PREFIX;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -33,6 +33,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -51,12 +52,12 @@ public class AssetServiceImpl implements AssetService {
   private final ObjectMapper objectMapper;
 
   @Override
-  @Transactional
+  @Transactional(isolation = Isolation.SERIALIZABLE)
   public AssetResponseDto create(
       Long userId, Long portfolioId, AssetCreateRequestDto createRequest) {
     commonValidationHelper.validateAuthenticatedUser(userId);
     PortfolioEntity portfolio =
-        commonValidationHelper.validateOwnedPortfolio(userId, portfolioId, RETRIEVE_ACTION);
+        commonValidationHelper.validateOwnedPortfolio(userId, portfolioId, CREATE_ACTION);
     assetValidationHelper.validateCreateLimit(portfolioId);
     assetValidationHelper.validateCreateNameConflict(portfolioId, createRequest.getName());
     try {
