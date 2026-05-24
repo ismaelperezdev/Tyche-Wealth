@@ -15,8 +15,8 @@
     <description>User management microservice for the Tyche Wealth platform</description>
 
     <properties>
-        <jacoco.minimum.line.coverage>0.60</jacoco.minimum.line.coverage>
-        <jacoco.minimum.branch.coverage>0.40</jacoco.minimum.branch.coverage>
+        <jacoco.minimum.line.coverage>0.80</jacoco.minimum.line.coverage>
+        <jacoco.minimum.branch.coverage>0.60</jacoco.minimum.branch.coverage>
     </properties>
 
 </project>

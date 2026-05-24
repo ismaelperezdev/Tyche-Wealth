@@ -11,12 +11,17 @@ reviews:
   path_filters:
     - "services/user-service/**"
     - "services/portfolio-service/**"
+    - ".github/workflows/**"
+    - "docker/**"
+    - "observability/**"
+    - "docker-compose.yml"
+    - "pom.xml"
     - "!services/user-service/target/**"
     - "!services/portfolio-service/target/**"
     - "!**/.idea/**"
     - "!**/*.iml"
   auto_review:
-    enabled: false
+    enabled: true
     drafts: false
     # Regex: revisar PRs para cualquier rama base (no solo main/default)
     base_branches:
