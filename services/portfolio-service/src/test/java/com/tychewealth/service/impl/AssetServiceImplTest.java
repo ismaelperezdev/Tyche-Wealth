@@ -3,6 +3,7 @@ package com.tychewealth.service.impl;
 import static com.tychewealth.constants.CommonConstants.ERROR;
 import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
 import static com.tychewealth.constants.LogConstants.DELETE_ACTION;
+import static com.tychewealth.constants.LogConstants.LIST_ASSETS_ACTION;
 import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import static com.tychewealth.constants.LogConstants.UPDATE_ACTION;
 import static com.tychewealth.constants.RedisConstants.ASSET_IMPORT_RESULT_KEY_PREFIX;
@@ -64,6 +65,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.HttpStatus;
@@ -195,6 +199,36 @@ class AssetServiceImplTest {
         .validateOwnedPortfolio(TEST_USER_ID, TEST_PORTFOLIO_ID, RETRIEVE_ACTION);
     verify(assetValidationHelper).validateRetrievedAssetExists(TEST_PORTFOLIO_ID, assetId);
     verifyNoInteractions(assetMapper);
+  }
+
+  @Test
+  void listAssetsValidatesOwnershipAndReturnsMappedAssets() {
+    AssetEntity first = new AssetEntity();
+    first.setId(1L);
+    AssetEntity second = new AssetEntity();
+    second.setId(2L);
+    AssetResponseDto firstDto = new AssetResponseDto();
+    firstDto.setId(1L);
+    AssetResponseDto secondDto = new AssetResponseDto();
+    secondDto.setId(2L);
+
+    when(commonValidationHelper.validateOwnedPortfolio(
+            TEST_USER_ID, TEST_PORTFOLIO_ID, LIST_ASSETS_ACTION))
+        .thenReturn(portfolio);
+    when(assetRepository.findByPortfolioId(eq(TEST_PORTFOLIO_ID), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(List.of(first, second)));
+    when(assetMapper.toDto(first)).thenReturn(firstDto);
+    when(assetMapper.toDto(second)).thenReturn(secondDto);
+
+    Page<AssetResponseDto> result = assetService.listAssets(TEST_USER_ID, TEST_PORTFOLIO_ID, 0, 10);
+
+    assertEquals(2, result.getContent().size());
+    assertSame(firstDto, result.getContent().get(0));
+    assertSame(secondDto, result.getContent().get(1));
+    verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
+    verify(commonValidationHelper)
+        .validateOwnedPortfolio(TEST_USER_ID, TEST_PORTFOLIO_ID, LIST_ASSETS_ACTION);
+    verify(assetRepository).findByPortfolioId(eq(TEST_PORTFOLIO_ID), any(Pageable.class));
   }
 
   @Test

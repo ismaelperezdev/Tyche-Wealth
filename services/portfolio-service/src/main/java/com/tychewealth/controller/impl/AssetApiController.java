@@ -1,10 +1,15 @@
 package com.tychewealth.controller.impl;
 
+import static com.tychewealth.constants.ApiConstants.DEFAULT_ASSET_LIST_LIMIT;
+import static com.tychewealth.constants.ApiConstants.DEFAULT_OFFSET;
 import static com.tychewealth.constants.ApiConstants.IMPORT_ID_PATH;
+import static com.tychewealth.constants.ApiConstants.LIMIT_PARAM;
+import static com.tychewealth.constants.ApiConstants.OFFSET_PARAM;
 import static com.tychewealth.constants.LogConstants.ASSET;
 import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
 import static com.tychewealth.constants.LogConstants.DELETE_ACTION;
 import static com.tychewealth.constants.LogConstants.IMPORT_ASSETS_ACTION;
+import static com.tychewealth.constants.LogConstants.LIST_ASSETS_ACTION;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_ID;
 import static com.tychewealth.constants.LogConstants.REQUEST_START;
 import static com.tychewealth.constants.LogConstants.REQUEST_SUCCESS;
@@ -27,11 +32,13 @@ import jakarta.validation.Valid;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -55,6 +62,23 @@ public class AssetApiController implements AssetApi {
     log.info(REQUEST_SUCCESS + PORTFOLIO_ID + USER_ID, ASSET, CREATE_ACTION, portfolioId, userId);
 
     return buildNoStoreBodyResponse(HttpStatus.CREATED, response);
+  }
+
+  @Override
+  @RateLimited(RateLimitKey.ASSET_LIST)
+  public ResponseEntity<Page<AssetResponseDto>> listAssets(
+      @AuthenticationPrincipal Long userId,
+      Long portfolioId,
+      @RequestParam(name = OFFSET_PARAM, defaultValue = DEFAULT_OFFSET) int offset,
+      @RequestParam(name = LIMIT_PARAM, defaultValue = DEFAULT_ASSET_LIST_LIMIT) int limit) {
+    log.info(
+        REQUEST_START + PORTFOLIO_ID + USER_ID, ASSET, LIST_ASSETS_ACTION, portfolioId, userId);
+
+    Page<AssetResponseDto> response = assetService.listAssets(userId, portfolioId, offset, limit);
+    log.info(
+        REQUEST_SUCCESS + PORTFOLIO_ID + USER_ID, ASSET, LIST_ASSETS_ACTION, portfolioId, userId);
+
+    return buildNoStoreBodyResponse(HttpStatus.OK, response);
   }
 
   @Override

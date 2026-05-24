@@ -3,8 +3,12 @@ package com.tychewealth.controller;
 import static com.tychewealth.constants.ApiConstants.ASSET_ID_PATH;
 import static com.tychewealth.constants.ApiConstants.ASSET_IMPORT_BY_ID_URL;
 import static com.tychewealth.constants.ApiConstants.ASSET_IMPORT_URL;
+import static com.tychewealth.constants.ApiConstants.DEFAULT_ASSET_LIST_LIMIT;
+import static com.tychewealth.constants.ApiConstants.DEFAULT_OFFSET;
 import static com.tychewealth.constants.ApiConstants.IMPORT_ID_PATH;
+import static com.tychewealth.constants.ApiConstants.LIMIT_PARAM;
 import static com.tychewealth.constants.ApiConstants.MULTIPART_FORM_DATA;
+import static com.tychewealth.constants.ApiConstants.OFFSET_PARAM;
 import static com.tychewealth.constants.ApiConstants.PORTFOLIO_ASSET_BASE_URL;
 import static com.tychewealth.constants.ApiConstants.PORTFOLIO_ASSET_BATCH_URL;
 import static com.tychewealth.constants.ApiConstants.PORTFOLIO_ASSET_BY_ID_URL;
@@ -20,6 +24,7 @@ import com.tychewealth.dto.asset.request.AssetUpdateRequestDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -29,6 +34,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -44,6 +50,13 @@ public interface AssetApi {
       @AuthenticationPrincipal Long userId,
       @PathVariable(PORTFOLIO_ID_PATH) Long portfolioId,
       @Valid @RequestBody AssetCreateRequestDto createRequest);
+
+  @GetMapping(value = PORTFOLIO_ASSET_BASE_URL, produces = REQUEST_PRODUCES)
+  ResponseEntity<Page<AssetResponseDto>> listAssets(
+      @AuthenticationPrincipal Long userId,
+      @PathVariable(PORTFOLIO_ID_PATH) Long portfolioId,
+      @RequestParam(name = OFFSET_PARAM, defaultValue = DEFAULT_OFFSET) int offset,
+      @RequestParam(name = LIMIT_PARAM, defaultValue = DEFAULT_ASSET_LIST_LIMIT) int limit);
 
   @GetMapping(value = PORTFOLIO_ASSET_BY_ID_URL, produces = REQUEST_PRODUCES)
   ResponseEntity<AssetResponseDto> retrieve(

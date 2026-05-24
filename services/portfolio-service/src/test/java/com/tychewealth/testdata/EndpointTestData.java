@@ -65,6 +65,13 @@ public final class EndpointTestData {
                     TEST_PORTFOLIO_ID_TEMPLATE, String.valueOf(TEST_PORTFOLIO_ID))),
             asset("create", Long.class, Long.class, AssetCreateRequestDto.class)),
         Arguments.of(
+            RateLimitKey.ASSET_LIST,
+            new MockHttpServletRequest(
+                GET,
+                PORTFOLIO_ASSET_BASE_URL.replace(
+                    TEST_PORTFOLIO_ID_TEMPLATE, String.valueOf(TEST_PORTFOLIO_ID))),
+            asset("listAssets", Long.class, Long.class, Integer.TYPE, Integer.TYPE)),
+        Arguments.of(
             RateLimitKey.ASSET_UPDATE,
             new MockHttpServletRequest(
                 PATCH,

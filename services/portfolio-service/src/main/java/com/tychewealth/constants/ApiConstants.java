@@ -10,6 +10,11 @@ public final class ApiConstants {
   public static final String PORTFOLIO_ID_PATH = "portfolioId";
   public static final String ASSET_ID_PATH = "assetId";
   public static final String IMPORT_ID_PATH = "importId";
+  public static final String OFFSET_PARAM = "offset";
+  public static final String LIMIT_PARAM = "limit";
+  public static final String DEFAULT_OFFSET = "0";
+  public static final String DEFAULT_ASSET_LIST_LIMIT = "10";
+  public static final int MAX_ASSET_LIST_LIMIT = 10;
   public static final String PORTFOLIO_BASE_URL = URL_FOLDER_V1 + "/portfolio";
   public static final String ASSET_BASE_URL = URL_FOLDER_V1 + "/assets";
   public static final String PORTFOLIO_ASSET_BASE_URL = URL_FOLDER_V1 + "/me/{portfolioId}/assets";

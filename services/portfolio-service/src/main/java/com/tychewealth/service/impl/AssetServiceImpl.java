@@ -1,7 +1,10 @@
 package com.tychewealth.service.impl;
 
+import static com.tychewealth.constants.ApiConstants.MAX_ASSET_LIST_LIMIT;
+import static com.tychewealth.constants.CommonConstants.ID;
 import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
 import static com.tychewealth.constants.LogConstants.DELETE_ACTION;
+import static com.tychewealth.constants.LogConstants.LIST_ASSETS_ACTION;
 import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import static com.tychewealth.constants.LogConstants.UPDATE_ACTION;
 import static com.tychewealth.constants.RedisConstants.ASSET_IMPORT_RESULT_KEY_PREFIX;
@@ -40,6 +43,9 @@ import java.util.Locale;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -79,6 +85,18 @@ public class AssetServiceImpl implements AssetService {
       throw assetValidationHelper.translateSymbolPersistenceConflict(
           ex, portfolioId, createRequest.getSymbol());
     }
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Page<AssetResponseDto> listAssets(Long userId, Long portfolioId, int offset, int limit) {
+    commonValidationHelper.validateAuthenticatedUser(userId);
+    commonValidationHelper.validateOwnedPortfolio(userId, portfolioId, LIST_ASSETS_ACTION);
+    int safeOffset = Math.max(offset, 0);
+    int safeLimit = Math.clamp(limit, 1, MAX_ASSET_LIST_LIMIT);
+    return assetRepository
+        .findByPortfolioId(portfolioId, PageRequest.of(safeOffset, safeLimit, Sort.by(ID)))
+        .map(assetMapper::toDto);
   }
 
   @Override

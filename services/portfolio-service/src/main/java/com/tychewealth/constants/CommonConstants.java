@@ -23,6 +23,7 @@ public final class CommonConstants {
   public static final String POST = "POST";
   public static final String PATCH = "PATCH";
   public static final String DELETE = "DELETE";
+  public static final String ID = "id";
 
   public static final String NAME_PLACEHOLDER = "${name:-}";
   public static final String ERROR_PLACEHOLDER = "${error:-}";
