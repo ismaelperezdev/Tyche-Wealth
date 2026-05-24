@@ -119,7 +119,7 @@ public class AssetValidationHelper {
       if (!normalizedNames.add(normalizedName)) {
         throw new PortfolioException(
             ASSET_NAME_CONFLICT,
-            Map.of(NAME, asset == null ? "" : Objects.requireNonNull(asset.getName())),
+            Map.of(NAME, asset == null || asset.getName() == null ? "" : asset.getName()),
             HttpStatus.CONFLICT);
       }
     }
