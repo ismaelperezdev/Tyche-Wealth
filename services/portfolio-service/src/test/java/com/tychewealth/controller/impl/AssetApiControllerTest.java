@@ -36,6 +36,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
@@ -63,6 +65,26 @@ class AssetApiControllerTest {
     assertEquals(PRAGMA_NO_CACHE_HEADER_VALUE, result.getHeaders().getPragma());
     assertEquals(response, result.getBody());
     verify(assetService).create(TEST_USER_ID, TEST_PORTFOLIO_ID, request);
+  }
+
+  @Test
+  void listAssetsReturnsOkResponse() {
+    Page<AssetResponseDto> response = new PageImpl<>(List.of(defaultAssetResponseDto(100L)));
+
+    when(assetService.listAssets(TEST_USER_ID, TEST_PORTFOLIO_ID, 0, 10)).thenReturn(response);
+
+    ResponseEntity<List<AssetResponseDto>> result =
+        assetApiController.listAssets(TEST_USER_ID, TEST_PORTFOLIO_ID, 0, 10);
+
+    assertEquals(HttpStatus.OK, result.getStatusCode());
+    assertEquals(CACHE_CONTROL_NO_STORE_HEADER_VALUE, result.getHeaders().getCacheControl());
+    assertEquals(PRAGMA_NO_CACHE_HEADER_VALUE, result.getHeaders().getPragma());
+    assertEquals(response.getContent(), result.getBody());
+    assertEquals("1", result.getHeaders().getFirst("X-Total-Count"));
+    assertEquals("0", result.getHeaders().getFirst("X-Page"));
+    assertEquals("10", result.getHeaders().getFirst("X-Limit"));
+    assertEquals("false", result.getHeaders().getFirst("X-Has-Next"));
+    verify(assetService).listAssets(TEST_USER_ID, TEST_PORTFOLIO_ID, 0, 10);
   }
 
   @Test

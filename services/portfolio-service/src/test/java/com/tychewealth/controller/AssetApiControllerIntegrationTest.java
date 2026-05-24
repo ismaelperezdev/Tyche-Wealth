@@ -265,6 +265,47 @@ class AssetApiControllerIntegrationTest {
   }
 
   @Test
+  void listAssetsReturnsOkWhenPortfolioBelongsToAuthenticatedUser() throws Exception {
+    PortfolioEntity portfolio = portfolioRepository.saveAndFlush(defaultPortfolioEntity());
+    assetRepository.saveAndFlush(defaultAssetEntity(portfolio));
+
+    mockMvc
+        .perform(
+            get(PORTFOLIO_ASSET_BASE_URL, portfolio.getId())
+                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+        .andExpect(status().isOk())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(header().string("X-Total-Count", "1"))
+        .andExpect(header().string("X-Page", "0"))
+        .andExpect(header().string("X-Limit", "10"))
+        .andExpect(header().string("X-Has-Next", "false"))
+        .andExpect(jsonPath("$", hasSize(1)))
+        .andExpect(jsonPath("$[0].name").value(TEST_ASSET_NAME_APPLE))
+        .andExpect(jsonPath("$[0].symbol").value(TEST_ASSET_SYMBOL_AAPL));
+  }
+
+  @Test
+  void listAssetsReturnsNotFoundWhenPortfolioDoesNotBelongToAuthenticatedUser() throws Exception {
+    PortfolioEntity portfolio = defaultPortfolioEntity();
+    portfolio.setUserId(TEST_OTHER_USER_ID);
+    portfolio = portfolioRepository.saveAndFlush(portfolio);
+    assetRepository.saveAndFlush(defaultAssetEntity(portfolio));
+
+    mockMvc
+        .perform(
+            get(PORTFOLIO_ASSET_BASE_URL, portfolio.getId())
+                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+        .andExpect(status().isNotFound())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(
+            jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getCode()))
+        .andExpect(
+            jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getType()));
+  }
+
+  @Test
   void updateReturnsOkWhenRequestIsValid() throws Exception {
     PortfolioEntity portfolio = portfolioRepository.saveAndFlush(defaultPortfolioEntity());
     AssetEntity existingAsset = assetRepository.saveAndFlush(defaultAssetEntity(portfolio));

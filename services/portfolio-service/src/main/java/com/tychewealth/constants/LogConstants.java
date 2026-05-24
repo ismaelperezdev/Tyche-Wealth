@@ -13,6 +13,7 @@ public final class LogConstants {
   public static final String UPDATE_ACTION = "[update]";
   public static final String DELETE_ACTION = "[delete]";
   public static final String LIST_PORTFOLIOS_ACTION = "[list-portfolios]";
+  public static final String LIST_ASSETS_ACTION = "[list-assets]";
   public static final String IMPORT_ASSETS_ACTION = "[import-assets]";
   public static final String ERROR_HANDLER_ACTION = "[error-handler]";
   public static final String ACCESS_TOKEN_ACTION = "[access-token]";
