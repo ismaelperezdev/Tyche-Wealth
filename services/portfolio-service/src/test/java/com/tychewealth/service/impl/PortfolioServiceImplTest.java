@@ -48,6 +48,7 @@ import org.springframework.http.HttpStatus;
 class PortfolioServiceImplTest {
 
   private static final long TEST_SECOND_PORTFOLIO_ID = 8L;
+  private static final long TEST_TOTAL_ELEMENTS = 5L;
   private static final String TEST_UPDATED_PORTFOLIO_NAME_RETIREMENT = "Updated retirement";
 
   @Mock private PortfolioRepository portfolioRepository;
@@ -88,7 +89,11 @@ class PortfolioServiceImplTest {
     secondResponse.setName(TEST_PORTFOLIO_NAME_RETIREMENT);
 
     when(portfolioRepository.findByUserId(TEST_USER_ID, PageRequest.of(0, 10, Sort.by("id"))))
-        .thenReturn(new PageImpl<>(List.of(firstPortfolio, secondPortfolio)));
+        .thenReturn(
+            new PageImpl<>(
+                List.of(firstPortfolio, secondPortfolio),
+                PageRequest.of(0, 2),
+                TEST_TOTAL_ELEMENTS));
     when(portfolioMapper.toDto(firstPortfolio)).thenReturn(firstResponse);
     when(portfolioMapper.toDto(secondPortfolio)).thenReturn(secondResponse);
 
@@ -96,6 +101,7 @@ class PortfolioServiceImplTest {
 
     assertEquals(2, result.getContent().size());
     assertEquals(List.of(firstResponse, secondResponse), result.getContent());
+    assertEquals(TEST_TOTAL_ELEMENTS, result.getTotalElements());
     verify(portfolioRepository).findByUserId(TEST_USER_ID, PageRequest.of(0, 10, Sort.by("id")));
   }
 

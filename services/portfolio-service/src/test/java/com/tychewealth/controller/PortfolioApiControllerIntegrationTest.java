@@ -32,6 +32,10 @@ import static com.tychewealth.constants.TestConstants.TEST_RISK_PROFILE_MEDIUM;
 import static com.tychewealth.constants.TestConstants.TEST_STRATEGY_TYPE_BALANCED;
 import static com.tychewealth.constants.TestConstants.TEST_STRATEGY_TYPE_INCOME;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
+import static com.tychewealth.constants.TestConstants.TEST_X_HAS_NEXT_HEADER;
+import static com.tychewealth.constants.TestConstants.TEST_X_LIMIT_HEADER;
+import static com.tychewealth.constants.TestConstants.TEST_X_PAGE_HEADER;
+import static com.tychewealth.constants.TestConstants.TEST_X_TOTAL_COUNT_HEADER;
 import static com.tychewealth.testdata.EntityBuilder.buildAsset;
 import static com.tychewealth.testdata.EntityBuilder.buildPortfolio;
 import static com.tychewealth.testdata.PortfolioTestData.invalidEnumCreateRequest;
@@ -125,13 +129,44 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
-        .andExpect(header().string("X-Total-Count", "2"))
-        .andExpect(header().string("X-Page", "0"))
-        .andExpect(header().string("X-Limit", "10"))
-        .andExpect(header().string("X-Has-Next", "false"))
+        .andExpect(header().string(TEST_X_TOTAL_COUNT_HEADER, "2"))
+        .andExpect(header().string(TEST_X_PAGE_HEADER, "0"))
+        .andExpect(header().string(TEST_X_LIMIT_HEADER, "10"))
+        .andExpect(header().string(TEST_X_HAS_NEXT_HEADER, "false"))
         .andExpect(jsonPath("$", hasSize(2)))
         .andExpect(jsonPath("$[0].name").value(TEST_PORTFOLIO_NAME_CORE))
         .andExpect(jsonPath("$[1].name").value(TEST_PORTFOLIO_NAME_RETIREMENT));
+  }
+
+  @Test
+  void retrieveReturnsPagedSliceWhenPageAndLimitAreProvided() throws Exception {
+    portfolioRepository.saveAndFlush(
+        buildPortfolio(
+            TEST_USER_ID,
+            TEST_PORTFOLIO_NAME_CORE,
+            CurrencyCodeEnum.USD,
+            RiskProfileEnum.MEDIUM,
+            StrategyTypeEnum.BALANCED,
+            InvestmentHorizonEnum.MEDIUM));
+    portfolioRepository.saveAndFlush(
+        buildPortfolio(
+            TEST_USER_ID,
+            TEST_PORTFOLIO_NAME_RETIREMENT,
+            CurrencyCodeEnum.EUR,
+            RiskProfileEnum.LOW,
+            StrategyTypeEnum.INCOME,
+            InvestmentHorizonEnum.LONG));
+
+    retrieveMeRequest(mockMvc, String.valueOf(TEST_USER_ID), 1, 1)
+        .andExpect(status().isOk())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(header().string(TEST_X_TOTAL_COUNT_HEADER, "2"))
+        .andExpect(header().string(TEST_X_PAGE_HEADER, "1"))
+        .andExpect(header().string(TEST_X_LIMIT_HEADER, "1"))
+        .andExpect(header().string(TEST_X_HAS_NEXT_HEADER, "false"))
+        .andExpect(jsonPath("$", hasSize(1)))
+        .andExpect(jsonPath("$[0].name").value(TEST_PORTFOLIO_NAME_RETIREMENT));
   }
 
   @Test
@@ -140,10 +175,10 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
-        .andExpect(header().string("X-Total-Count", "0"))
-        .andExpect(header().string("X-Page", "0"))
-        .andExpect(header().string("X-Limit", "10"))
-        .andExpect(header().string("X-Has-Next", "false"))
+        .andExpect(header().string(TEST_X_TOTAL_COUNT_HEADER, "0"))
+        .andExpect(header().string(TEST_X_PAGE_HEADER, "0"))
+        .andExpect(header().string(TEST_X_LIMIT_HEADER, "10"))
+        .andExpect(header().string(TEST_X_HAS_NEXT_HEADER, "false"))
         .andExpect(jsonPath("$", hasSize(0)));
   }
 

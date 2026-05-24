@@ -23,6 +23,10 @@ import static com.tychewealth.constants.TestConstants.TEST_JSON_TYPE_PATH;
 import static com.tychewealth.constants.TestConstants.TEST_MISSING_ASSET_IMPORT_ID;
 import static com.tychewealth.constants.TestConstants.TEST_OTHER_USER_ID;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
+import static com.tychewealth.constants.TestConstants.TEST_X_HAS_NEXT_HEADER;
+import static com.tychewealth.constants.TestConstants.TEST_X_LIMIT_HEADER;
+import static com.tychewealth.constants.TestConstants.TEST_X_PAGE_HEADER;
+import static com.tychewealth.constants.TestConstants.TEST_X_TOTAL_COUNT_HEADER;
 import static com.tychewealth.testdata.AiTestData.TEST_ASSET_NAME_MICROSOFT;
 import static com.tychewealth.testdata.AssetTestData.AI_RESPONSE;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_CONTENT_TYPE_CSV;
@@ -276,10 +280,10 @@ class AssetApiControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
-        .andExpect(header().string("X-Total-Count", "1"))
-        .andExpect(header().string("X-Page", "0"))
-        .andExpect(header().string("X-Limit", "10"))
-        .andExpect(header().string("X-Has-Next", "false"))
+        .andExpect(header().string(TEST_X_TOTAL_COUNT_HEADER, "1"))
+        .andExpect(header().string(TEST_X_PAGE_HEADER, "0"))
+        .andExpect(header().string(TEST_X_LIMIT_HEADER, "10"))
+        .andExpect(header().string(TEST_X_HAS_NEXT_HEADER, "false"))
         .andExpect(jsonPath("$", hasSize(1)))
         .andExpect(jsonPath("$[0].name").value(TEST_ASSET_NAME_APPLE))
         .andExpect(jsonPath("$[0].symbol").value(TEST_ASSET_SYMBOL_AAPL));

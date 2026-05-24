@@ -4,6 +4,10 @@ import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_NAME_CORE;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_NAME_RETIREMENT;
+import static com.tychewealth.constants.TestConstants.TEST_X_HAS_NEXT_HEADER;
+import static com.tychewealth.constants.TestConstants.TEST_X_LIMIT_HEADER;
+import static com.tychewealth.constants.TestConstants.TEST_X_PAGE_HEADER;
+import static com.tychewealth.constants.TestConstants.TEST_X_TOTAL_COUNT_HEADER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -41,7 +46,8 @@ class PortfolioApiControllerTest {
     secondPortfolio.setId(8L);
     secondPortfolio.setName(TEST_PORTFOLIO_NAME_RETIREMENT);
 
-    Page<PortfolioResponseDto> response = new PageImpl<>(List.of(firstPortfolio, secondPortfolio));
+    Page<PortfolioResponseDto> response =
+        new PageImpl<>(List.of(firstPortfolio, secondPortfolio), PageRequest.of(0, 10), 2);
 
     when(portfolioService.listPortfolios(42L, 0, 10)).thenReturn(response);
 
@@ -52,11 +58,29 @@ class PortfolioApiControllerTest {
     assertEquals(CACHE_CONTROL_NO_STORE_HEADER_VALUE, result.getHeaders().getCacheControl());
     assertEquals(PRAGMA_NO_CACHE_HEADER_VALUE, result.getHeaders().getPragma());
     assertEquals(response.getContent(), result.getBody());
-    assertEquals("2", result.getHeaders().getFirst("X-Total-Count"));
-    assertEquals("0", result.getHeaders().getFirst("X-Page"));
-    assertEquals("10", result.getHeaders().getFirst("X-Limit"));
-    assertEquals("false", result.getHeaders().getFirst("X-Has-Next"));
+    assertEquals("2", result.getHeaders().getFirst(TEST_X_TOTAL_COUNT_HEADER));
+    assertEquals("0", result.getHeaders().getFirst(TEST_X_PAGE_HEADER));
+    assertEquals("10", result.getHeaders().getFirst(TEST_X_LIMIT_HEADER));
+    assertEquals("false", result.getHeaders().getFirst(TEST_X_HAS_NEXT_HEADER));
     verify(portfolioService).listPortfolios(42L, 0, 10);
+  }
+
+  @Test
+  void listPortfoliosUsesEffectivePaginationValuesInHeaders() {
+    PortfolioResponseDto portfolio = new PortfolioResponseDto();
+    portfolio.setId(7L);
+    portfolio.setName(TEST_PORTFOLIO_NAME_CORE);
+    Page<PortfolioResponseDto> response =
+        new PageImpl<>(List.of(portfolio), PageRequest.of(0, 10), 1);
+
+    when(portfolioService.listPortfolios(42L, -5, 999)).thenReturn(response);
+
+    ResponseEntity<List<PortfolioResponseDto>> result =
+        portfolioApiController.listPortfolios(42L, -5, 999);
+
+    assertEquals("0", result.getHeaders().getFirst(TEST_X_PAGE_HEADER));
+    assertEquals("10", result.getHeaders().getFirst(TEST_X_LIMIT_HEADER));
+    verify(portfolioService).listPortfolios(42L, -5, 999);
   }
 
   @Test

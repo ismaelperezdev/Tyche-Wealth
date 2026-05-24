@@ -51,6 +51,10 @@ public final class TestConstants {
   public static final String TEST_STRATEGY_TYPE_INCOME = StrategyTypeEnum.INCOME.name();
   public static final String TEST_STRATEGY_TYPE_BALANCED = StrategyTypeEnum.BALANCED.name();
   public static final String TEST_ASSET_SYMBOL_MSFT = "MSFT";
+  public static final String TEST_X_TOTAL_COUNT_HEADER = "X-Total-Count";
+  public static final String TEST_X_PAGE_HEADER = "X-Page";
+  public static final String TEST_X_LIMIT_HEADER = "X-Limit";
+  public static final String TEST_X_HAS_NEXT_HEADER = "X-Has-Next";
 
   private TestConstants() {}
 }

@@ -89,8 +89,8 @@ public class AssetApiController implements AssetApi {
         .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
         .header(HttpHeaders.PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE)
         .header(X_TOTAL_COUNT_HEADER, String.valueOf(response.getTotalElements()))
-        .header(X_PAGE_HEADER, String.valueOf(page))
-        .header(X_LIMIT_HEADER, String.valueOf(limit))
+        .header(X_PAGE_HEADER, String.valueOf(response.getNumber()))
+        .header(X_LIMIT_HEADER, String.valueOf(response.getSize()))
         .header(X_HAS_NEXT_HEADER, String.valueOf(response.hasNext()))
         .body(response.getContent());
   }
