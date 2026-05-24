@@ -3,17 +3,25 @@ package com.tychewealth.controller;
 import static com.tychewealth.constants.ApiConstants.ASSET_IMPORT_BY_ID_URL;
 import static com.tychewealth.constants.ApiConstants.ASSET_IMPORT_URL;
 import static com.tychewealth.constants.ApiConstants.PORTFOLIO_ASSET_BASE_URL;
+import static com.tychewealth.constants.ApiConstants.PORTFOLIO_ASSET_BATCH_URL;
 import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static com.tychewealth.constants.CommonConstants.DESCRIPTION;
 import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
 import static com.tychewealth.constants.TestConstants.TEST_ASSET_IMPORT_ID;
+import static com.tychewealth.constants.TestConstants.TEST_ASSET_IMPORT_RESULT_KEY_PREFIX;
 import static com.tychewealth.constants.TestConstants.TEST_ASSET_SYMBOL_MSFT;
+import static com.tychewealth.constants.TestConstants.TEST_BATCH_ACTION_CREATE;
+import static com.tychewealth.constants.TestConstants.TEST_BATCH_ACTION_DISCARD;
+import static com.tychewealth.constants.TestConstants.TEST_BATCH_FIELD_ACTION;
+import static com.tychewealth.constants.TestConstants.TEST_BATCH_FIELD_ASSETS;
+import static com.tychewealth.constants.TestConstants.TEST_BATCH_FIELD_IMPORT_ID;
 import static com.tychewealth.constants.TestConstants.TEST_FILE_PART_NAME;
 import static com.tychewealth.constants.TestConstants.TEST_JSON_CODE_PATH;
 import static com.tychewealth.constants.TestConstants.TEST_JSON_TYPE_PATH;
 import static com.tychewealth.constants.TestConstants.TEST_MISSING_ASSET_IMPORT_ID;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
+import static com.tychewealth.testdata.AiTestData.TEST_ASSET_NAME_MICROSOFT;
 import static com.tychewealth.testdata.AssetTestData.AI_RESPONSE;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_CONTENT_TYPE_CSV;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_EXTRACTED_TEXT;
@@ -30,6 +38,7 @@ import static com.tychewealth.testdata.AssetTestData.validImportedAssetCandidate
 import static com.tychewealth.testhelper.AuthTestHelper.createAuthorizationHeader;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -62,6 +71,7 @@ import com.tychewealth.service.helper.asset.ai.ImportAssetsAiHelper;
 import com.tychewealth.testhelper.TestRedisSupport.InMemoryRedisState;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -242,8 +252,138 @@ class AssetApiControllerIntegrationTest {
         .andExpect(jsonPath("$.symbol").value(TEST_ASSET_SYMBOL_AAPL))
         .andExpect(jsonPath("$.assetType").value(AssetTypeEnum.STOCK.name()))
         .andExpect(jsonPath("$.quantity").value(TEST_ASSET_RESPONSE_QUANTITY.intValue()))
-        .andExpect(jsonPath("$.averagePrice").value(123.4567))
+        .andExpect(jsonPath("$.averagePrice").value(existingAsset.getAveragePrice().doubleValue()))
         .andExpect(jsonPath("$.currency").value(CurrencyCodeEnum.USD.name()));
+  }
+
+  @Test
+  void createBatchReturnsCreatedWhenRequestIsValid() throws Exception {
+    PortfolioEntity portfolio = portfolioRepository.saveAndFlush(defaultPortfolioEntity());
+    String redisKey =
+        TEST_ASSET_IMPORT_RESULT_KEY_PREFIX + TEST_USER_ID + ":" + TEST_ASSET_IMPORT_ID;
+    redisState.set(redisKey, "{\"importId\":\"" + TEST_ASSET_IMPORT_ID + "\"}", null);
+
+    Map<String, Object> request =
+        Map.of(
+            TEST_BATCH_FIELD_ACTION,
+            TEST_BATCH_ACTION_CREATE,
+            TEST_BATCH_FIELD_IMPORT_ID,
+            TEST_ASSET_IMPORT_ID,
+            TEST_BATCH_FIELD_ASSETS,
+            List.of(
+                validCreateRequest(),
+                createRequestWithNameAndSymbol(TEST_ASSET_NAME_MICROSOFT, TEST_ASSET_SYMBOL_MSFT)));
+
+    mockMvc
+        .perform(
+            post(PORTFOLIO_ASSET_BATCH_URL, portfolio.getId())
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsBytes(request))
+                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+        .andExpect(status().isCreated())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(jsonPath("$", hasSize(2)))
+        .andExpect(jsonPath("$[0].name").value(TEST_ASSET_NAME_APPLE))
+        .andExpect(jsonPath("$[0].symbol").value(TEST_ASSET_SYMBOL_AAPL))
+        .andExpect(jsonPath("$[1].name").value(TEST_ASSET_NAME_MICROSOFT))
+        .andExpect(jsonPath("$[1].symbol").value(TEST_ASSET_SYMBOL_MSFT));
+
+    org.junit.jupiter.api.Assertions.assertEquals(
+        2, assetRepository.findByPortfolioId(portfolio.getId()).size());
+    org.junit.jupiter.api.Assertions.assertNull(redisState.get(redisKey));
+  }
+
+  @Test
+  void createBatchDiscardReturnsCreatedAndDeletesPersistedImport() throws Exception {
+    PortfolioEntity portfolio = portfolioRepository.saveAndFlush(defaultPortfolioEntity());
+    String redisKey =
+        TEST_ASSET_IMPORT_RESULT_KEY_PREFIX + TEST_USER_ID + ":" + TEST_ASSET_IMPORT_ID;
+    redisState.set(redisKey, "{\"importId\":\"" + TEST_ASSET_IMPORT_ID + "\"}", null);
+
+    Map<String, Object> request =
+        Map.of(
+            TEST_BATCH_FIELD_ACTION,
+            TEST_BATCH_ACTION_DISCARD,
+            TEST_BATCH_FIELD_IMPORT_ID,
+            TEST_ASSET_IMPORT_ID,
+            TEST_BATCH_FIELD_ASSETS,
+            List.of());
+
+    mockMvc
+        .perform(
+            post(PORTFOLIO_ASSET_BATCH_URL, portfolio.getId())
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsBytes(request))
+                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+        .andExpect(status().isCreated())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(jsonPath("$", hasSize(0)));
+
+    org.junit.jupiter.api.Assertions.assertEquals(
+        0, assetRepository.findByPortfolioId(portfolio.getId()).size());
+    org.junit.jupiter.api.Assertions.assertNull(redisState.get(redisKey));
+  }
+
+  @Test
+  void createBatchReturnsConflictWhenAssetSymbolAlreadyExistsInPortfolio() throws Exception {
+    PortfolioEntity portfolio = portfolioRepository.saveAndFlush(defaultPortfolioEntity());
+    AssetEntity existingAsset = defaultAssetEntity(portfolio);
+    assetRepository.saveAndFlush(existingAsset);
+
+    Map<String, Object> request =
+        Map.of(
+            TEST_BATCH_FIELD_ACTION,
+            TEST_BATCH_ACTION_CREATE,
+            TEST_BATCH_FIELD_ASSETS,
+            List.of(
+                createRequestWithNameAndSymbol(TEST_ASSET_NAME_MICROSOFT, TEST_ASSET_SYMBOL_AAPL)));
+
+    mockMvc
+        .perform(
+            post(PORTFOLIO_ASSET_BATCH_URL, portfolio.getId())
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsBytes(request))
+                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+        .andExpect(status().isConflict())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(
+            jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.ASSET_SYMBOL_CONFLICT.getCode()))
+        .andExpect(
+            jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.ASSET_SYMBOL_CONFLICT.getType()))
+        .andExpect(jsonPath("$." + DESCRIPTION).value(containsString(TEST_ASSET_SYMBOL_AAPL)));
+  }
+
+  @Test
+  void createBatchReturnsConflictWhenBatchContainsDuplicateNames() throws Exception {
+    PortfolioEntity portfolio = portfolioRepository.saveAndFlush(defaultPortfolioEntity());
+
+    Map<String, Object> request =
+        Map.of(
+            TEST_BATCH_FIELD_ACTION,
+            TEST_BATCH_ACTION_CREATE,
+            TEST_BATCH_FIELD_ASSETS,
+            List.of(
+                createRequestWithNameAndSymbol(TEST_ASSET_NAME_APPLE, TEST_ASSET_SYMBOL_AAPL),
+                createRequestWithNameAndSymbol(
+                    "  " + TEST_ASSET_NAME_APPLE + "  ", TEST_ASSET_SYMBOL_MSFT)));
+
+    mockMvc
+        .perform(
+            post(PORTFOLIO_ASSET_BATCH_URL, portfolio.getId())
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsBytes(request))
+                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+        .andExpect(status().isConflict())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(
+            jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.ASSET_NAME_CONFLICT.getCode()))
+        .andExpect(
+            jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.ASSET_NAME_CONFLICT.getType()))
+        .andExpect(jsonPath("$." + DESCRIPTION).value(containsString(TEST_ASSET_NAME_APPLE)));
   }
 
   @Test

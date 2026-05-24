@@ -6,15 +6,19 @@ import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import static com.tychewealth.constants.RedisConstants.ASSET_IMPORT_RESULT_KEY_PREFIX;
 import static com.tychewealth.constants.TestConstants.TEST_ASSET_ID;
 import static com.tychewealth.constants.TestConstants.TEST_ASSET_IMPORT_ID;
+import static com.tychewealth.constants.TestConstants.TEST_ASSET_SYMBOL_MSFT;
 import static com.tychewealth.constants.TestConstants.TEST_FILE_PART_NAME;
 import static com.tychewealth.constants.TestConstants.TEST_MISSING_ASSET_IMPORT_ID;
 import static com.tychewealth.constants.TestConstants.TEST_OTHER_USER_ID;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_ID;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
+import static com.tychewealth.testdata.AiTestData.TEST_ASSET_NAME_MICROSOFT;
 import static com.tychewealth.testdata.AssetTestData.AI_RESPONSE;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_CONTENT_TYPE_CSV;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_EXTRACTED_TEXT;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_FILE_NAME;
+import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_NAME_APPLE;
+import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_SYMBOL_AAPL;
 import static com.tychewealth.testdata.AssetTestData.validImportedAssetCandidate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -27,10 +31,12 @@ import com.tychewealth.dto.asset.AssetImportCandidateDto;
 import com.tychewealth.dto.asset.AssetImportResponseDto;
 import com.tychewealth.dto.asset.AssetPersistRedisDto;
 import com.tychewealth.dto.asset.AssetResponseDto;
+import com.tychewealth.dto.asset.request.AssetBatchCreateRequestDto;
 import com.tychewealth.dto.asset.request.AssetCreateRequestDto;
 import com.tychewealth.dto.asset.request.AssetImportPayloadDto;
 import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.entity.PortfolioEntity;
+import com.tychewealth.enums.AssetBatchActionEnum;
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.error.handler.ErrorDefinition;
@@ -43,12 +49,14 @@ import com.tychewealth.service.helper.asset.ai.AiResponseParser;
 import com.tychewealth.service.helper.asset.ai.AssetAiValidationHelper;
 import com.tychewealth.service.helper.asset.ai.ImportAssetsAiHelper;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.HttpStatus;
@@ -70,65 +78,69 @@ class AssetServiceImplTest {
   @Mock private ObjectMapper objectMapper;
 
   @InjectMocks private AssetServiceImpl assetService;
+  private PortfolioEntity portfolio;
+
+  @BeforeEach
+  void setUp() {
+    portfolio = new PortfolioEntity();
+    portfolio.setId(TEST_PORTFOLIO_ID);
+  }
 
   @Test
   void createValidatesAndDelegatesToCreateHelper() {
-    Long portfolioId = 10L;
     AssetCreateRequestDto request = new AssetCreateRequestDto();
-    request.setName("Apple");
-    request.setSymbol("AAPL");
-    PortfolioEntity portfolio = new PortfolioEntity();
-    portfolio.setId(portfolioId);
+    request.setName(TEST_ASSET_NAME_APPLE);
+    request.setSymbol(TEST_ASSET_SYMBOL_AAPL);
     AssetResponseDto response = new AssetResponseDto();
     response.setId(20L);
 
-    when(commonValidationHelper.validateOwnedPortfolio(TEST_USER_ID, portfolioId, CREATE_ACTION))
+    when(commonValidationHelper.validateOwnedPortfolio(
+            TEST_USER_ID, TEST_PORTFOLIO_ID, CREATE_ACTION))
         .thenReturn(portfolio);
     when(assetCreateHelper.create(portfolio, request)).thenReturn(response);
 
-    AssetResponseDto result = assetService.create(TEST_USER_ID, portfolioId, request);
+    AssetResponseDto result = assetService.create(TEST_USER_ID, TEST_PORTFOLIO_ID, request);
 
     assertSame(response, result);
     verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
-    verify(commonValidationHelper).validateOwnedPortfolio(TEST_USER_ID, portfolioId, CREATE_ACTION);
-    verify(assetValidationHelper).validateCreateLimit(portfolioId);
-    verify(assetValidationHelper).validateCreateNameConflict(portfolioId, request.getName());
+    verify(commonValidationHelper)
+        .validateOwnedPortfolio(TEST_USER_ID, TEST_PORTFOLIO_ID, CREATE_ACTION);
+    verify(assetValidationHelper).validateCreateLimit(TEST_PORTFOLIO_ID);
+    verify(assetValidationHelper).validateCreateNameConflict(TEST_PORTFOLIO_ID, request.getName());
+    verify(assetValidationHelper)
+        .validateCreateSymbolConflict(TEST_PORTFOLIO_ID, request.getSymbol());
     verify(assetCreateHelper).create(portfolio, request);
   }
 
   @Test
   void createStopsWhenNameValidationFails() {
-    Long portfolioId = 10L;
     AssetCreateRequestDto request = new AssetCreateRequestDto();
-    request.setName("Apple");
-    PortfolioEntity portfolio = new PortfolioEntity();
-    portfolio.setId(portfolioId);
+    request.setName(TEST_ASSET_NAME_APPLE);
     PortfolioException conflict =
         new PortfolioException(
             ErrorDefinition.ASSET_NAME_CONFLICT, java.util.Map.of(), HttpStatus.CONFLICT);
 
-    when(commonValidationHelper.validateOwnedPortfolio(TEST_USER_ID, portfolioId, CREATE_ACTION))
+    when(commonValidationHelper.validateOwnedPortfolio(
+            TEST_USER_ID, TEST_PORTFOLIO_ID, CREATE_ACTION))
         .thenReturn(portfolio);
     doThrow(conflict)
         .when(assetValidationHelper)
-        .validateCreateNameConflict(portfolioId, request.getName());
+        .validateCreateNameConflict(TEST_PORTFOLIO_ID, request.getName());
 
     PortfolioException thrown =
         assertThrows(
             PortfolioException.class,
-            () -> assetService.create(TEST_USER_ID, portfolioId, request));
+            () -> assetService.create(TEST_USER_ID, TEST_PORTFOLIO_ID, request));
 
     assertSame(conflict, thrown);
-    verify(assetValidationHelper).validateCreateLimit(portfolioId);
-    verify(assetValidationHelper).validateCreateNameConflict(portfolioId, request.getName());
+    verify(assetValidationHelper).validateCreateLimit(TEST_PORTFOLIO_ID);
+    verify(assetValidationHelper).validateCreateNameConflict(TEST_PORTFOLIO_ID, request.getName());
     verifyNoInteractions(assetCreateHelper);
   }
 
   @Test
   void retrieveValidatesAndReturnsMappedAsset() {
     Long assetId = TEST_ASSET_ID;
-    PortfolioEntity portfolio = new PortfolioEntity();
-    portfolio.setId(TEST_PORTFOLIO_ID);
     AssetEntity asset = new AssetEntity();
     asset.setId(assetId);
     AssetResponseDto response = new AssetResponseDto();
@@ -154,8 +166,6 @@ class AssetServiceImplTest {
   @Test
   void retrieveStopsWhenAssetDoesNotExist() {
     Long assetId = TEST_ASSET_ID;
-    PortfolioEntity portfolio = new PortfolioEntity();
-    portfolio.setId(TEST_PORTFOLIO_ID);
     PortfolioException notFound =
         new PortfolioException(
             ErrorDefinition.ASSET_NOT_FOUND, java.util.Map.of(), HttpStatus.NOT_FOUND);
@@ -177,6 +187,99 @@ class AssetServiceImplTest {
         .validateOwnedPortfolio(TEST_USER_ID, TEST_PORTFOLIO_ID, RETRIEVE_ACTION);
     verify(assetValidationHelper).validateRetrievedAssetExists(TEST_PORTFOLIO_ID, assetId);
     verifyNoInteractions(assetMapper);
+  }
+
+  @Test
+  void createBatchFromImportedAssetsForCreateValidatesAndDelegatesToCreateHelper() {
+    AssetCreateRequestDto first = new AssetCreateRequestDto();
+    first.setName(TEST_ASSET_NAME_APPLE);
+    first.setSymbol(TEST_ASSET_SYMBOL_AAPL);
+    AssetCreateRequestDto second = new AssetCreateRequestDto();
+    second.setName(TEST_ASSET_NAME_MICROSOFT);
+    second.setSymbol(TEST_ASSET_SYMBOL_MSFT);
+    AssetBatchCreateRequestDto request =
+        new AssetBatchCreateRequestDto(
+            AssetBatchActionEnum.CREATE, TEST_ASSET_IMPORT_ID, List.of(first, second));
+    List<AssetResponseDto> created = List.of(new AssetResponseDto(), new AssetResponseDto());
+
+    when(commonValidationHelper.validateOwnedPortfolio(
+            TEST_USER_ID, TEST_PORTFOLIO_ID, CREATE_ACTION))
+        .thenReturn(portfolio);
+    when(assetCreateHelper.createBatch(portfolio, List.of(first, second))).thenReturn(created);
+
+    List<AssetResponseDto> result =
+        assetService.createBatchFromImportedAssets(TEST_USER_ID, TEST_PORTFOLIO_ID, request);
+
+    assertSame(created, result);
+    verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
+    verify(commonValidationHelper)
+        .validateOwnedPortfolio(TEST_USER_ID, TEST_PORTFOLIO_ID, CREATE_ACTION);
+    verify(assetValidationHelper)
+        .validateBatchCreateRequest(
+            AssetBatchActionEnum.CREATE, TEST_ASSET_IMPORT_ID, List.of(first, second));
+    verify(assetValidationHelper).validateBatchCreateLimit(TEST_PORTFOLIO_ID, 2);
+    verify(assetValidationHelper).validateBatchCreateRequestDuplicates(List.of(first, second));
+    verify(assetValidationHelper)
+        .validateBatchCreateDatabaseConflicts(TEST_PORTFOLIO_ID, List.of(first, second));
+    verify(assetCreateHelper).createBatch(portfolio, List.of(first, second));
+    verify(redisTemplate)
+        .delete(ASSET_IMPORT_RESULT_KEY_PREFIX + TEST_USER_ID + ":" + TEST_ASSET_IMPORT_ID);
+  }
+
+  @Test
+  void createBatchFromImportedAssetsForDiscardReturnsEmptyAndDeletesImport() {
+    AssetBatchCreateRequestDto request =
+        new AssetBatchCreateRequestDto(
+            AssetBatchActionEnum.DISCARD, TEST_ASSET_IMPORT_ID, List.of());
+
+    when(commonValidationHelper.validateOwnedPortfolio(
+            TEST_USER_ID, TEST_PORTFOLIO_ID, CREATE_ACTION))
+        .thenReturn(portfolio);
+
+    List<AssetResponseDto> result =
+        assetService.createBatchFromImportedAssets(TEST_USER_ID, TEST_PORTFOLIO_ID, request);
+
+    assertEquals(0, result.size());
+    verify(assetValidationHelper)
+        .validateBatchCreateRequest(AssetBatchActionEnum.DISCARD, TEST_ASSET_IMPORT_ID, List.of());
+    verify(redisTemplate)
+        .delete(ASSET_IMPORT_RESULT_KEY_PREFIX + TEST_USER_ID + ":" + TEST_ASSET_IMPORT_ID);
+    verify(assetCreateHelper, never()).createBatch(any(), any());
+  }
+
+  @Test
+  void createBatchFromImportedAssetsTranslatesDataIntegrityViolationException() {
+    AssetCreateRequestDto first = new AssetCreateRequestDto();
+    first.setName(TEST_ASSET_NAME_APPLE);
+    first.setSymbol(TEST_ASSET_SYMBOL_AAPL);
+    AssetBatchCreateRequestDto request =
+        new AssetBatchCreateRequestDto(
+            AssetBatchActionEnum.CREATE, TEST_ASSET_IMPORT_ID, List.of(first));
+    DataIntegrityViolationException dataException =
+        new DataIntegrityViolationException("duplicate symbol");
+    PortfolioException translated =
+        new PortfolioException(
+            ErrorDefinition.ASSET_SYMBOL_CONFLICT, java.util.Map.of(), HttpStatus.CONFLICT);
+
+    when(commonValidationHelper.validateOwnedPortfolio(
+            TEST_USER_ID, TEST_PORTFOLIO_ID, CREATE_ACTION))
+        .thenReturn(portfolio);
+    when(assetCreateHelper.createBatch(portfolio, List.of(first))).thenThrow(dataException);
+    when(assetValidationHelper.translateSymbolPersistenceConflict(
+            dataException, TEST_PORTFOLIO_ID, TEST_ASSET_SYMBOL_AAPL))
+        .thenReturn(translated);
+
+    PortfolioException thrown =
+        assertThrows(
+            PortfolioException.class,
+            () ->
+                assetService.createBatchFromImportedAssets(
+                    TEST_USER_ID, TEST_PORTFOLIO_ID, request));
+
+    assertSame(translated, thrown);
+    verify(assetValidationHelper)
+        .translateSymbolPersistenceConflict(
+            dataException, TEST_PORTFOLIO_ID, TEST_ASSET_SYMBOL_AAPL);
   }
 
   @Test

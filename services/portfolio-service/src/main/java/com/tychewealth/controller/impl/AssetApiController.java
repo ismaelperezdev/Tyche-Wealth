@@ -1,5 +1,6 @@
 package com.tychewealth.controller.impl;
 
+import static com.tychewealth.constants.ApiConstants.IMPORT_ID_PATH;
 import static com.tychewealth.constants.LogConstants.ASSET;
 import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
 import static com.tychewealth.constants.LogConstants.IMPORT_ASSETS_ACTION;
@@ -13,11 +14,13 @@ import static com.tychewealth.utils.Utils.buildNoStoreBodyResponse;
 import com.tychewealth.controller.AssetApi;
 import com.tychewealth.dto.asset.AssetImportResponseDto;
 import com.tychewealth.dto.asset.AssetResponseDto;
+import com.tychewealth.dto.asset.request.AssetBatchCreateRequestDto;
 import com.tychewealth.dto.asset.request.AssetCreateRequestDto;
 import com.tychewealth.ratelimit.RateLimitKey;
 import com.tychewealth.ratelimit.RateLimited;
 import com.tychewealth.service.AssetService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -63,6 +66,21 @@ public class AssetApiController implements AssetApi {
   }
 
   @Override
+  @RateLimited(RateLimitKey.ASSET_BATCH_CREATE)
+  public ResponseEntity<List<AssetResponseDto>> createBatchFromImportedAssets(
+      @AuthenticationPrincipal Long userId,
+      Long portfolioId,
+      @Valid @RequestBody AssetBatchCreateRequestDto request) {
+    log.info(REQUEST_START + PORTFOLIO_ID + USER_ID, ASSET, CREATE_ACTION, portfolioId, userId);
+
+    List<AssetResponseDto> response =
+        assetService.createBatchFromImportedAssets(userId, portfolioId, request);
+    log.info(REQUEST_SUCCESS + PORTFOLIO_ID + USER_ID, ASSET, CREATE_ACTION, portfolioId, userId);
+
+    return buildNoStoreBodyResponse(HttpStatus.CREATED, response);
+  }
+
+  @Override
   @RateLimited(RateLimitKey.ASSET_IMPORT)
   public ResponseEntity<AssetImportResponseDto> importAssets(
       @AuthenticationPrincipal Long userId, @RequestPart("file") MultipartFile file) {
@@ -77,7 +95,7 @@ public class AssetApiController implements AssetApi {
   @Override
   @RateLimited(RateLimitKey.ASSET_IMPORT_RETRIEVE)
   public ResponseEntity<AssetImportResponseDto> retrieveImportedAssets(
-      @AuthenticationPrincipal Long userId, @PathVariable String importId) {
+      @AuthenticationPrincipal Long userId, @PathVariable(IMPORT_ID_PATH) String importId) {
     log.info(REQUEST_START + USER_ID, ASSET, RETRIEVE_ACTION, userId);
 
     AssetImportResponseDto response = assetService.retrieveImportedAssets(userId, importId);

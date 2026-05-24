@@ -184,4 +184,18 @@
 
     </changeSet>
 
+    <changeSet id="alter-assets-name-length-to-200" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <columnExists tableName="assets" columnName="name"/>
+        </preConditions>
+
+        <modifyDataType tableName="assets" columnName="name" newDataType="VARCHAR(200)"/>
+
+        <rollback>
+            <modifyDataType tableName="assets" columnName="name" newDataType="VARCHAR(60)"/>
+        </rollback>
+
+    </changeSet>
+
 </databaseChangeLog>

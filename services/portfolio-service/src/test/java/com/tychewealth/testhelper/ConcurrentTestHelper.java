@@ -1,11 +1,14 @@
 package com.tychewealth.testhelper;
 
+import static com.tychewealth.constants.ApiConstants.PORTFOLIO_ASSET_BASE_URL;
+import static com.tychewealth.constants.ApiConstants.PORTFOLIO_ASSET_BATCH_URL;
 import static com.tychewealth.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static com.tychewealth.constants.TestConstants.TEST_FILE_PART_NAME;
 import static com.tychewealth.testhelper.AuthTestHelper.createAuthorizationHeader;
 import static com.tychewealth.testhelper.PortfolioTestHelper.createRequest;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +20,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -92,6 +96,36 @@ public final class ConcurrentTestHelper {
             .perform(
                 multipart(endpoint)
                     .file(file)
+                    .header(AUTHORIZATION_HEADER, createAuthorizationHeader(userId)))
+            .andReturn();
+
+    return new IntegrationResponse(
+        result.getResponse().getStatus(), result.getResponse().getContentAsString());
+  }
+
+  public static IntegrationResponse executeAssetCreate(
+      MockMvc mockMvc, long userId, long portfolioId, String requestBody) throws Exception {
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(PORTFOLIO_ASSET_BASE_URL, portfolioId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(requestBody)
+                    .header(AUTHORIZATION_HEADER, createAuthorizationHeader(userId)))
+            .andReturn();
+
+    return new IntegrationResponse(
+        result.getResponse().getStatus(), result.getResponse().getContentAsString());
+  }
+
+  public static IntegrationResponse executeAssetBatchCreate(
+      MockMvc mockMvc, long userId, long portfolioId, String requestBody) throws Exception {
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(PORTFOLIO_ASSET_BATCH_URL, portfolioId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(requestBody)
                     .header(AUTHORIZATION_HEADER, createAuthorizationHeader(userId)))
             .andReturn();
 

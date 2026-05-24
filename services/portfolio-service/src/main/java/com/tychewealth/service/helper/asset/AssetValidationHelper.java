@@ -18,11 +18,13 @@ import static com.tychewealth.error.handler.ErrorDefinition.ASSET_NAME_CONFLICT;
 import static com.tychewealth.error.handler.ErrorDefinition.ASSET_NOT_FOUND;
 import static com.tychewealth.error.handler.ErrorDefinition.ASSET_SYMBOL_CONFLICT;
 
+import com.tychewealth.dto.asset.request.AssetCreateRequestDto;
 import com.tychewealth.entity.AssetEntity;
+import com.tychewealth.enums.AssetBatchActionEnum;
 import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.repository.AssetRepository;
 import com.tychewealth.utils.Utils;
-import java.util.Map;
+import java.util.*;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -64,6 +66,82 @@ public class AssetValidationHelper {
         portfolioId);
     throw new PortfolioException(
         ASSET_NAME_CONFLICT, Map.of(NAME, assetName == null ? "" : assetName), HttpStatus.CONFLICT);
+  }
+
+  public void validateBatchCreateRequest(
+      AssetBatchActionEnum action, String importId, List<AssetCreateRequestDto> assets) {
+    if (action == null) {
+      throw Utils.genericBadRequest("Batch action is required");
+    }
+
+    if (action == AssetBatchActionEnum.DISCARD) {
+      if (Utils.trimToNull(importId) == null) {
+        throw Utils.genericBadRequest("importId is required when action is DISCARD");
+      }
+      if (assets != null && !assets.isEmpty()) {
+        throw Utils.genericBadRequest("assets must be empty when action is DISCARD");
+      }
+      return;
+    }
+
+    if (action == AssetBatchActionEnum.CREATE) {
+      if (assets == null || assets.isEmpty()) {
+        throw Utils.genericBadRequest("assets is required when action is CREATE");
+      }
+      return;
+    }
+
+    throw Utils.genericBadRequest("Unsupported batch action");
+  }
+
+  public void validateBatchCreateLimit(Long portfolioId, int incomingAssetsCount) {
+    long currentAssetCount = assetRepository.findByPortfolioId(portfolioId).size();
+    if (currentAssetCount + incomingAssetsCount > MAX_ASSETS_PER_PORTFOLIO) {
+      log.warn(
+          REQUEST_CONFLICT + PORTFOLIO_ID,
+          ASSET,
+          CREATE_ACTION,
+          ASSET_LIMIT_REACHED_MESSAGE,
+          portfolioId);
+      throw new PortfolioException(ASSET_LIMIT_REACHED, Map.of(), HttpStatus.CONFLICT);
+    }
+  }
+
+  public void validateBatchCreateRequestDuplicates(List<AssetCreateRequestDto> assets) {
+    if (assets == null || assets.isEmpty()) {
+      return;
+    }
+
+    Set<String> normalizedNames = new HashSet<>();
+    for (AssetCreateRequestDto asset : assets) {
+      String normalizedName =
+          asset == null || asset.getName() == null ? "" : asset.getName().trim().toLowerCase();
+      if (!normalizedNames.add(normalizedName)) {
+        throw new PortfolioException(
+            ASSET_NAME_CONFLICT,
+            Map.of(NAME, asset == null || asset.getName() == null ? "" : asset.getName()),
+            HttpStatus.CONFLICT);
+      }
+    }
+  }
+
+  public void validateBatchCreateDatabaseConflicts(
+      Long portfolioId, List<AssetCreateRequestDto> assets) {
+    if (assets == null || assets.isEmpty()) {
+      return;
+    }
+
+    for (AssetCreateRequestDto asset : assets) {
+      validateCreateNameConflict(portfolioId, asset == null ? null : asset.getName());
+      validateCreateSymbolConflict(portfolioId, asset == null ? null : asset.getSymbol());
+    }
+  }
+
+  public void validateCreateSymbolConflict(Long portfolioId, String symbol) {
+    if (symbol == null || !assetRepository.existsByPortfolioIdAndSymbol(portfolioId, symbol)) {
+      return;
+    }
+    throw new PortfolioException(ASSET_SYMBOL_CONFLICT, Map.of(NAME, symbol), HttpStatus.CONFLICT);
   }
 
   public AssetEntity validateRetrievedAssetExists(Long portfolioId, Long assetId) {

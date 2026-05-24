@@ -101,9 +101,9 @@ class AssetRepositoryTest {
     assetRepository.save(
         buildAsset(portfolio, "Tesla, Inc.", "TSLA", AssetTypeEnum.STOCK, CurrencyCodeEnum.USD));
 
-    Boolean exists = assetRepository.existsByPortfolioIdAndSymbol(portfolio.getId(), "TSLA");
+    boolean exists = assetRepository.existsByPortfolioIdAndSymbol(portfolio.getId(), "TSLA");
 
-    assertEquals(Boolean.TRUE, exists);
+    assertTrue(exists);
   }
 
   @Test
@@ -111,8 +111,8 @@ class AssetRepositoryTest {
     assetRepository.save(
         buildAsset(portfolio, "Tesla, Inc.", "TSLA", AssetTypeEnum.STOCK, CurrencyCodeEnum.USD));
 
-    Boolean exists = assetRepository.existsByPortfolioIdAndName(portfolio.getId(), "Tesla, Inc.");
+    boolean exists = assetRepository.existsByPortfolioIdAndName(portfolio.getId(), "Tesla, Inc.");
 
-    assertEquals(Boolean.TRUE, exists);
+    assertTrue(exists);
   }
 }
