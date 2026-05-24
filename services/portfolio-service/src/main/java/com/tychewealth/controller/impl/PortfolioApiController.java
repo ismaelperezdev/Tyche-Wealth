@@ -1,5 +1,13 @@
 package com.tychewealth.controller.impl;
 
+import static com.tychewealth.constants.ApiConstants.DEFAULT_LIST_LIMIT;
+import static com.tychewealth.constants.ApiConstants.DEFAULT_PAGE;
+import static com.tychewealth.constants.ApiConstants.LIMIT_PARAM;
+import static com.tychewealth.constants.ApiConstants.PAGE_PARAM;
+import static com.tychewealth.constants.ApiConstants.X_HAS_NEXT_HEADER;
+import static com.tychewealth.constants.ApiConstants.X_LIMIT_HEADER;
+import static com.tychewealth.constants.ApiConstants.X_PAGE_HEADER;
+import static com.tychewealth.constants.ApiConstants.X_TOTAL_COUNT_HEADER;
 import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
 import static com.tychewealth.constants.LogConstants.DELETE_ACTION;
 import static com.tychewealth.constants.LogConstants.LIST_PORTFOLIOS_ACTION;
@@ -10,6 +18,8 @@ import static com.tychewealth.constants.LogConstants.REQUEST_SUCCESS;
 import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import static com.tychewealth.constants.LogConstants.UPDATE_ACTION;
 import static com.tychewealth.constants.LogConstants.USER_ID;
+import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
+import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
 import static com.tychewealth.utils.Utils.buildNoStoreBodyResponse;
 import static com.tychewealth.utils.Utils.buildNoStoreEmptyResponse;
 
@@ -24,10 +34,13 @@ import jakarta.validation.Valid;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -40,13 +53,22 @@ public class PortfolioApiController implements PortfolioApi {
   @Override
   @RateLimited(RateLimitKey.PORTFOLIO_LIST)
   public ResponseEntity<List<PortfolioResponseDto>> listPortfolios(
-      @AuthenticationPrincipal Long userId) {
+      @AuthenticationPrincipal Long userId,
+      @RequestParam(name = PAGE_PARAM, defaultValue = DEFAULT_PAGE) int page,
+      @RequestParam(name = LIMIT_PARAM, defaultValue = DEFAULT_LIST_LIMIT) int limit) {
     log.info(REQUEST_START + USER_ID, PORTFOLIO, LIST_PORTFOLIOS_ACTION, userId);
 
-    List<PortfolioResponseDto> response = portfolioService.listPortfolios(userId);
+    Page<PortfolioResponseDto> response = portfolioService.listPortfolios(userId, page, limit);
     log.info(REQUEST_SUCCESS + USER_ID, PORTFOLIO, LIST_PORTFOLIOS_ACTION, userId);
 
-    return buildNoStoreBodyResponse(HttpStatus.OK, response);
+    return ResponseEntity.status(HttpStatus.OK)
+        .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
+        .header(HttpHeaders.PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE)
+        .header(X_TOTAL_COUNT_HEADER, String.valueOf(response.getTotalElements()))
+        .header(X_PAGE_HEADER, String.valueOf(response.getNumber()))
+        .header(X_LIMIT_HEADER, String.valueOf(response.getSize()))
+        .header(X_HAS_NEXT_HEADER, String.valueOf(response.hasNext()))
+        .body(response.getContent());
   }
 
   @Override

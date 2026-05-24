@@ -46,7 +46,7 @@ public final class EndpointTestData {
         Arguments.of(
             RateLimitKey.PORTFOLIO_LIST,
             new MockHttpServletRequest(GET, PORTFOLIO_BASE_URL + "/me"),
-            portfolio("listPortfolios", Long.class)),
+            portfolio("listPortfolios", Long.class, Integer.TYPE, Integer.TYPE)),
         Arguments.of(
             RateLimitKey.PORTFOLIO_RETRIEVE,
             new MockHttpServletRequest(

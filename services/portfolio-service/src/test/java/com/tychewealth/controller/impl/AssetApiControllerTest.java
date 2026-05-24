@@ -8,6 +8,10 @@ import static com.tychewealth.constants.TestConstants.TEST_ASSET_SYMBOL_MSFT;
 import static com.tychewealth.constants.TestConstants.TEST_FILE_PART_NAME;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_ID;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
+import static com.tychewealth.constants.TestConstants.TEST_X_HAS_NEXT_HEADER;
+import static com.tychewealth.constants.TestConstants.TEST_X_LIMIT_HEADER;
+import static com.tychewealth.constants.TestConstants.TEST_X_PAGE_HEADER;
+import static com.tychewealth.constants.TestConstants.TEST_X_TOTAL_COUNT_HEADER;
 import static com.tychewealth.testdata.AiTestData.TEST_ASSET_NAME_MICROSOFT;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_CONTENT_TYPE_CSV;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_EXTRACTED_TEXT;
@@ -38,6 +42,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
@@ -69,7 +74,8 @@ class AssetApiControllerTest {
 
   @Test
   void listAssetsReturnsOkResponse() {
-    Page<AssetResponseDto> response = new PageImpl<>(List.of(defaultAssetResponseDto(100L)));
+    Page<AssetResponseDto> response =
+        new PageImpl<>(List.of(defaultAssetResponseDto(100L)), PageRequest.of(0, 10), 1);
 
     when(assetService.listAssets(TEST_USER_ID, TEST_PORTFOLIO_ID, 0, 10)).thenReturn(response);
 
@@ -80,11 +86,26 @@ class AssetApiControllerTest {
     assertEquals(CACHE_CONTROL_NO_STORE_HEADER_VALUE, result.getHeaders().getCacheControl());
     assertEquals(PRAGMA_NO_CACHE_HEADER_VALUE, result.getHeaders().getPragma());
     assertEquals(response.getContent(), result.getBody());
-    assertEquals("1", result.getHeaders().getFirst("X-Total-Count"));
-    assertEquals("0", result.getHeaders().getFirst("X-Page"));
-    assertEquals("10", result.getHeaders().getFirst("X-Limit"));
-    assertEquals("false", result.getHeaders().getFirst("X-Has-Next"));
+    assertEquals("1", result.getHeaders().getFirst(TEST_X_TOTAL_COUNT_HEADER));
+    assertEquals("0", result.getHeaders().getFirst(TEST_X_PAGE_HEADER));
+    assertEquals("10", result.getHeaders().getFirst(TEST_X_LIMIT_HEADER));
+    assertEquals("false", result.getHeaders().getFirst(TEST_X_HAS_NEXT_HEADER));
     verify(assetService).listAssets(TEST_USER_ID, TEST_PORTFOLIO_ID, 0, 10);
+  }
+
+  @Test
+  void listAssetsUsesEffectivePaginationValuesInHeaders() {
+    Page<AssetResponseDto> response =
+        new PageImpl<>(List.of(defaultAssetResponseDto(100L)), PageRequest.of(0, 10), 1);
+
+    when(assetService.listAssets(TEST_USER_ID, TEST_PORTFOLIO_ID, -5, 999)).thenReturn(response);
+
+    ResponseEntity<List<AssetResponseDto>> result =
+        assetApiController.listAssets(TEST_USER_ID, TEST_PORTFOLIO_ID, -5, 999);
+
+    assertEquals("0", result.getHeaders().getFirst(TEST_X_PAGE_HEADER));
+    assertEquals("10", result.getHeaders().getFirst(TEST_X_LIMIT_HEADER));
+    verify(assetService).listAssets(TEST_USER_ID, TEST_PORTFOLIO_ID, -5, 999);
   }
 
   @Test

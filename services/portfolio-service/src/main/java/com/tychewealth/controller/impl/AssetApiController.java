@@ -1,6 +1,6 @@
 package com.tychewealth.controller.impl;
 
-import static com.tychewealth.constants.ApiConstants.DEFAULT_ASSET_LIST_LIMIT;
+import static com.tychewealth.constants.ApiConstants.DEFAULT_LIST_LIMIT;
 import static com.tychewealth.constants.ApiConstants.DEFAULT_PAGE;
 import static com.tychewealth.constants.ApiConstants.IMPORT_ID_PATH;
 import static com.tychewealth.constants.ApiConstants.LIMIT_PARAM;
@@ -77,7 +77,7 @@ public class AssetApiController implements AssetApi {
       @AuthenticationPrincipal Long userId,
       Long portfolioId,
       @RequestParam(name = PAGE_PARAM, defaultValue = DEFAULT_PAGE) int page,
-      @RequestParam(name = LIMIT_PARAM, defaultValue = DEFAULT_ASSET_LIST_LIMIT) int limit) {
+      @RequestParam(name = LIMIT_PARAM, defaultValue = DEFAULT_LIST_LIMIT) int limit) {
     log.info(
         REQUEST_START + PORTFOLIO_ID + USER_ID, ASSET, LIST_ASSETS_ACTION, portfolioId, userId);
 
@@ -89,8 +89,8 @@ public class AssetApiController implements AssetApi {
         .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
         .header(HttpHeaders.PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE)
         .header(X_TOTAL_COUNT_HEADER, String.valueOf(response.getTotalElements()))
-        .header(X_PAGE_HEADER, String.valueOf(page))
-        .header(X_LIMIT_HEADER, String.valueOf(limit))
+        .header(X_PAGE_HEADER, String.valueOf(response.getNumber()))
+        .header(X_LIMIT_HEADER, String.valueOf(response.getSize()))
         .header(X_HAS_NEXT_HEADER, String.valueOf(response.hasNext()))
         .body(response.getContent());
   }

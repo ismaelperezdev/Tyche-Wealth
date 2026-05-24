@@ -61,6 +61,18 @@ public final class PortfolioTestHelper {
     return mockMvc.perform(builder);
   }
 
+  public static ResultActions retrieveMeRequest(MockMvc mockMvc, String userId, int page, int limit)
+      throws Exception {
+    MockHttpServletRequestBuilder builder =
+        MockMvcRequestBuilders.get(PORTFOLIO_BASE_URL + "/me")
+            .queryParam("page", String.valueOf(page))
+            .queryParam("limit", String.valueOf(limit));
+    if (userId != null) {
+      builder.header(AUTHORIZATION_HEADER, createAuthorizationHeader(Long.parseLong(userId)));
+    }
+    return mockMvc.perform(builder);
+  }
+
   public static ResultActions retrieveMeByIdRequest(
       MockMvc mockMvc, String userId, Long portfolioId) throws Exception {
     MockHttpServletRequestBuilder builder =
