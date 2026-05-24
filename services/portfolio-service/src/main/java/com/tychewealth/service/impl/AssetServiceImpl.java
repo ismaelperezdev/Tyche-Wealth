@@ -89,13 +89,13 @@ public class AssetServiceImpl implements AssetService {
 
   @Override
   @Transactional(readOnly = true)
-  public Page<AssetResponseDto> listAssets(Long userId, Long portfolioId, int offset, int limit) {
+  public Page<AssetResponseDto> listAssets(Long userId, Long portfolioId, int page, int limit) {
     commonValidationHelper.validateAuthenticatedUser(userId);
     commonValidationHelper.validateOwnedPortfolio(userId, portfolioId, LIST_ASSETS_ACTION);
-    int safeOffset = Math.max(offset, 0);
+    int safePage = Math.max(page, 0);
     int safeLimit = Math.clamp(limit, 1, MAX_ASSET_LIST_LIMIT);
     return assetRepository
-        .findByPortfolioId(portfolioId, PageRequest.of(safeOffset, safeLimit, Sort.by(ID)))
+        .findByPortfolioId(portfolioId, PageRequest.of(safePage, safeLimit, Sort.by(ID)))
         .map(assetMapper::toDto);
   }
 

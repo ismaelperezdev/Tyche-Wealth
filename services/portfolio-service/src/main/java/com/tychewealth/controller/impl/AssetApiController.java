@@ -1,10 +1,14 @@
 package com.tychewealth.controller.impl;
 
 import static com.tychewealth.constants.ApiConstants.DEFAULT_ASSET_LIST_LIMIT;
-import static com.tychewealth.constants.ApiConstants.DEFAULT_OFFSET;
+import static com.tychewealth.constants.ApiConstants.DEFAULT_PAGE;
 import static com.tychewealth.constants.ApiConstants.IMPORT_ID_PATH;
 import static com.tychewealth.constants.ApiConstants.LIMIT_PARAM;
-import static com.tychewealth.constants.ApiConstants.OFFSET_PARAM;
+import static com.tychewealth.constants.ApiConstants.PAGE_PARAM;
+import static com.tychewealth.constants.ApiConstants.X_HAS_NEXT_HEADER;
+import static com.tychewealth.constants.ApiConstants.X_LIMIT_HEADER;
+import static com.tychewealth.constants.ApiConstants.X_PAGE_HEADER;
+import static com.tychewealth.constants.ApiConstants.X_TOTAL_COUNT_HEADER;
 import static com.tychewealth.constants.LogConstants.ASSET;
 import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
 import static com.tychewealth.constants.LogConstants.DELETE_ACTION;
@@ -16,6 +20,8 @@ import static com.tychewealth.constants.LogConstants.REQUEST_SUCCESS;
 import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import static com.tychewealth.constants.LogConstants.UPDATE_ACTION;
 import static com.tychewealth.constants.LogConstants.USER_ID;
+import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
+import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
 import static com.tychewealth.utils.Utils.buildNoStoreBodyResponse;
 import static com.tychewealth.utils.Utils.buildNoStoreEmptyResponse;
 
@@ -34,6 +40,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -66,19 +73,26 @@ public class AssetApiController implements AssetApi {
 
   @Override
   @RateLimited(RateLimitKey.ASSET_LIST)
-  public ResponseEntity<Page<AssetResponseDto>> listAssets(
+  public ResponseEntity<List<AssetResponseDto>> listAssets(
       @AuthenticationPrincipal Long userId,
       Long portfolioId,
-      @RequestParam(name = OFFSET_PARAM, defaultValue = DEFAULT_OFFSET) int offset,
+      @RequestParam(name = PAGE_PARAM, defaultValue = DEFAULT_PAGE) int page,
       @RequestParam(name = LIMIT_PARAM, defaultValue = DEFAULT_ASSET_LIST_LIMIT) int limit) {
     log.info(
         REQUEST_START + PORTFOLIO_ID + USER_ID, ASSET, LIST_ASSETS_ACTION, portfolioId, userId);
 
-    Page<AssetResponseDto> response = assetService.listAssets(userId, portfolioId, offset, limit);
+    Page<AssetResponseDto> response = assetService.listAssets(userId, portfolioId, page, limit);
     log.info(
         REQUEST_SUCCESS + PORTFOLIO_ID + USER_ID, ASSET, LIST_ASSETS_ACTION, portfolioId, userId);
 
-    return buildNoStoreBodyResponse(HttpStatus.OK, response);
+    return ResponseEntity.status(HttpStatus.OK)
+        .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE)
+        .header(HttpHeaders.PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE)
+        .header(X_TOTAL_COUNT_HEADER, String.valueOf(response.getTotalElements()))
+        .header(X_PAGE_HEADER, String.valueOf(page))
+        .header(X_LIMIT_HEADER, String.valueOf(limit))
+        .header(X_HAS_NEXT_HEADER, String.valueOf(response.hasNext()))
+        .body(response.getContent());
   }
 
   @Override

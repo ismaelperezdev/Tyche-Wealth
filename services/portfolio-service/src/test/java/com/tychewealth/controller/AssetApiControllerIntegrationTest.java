@@ -276,11 +276,13 @@ class AssetApiControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
-        .andExpect(jsonPath("$.content", hasSize(1)))
-        .andExpect(jsonPath("$.content[0].name").value(TEST_ASSET_NAME_APPLE))
-        .andExpect(jsonPath("$.content[0].symbol").value(TEST_ASSET_SYMBOL_AAPL))
-        .andExpect(jsonPath("$.number").value(0))
-        .andExpect(jsonPath("$.size").value(10));
+        .andExpect(header().string("X-Total-Count", "1"))
+        .andExpect(header().string("X-Page", "0"))
+        .andExpect(header().string("X-Limit", "10"))
+        .andExpect(header().string("X-Has-Next", "false"))
+        .andExpect(jsonPath("$", hasSize(1)))
+        .andExpect(jsonPath("$[0].name").value(TEST_ASSET_NAME_APPLE))
+        .andExpect(jsonPath("$[0].symbol").value(TEST_ASSET_SYMBOL_AAPL));
   }
 
   @Test

@@ -13,7 +13,7 @@ public interface AssetService {
 
   AssetResponseDto create(Long userId, Long portfolioId, AssetCreateRequestDto createRequest);
 
-  Page<AssetResponseDto> listAssets(Long userId, Long portfolioId, int offset, int limit);
+  Page<AssetResponseDto> listAssets(Long userId, Long portfolioId, int page, int limit);
 
   AssetResponseDto retrieve(Long userId, Long portfolioId, Long assetId);
 

@@ -73,13 +73,17 @@ class AssetApiControllerTest {
 
     when(assetService.listAssets(TEST_USER_ID, TEST_PORTFOLIO_ID, 0, 10)).thenReturn(response);
 
-    ResponseEntity<Page<AssetResponseDto>> result =
+    ResponseEntity<List<AssetResponseDto>> result =
         assetApiController.listAssets(TEST_USER_ID, TEST_PORTFOLIO_ID, 0, 10);
 
     assertEquals(HttpStatus.OK, result.getStatusCode());
     assertEquals(CACHE_CONTROL_NO_STORE_HEADER_VALUE, result.getHeaders().getCacheControl());
     assertEquals(PRAGMA_NO_CACHE_HEADER_VALUE, result.getHeaders().getPragma());
-    assertEquals(response, result.getBody());
+    assertEquals(response.getContent(), result.getBody());
+    assertEquals("1", result.getHeaders().getFirst("X-Total-Count"));
+    assertEquals("0", result.getHeaders().getFirst("X-Page"));
+    assertEquals("10", result.getHeaders().getFirst("X-Limit"));
+    assertEquals("false", result.getHeaders().getFirst("X-Has-Next"));
     verify(assetService).listAssets(TEST_USER_ID, TEST_PORTFOLIO_ID, 0, 10);
   }
 
