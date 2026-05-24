@@ -19,6 +19,7 @@ import static com.tychewealth.testhelper.IdempotencyTestHelper.asset;
 import static com.tychewealth.testhelper.IdempotencyTestHelper.portfolio;
 
 import com.tychewealth.dto.asset.request.AssetCreateRequestDto;
+import com.tychewealth.dto.asset.request.AssetUpdateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
 import com.tychewealth.ratelimit.RateLimitKey;
@@ -63,6 +64,14 @@ public final class EndpointTestData {
                 PORTFOLIO_ASSET_BASE_URL.replace(
                     TEST_PORTFOLIO_ID_TEMPLATE, String.valueOf(TEST_PORTFOLIO_ID))),
             asset("create", Long.class, Long.class, AssetCreateRequestDto.class)),
+        Arguments.of(
+            RateLimitKey.ASSET_UPDATE,
+            new MockHttpServletRequest(
+                PATCH,
+                PORTFOLIO_ASSET_BY_ID_URL
+                    .replace(TEST_PORTFOLIO_ID_TEMPLATE, String.valueOf(TEST_PORTFOLIO_ID))
+                    .replace(TEST_ASSET_ID_TEMPLATE, String.valueOf(TEST_ASSET_ID))),
+            asset("update", Long.class, Long.class, Long.class, AssetUpdateRequestDto.class)),
         Arguments.of(
             RateLimitKey.ASSET_RETRIEVE,
             new MockHttpServletRequest(

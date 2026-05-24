@@ -9,6 +9,7 @@ import static com.tychewealth.constants.LogConstants.PORTFOLIO_ID;
 import static com.tychewealth.constants.LogConstants.REQUEST_START;
 import static com.tychewealth.constants.LogConstants.REQUEST_SUCCESS;
 import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
+import static com.tychewealth.constants.LogConstants.UPDATE_ACTION;
 import static com.tychewealth.constants.LogConstants.USER_ID;
 import static com.tychewealth.utils.Utils.buildNoStoreBodyResponse;
 import static com.tychewealth.utils.Utils.buildNoStoreEmptyResponse;
@@ -18,6 +19,7 @@ import com.tychewealth.dto.asset.AssetImportResponseDto;
 import com.tychewealth.dto.asset.AssetResponseDto;
 import com.tychewealth.dto.asset.request.AssetBatchCreateRequestDto;
 import com.tychewealth.dto.asset.request.AssetCreateRequestDto;
+import com.tychewealth.dto.asset.request.AssetUpdateRequestDto;
 import com.tychewealth.ratelimit.RateLimitKey;
 import com.tychewealth.ratelimit.RateLimited;
 import com.tychewealth.service.AssetService;
@@ -63,6 +65,21 @@ public class AssetApiController implements AssetApi {
 
     AssetResponseDto response = assetService.retrieve(userId, portfolioId, assetId);
     log.info(REQUEST_SUCCESS + PORTFOLIO_ID + USER_ID, ASSET, RETRIEVE_ACTION, portfolioId, userId);
+
+    return buildNoStoreBodyResponse(HttpStatus.OK, response);
+  }
+
+  @Override
+  @RateLimited(RateLimitKey.ASSET_UPDATE)
+  public ResponseEntity<AssetResponseDto> update(
+      @AuthenticationPrincipal Long userId,
+      Long portfolioId,
+      Long assetId,
+      @Valid @RequestBody AssetUpdateRequestDto updateRequest) {
+    log.info(REQUEST_START + PORTFOLIO_ID + USER_ID, ASSET, UPDATE_ACTION, portfolioId, userId);
+
+    AssetResponseDto response = assetService.update(userId, portfolioId, assetId, updateRequest);
+    log.info(REQUEST_SUCCESS + PORTFOLIO_ID + USER_ID, ASSET, UPDATE_ACTION, portfolioId, userId);
 
     return buildNoStoreBodyResponse(HttpStatus.OK, response);
   }

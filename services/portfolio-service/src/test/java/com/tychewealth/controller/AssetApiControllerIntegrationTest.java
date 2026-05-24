@@ -50,6 +50,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -62,6 +63,7 @@ import com.tychewealth.dto.ai.AiModelTypeEnum;
 import com.tychewealth.dto.asset.AssetImportResponseDto;
 import com.tychewealth.dto.asset.AssetPersistRedisDto;
 import com.tychewealth.dto.asset.request.AssetCreateRequestDto;
+import com.tychewealth.dto.asset.request.AssetUpdateRequestDto;
 import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.enums.AssetTypeEnum;
@@ -260,6 +262,162 @@ class AssetApiControllerIntegrationTest {
         .andExpect(jsonPath("$.quantity").value(TEST_ASSET_RESPONSE_QUANTITY.intValue()))
         .andExpect(jsonPath("$.averagePrice").value(existingAsset.getAveragePrice().doubleValue()))
         .andExpect(jsonPath("$.currency").value(CurrencyCodeEnum.USD.name()));
+  }
+
+  @Test
+  void updateReturnsOkWhenRequestIsValid() throws Exception {
+    PortfolioEntity portfolio = portfolioRepository.saveAndFlush(defaultPortfolioEntity());
+    AssetEntity existingAsset = assetRepository.saveAndFlush(defaultAssetEntity(portfolio));
+    AssetUpdateRequestDto request =
+        new AssetUpdateRequestDto(
+            TEST_ASSET_NAME_MICROSOFT,
+            TEST_ASSET_SYMBOL_MSFT,
+            AssetTypeEnum.STOCK,
+            TEST_ASSET_RESPONSE_QUANTITY,
+            TEST_ASSET_RESPONSE_AVERAGE_PRICE,
+            CurrencyCodeEnum.USD);
+
+    mockMvc
+        .perform(
+            patch(
+                    PORTFOLIO_ASSET_BASE_URL + TEST_ASSET_ID_PATH_SEGMENT,
+                    portfolio.getId(),
+                    existingAsset.getId())
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsBytes(request))
+                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+        .andExpect(status().isOk())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(jsonPath("$.id").value(existingAsset.getId()))
+        .andExpect(jsonPath("$.name").value(TEST_ASSET_NAME_MICROSOFT))
+        .andExpect(jsonPath("$.symbol").value(TEST_ASSET_SYMBOL_MSFT));
+  }
+
+  @Test
+  void updateReturnsConflictWhenAssetNameAlreadyExistsInPortfolio() throws Exception {
+    PortfolioEntity portfolio = portfolioRepository.saveAndFlush(defaultPortfolioEntity());
+    AssetEntity existingAsset = assetRepository.saveAndFlush(defaultAssetEntity(portfolio));
+    AssetEntity anotherAsset = defaultAssetEntity(portfolio);
+    anotherAsset.setName(TEST_ASSET_NAME_MICROSOFT);
+    anotherAsset.setSymbol(TEST_ASSET_SYMBOL_MSFT);
+    assetRepository.saveAndFlush(anotherAsset);
+
+    AssetUpdateRequestDto request =
+        new AssetUpdateRequestDto(
+            TEST_ASSET_NAME_MICROSOFT,
+            TEST_ASSET_SYMBOL_AAPL,
+            AssetTypeEnum.STOCK,
+            TEST_ASSET_RESPONSE_QUANTITY,
+            TEST_ASSET_RESPONSE_AVERAGE_PRICE,
+            CurrencyCodeEnum.USD);
+
+    mockMvc
+        .perform(
+            patch(
+                    PORTFOLIO_ASSET_BASE_URL + TEST_ASSET_ID_PATH_SEGMENT,
+                    portfolio.getId(),
+                    existingAsset.getId())
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsBytes(request))
+                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+        .andExpect(status().isConflict())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(
+            jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.ASSET_NAME_CONFLICT.getCode()));
+  }
+
+  @Test
+  void updateReturnsConflictWhenAssetSymbolAlreadyExistsInPortfolio() throws Exception {
+    PortfolioEntity portfolio = portfolioRepository.saveAndFlush(defaultPortfolioEntity());
+    AssetEntity existingAsset = assetRepository.saveAndFlush(defaultAssetEntity(portfolio));
+    AssetEntity anotherAsset = defaultAssetEntity(portfolio);
+    anotherAsset.setName("Microsoft Corporation");
+    anotherAsset.setSymbol(TEST_ASSET_SYMBOL_MSFT);
+    assetRepository.saveAndFlush(anotherAsset);
+
+    AssetUpdateRequestDto request =
+        new AssetUpdateRequestDto(
+            TEST_ASSET_NAME_APPLE,
+            TEST_ASSET_SYMBOL_MSFT,
+            AssetTypeEnum.STOCK,
+            TEST_ASSET_RESPONSE_QUANTITY,
+            TEST_ASSET_RESPONSE_AVERAGE_PRICE,
+            CurrencyCodeEnum.USD);
+
+    mockMvc
+        .perform(
+            patch(
+                    PORTFOLIO_ASSET_BASE_URL + TEST_ASSET_ID_PATH_SEGMENT,
+                    portfolio.getId(),
+                    existingAsset.getId())
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsBytes(request))
+                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+        .andExpect(status().isConflict())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(
+            jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.ASSET_SYMBOL_CONFLICT.getCode()));
+  }
+
+  @Test
+  void updateReturnsNotFoundWhenPortfolioDoesNotBelongToAuthenticatedUser() throws Exception {
+    PortfolioEntity portfolio = defaultPortfolioEntity();
+    portfolio.setUserId(TEST_OTHER_USER_ID);
+    portfolio = portfolioRepository.saveAndFlush(portfolio);
+    AssetEntity existingAsset = assetRepository.saveAndFlush(defaultAssetEntity(portfolio));
+    AssetUpdateRequestDto request =
+        new AssetUpdateRequestDto(
+            TEST_ASSET_NAME_MICROSOFT,
+            TEST_ASSET_SYMBOL_MSFT,
+            AssetTypeEnum.STOCK,
+            TEST_ASSET_RESPONSE_QUANTITY,
+            TEST_ASSET_RESPONSE_AVERAGE_PRICE,
+            CurrencyCodeEnum.USD);
+
+    mockMvc
+        .perform(
+            patch(
+                    PORTFOLIO_ASSET_BASE_URL + TEST_ASSET_ID_PATH_SEGMENT,
+                    portfolio.getId(),
+                    existingAsset.getId())
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsBytes(request))
+                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+        .andExpect(status().isNotFound())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(
+            jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getCode()))
+        .andExpect(
+            jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getType()));
+  }
+
+  @Test
+  void updateReturnsNotFoundWhenAssetDoesNotExistInPortfolio() throws Exception {
+    PortfolioEntity portfolio = portfolioRepository.saveAndFlush(defaultPortfolioEntity());
+    AssetUpdateRequestDto request =
+        new AssetUpdateRequestDto(
+            TEST_ASSET_NAME_MICROSOFT,
+            TEST_ASSET_SYMBOL_MSFT,
+            AssetTypeEnum.STOCK,
+            TEST_ASSET_RESPONSE_QUANTITY,
+            TEST_ASSET_RESPONSE_AVERAGE_PRICE,
+            CurrencyCodeEnum.USD);
+
+    mockMvc
+        .perform(
+            patch(PORTFOLIO_ASSET_BASE_URL + TEST_ASSET_ID_PATH_SEGMENT, portfolio.getId(), 999999L)
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsBytes(request))
+                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+        .andExpect(status().isNotFound())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.ASSET_NOT_FOUND.getCode()))
+        .andExpect(jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.ASSET_NOT_FOUND.getType()));
   }
 
   @Test

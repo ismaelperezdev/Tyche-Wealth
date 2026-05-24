@@ -8,6 +8,7 @@ public enum RateLimitKey {
   PORTFOLIO_DELETE("rate-limit:portfolio:delete", 120, 60),
   ASSET_CREATE("rate-limit:asset:create", 40, 60),
   ASSET_DELETE("rate-limit:asset:delete", 120, 60),
+  ASSET_UPDATE("rate-limit:asset:update", 20, 60),
   ASSET_BATCH_CREATE("rate-limit:asset:batch:create", 10, 60),
   ASSET_RETRIEVE("rate-limit:asset:retrieve", 120, 60),
   ASSET_IMPORT("rate-limit:asset:import", 4, 60),
