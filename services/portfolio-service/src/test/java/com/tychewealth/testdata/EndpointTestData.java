@@ -10,6 +10,7 @@ import static com.tychewealth.constants.CommonConstants.GET;
 import static com.tychewealth.constants.CommonConstants.PATCH;
 import static com.tychewealth.constants.CommonConstants.POST;
 import static com.tychewealth.constants.TestConstants.TEST_ASSET_ID;
+import static com.tychewealth.constants.TestConstants.TEST_ASSET_ID_TEMPLATE;
 import static com.tychewealth.constants.TestConstants.TEST_ASSET_IMPORT_ID;
 import static com.tychewealth.constants.TestConstants.TEST_ME_PATH_SEGMENT;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_ID;
@@ -68,8 +69,16 @@ public final class EndpointTestData {
                 GET,
                 PORTFOLIO_ASSET_BY_ID_URL
                     .replace(TEST_PORTFOLIO_ID_TEMPLATE, String.valueOf(TEST_PORTFOLIO_ID))
-                    .replace("{assetId}", String.valueOf(TEST_ASSET_ID))),
+                    .replace(TEST_ASSET_ID_TEMPLATE, String.valueOf(TEST_ASSET_ID))),
             asset("retrieve", Long.class, Long.class, Long.class)),
+        Arguments.of(
+            RateLimitKey.ASSET_DELETE,
+            new MockHttpServletRequest(
+                DELETE,
+                PORTFOLIO_ASSET_BY_ID_URL
+                    .replace(TEST_PORTFOLIO_ID_TEMPLATE, String.valueOf(TEST_PORTFOLIO_ID))
+                    .replace(TEST_ASSET_ID_TEMPLATE, String.valueOf(TEST_ASSET_ID))),
+            asset("delete", Long.class, Long.class, Long.class)),
         Arguments.of(
             RateLimitKey.ASSET_IMPORT,
             new MockHttpServletRequest(POST, ASSET_IMPORT_URL),

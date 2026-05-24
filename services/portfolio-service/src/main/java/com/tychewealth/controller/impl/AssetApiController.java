@@ -3,6 +3,7 @@ package com.tychewealth.controller.impl;
 import static com.tychewealth.constants.ApiConstants.IMPORT_ID_PATH;
 import static com.tychewealth.constants.LogConstants.ASSET;
 import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
+import static com.tychewealth.constants.LogConstants.DELETE_ACTION;
 import static com.tychewealth.constants.LogConstants.IMPORT_ASSETS_ACTION;
 import static com.tychewealth.constants.LogConstants.PORTFOLIO_ID;
 import static com.tychewealth.constants.LogConstants.REQUEST_START;
@@ -10,6 +11,7 @@ import static com.tychewealth.constants.LogConstants.REQUEST_SUCCESS;
 import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import static com.tychewealth.constants.LogConstants.USER_ID;
 import static com.tychewealth.utils.Utils.buildNoStoreBodyResponse;
+import static com.tychewealth.utils.Utils.buildNoStoreEmptyResponse;
 
 import com.tychewealth.controller.AssetApi;
 import com.tychewealth.dto.asset.AssetImportResponseDto;
@@ -63,6 +65,18 @@ public class AssetApiController implements AssetApi {
     log.info(REQUEST_SUCCESS + PORTFOLIO_ID + USER_ID, ASSET, RETRIEVE_ACTION, portfolioId, userId);
 
     return buildNoStoreBodyResponse(HttpStatus.OK, response);
+  }
+
+  @Override
+  @RateLimited(RateLimitKey.ASSET_DELETE)
+  public ResponseEntity<Void> delete(
+      @AuthenticationPrincipal Long userId, Long portfolioId, Long assetId) {
+    log.info(REQUEST_START + PORTFOLIO_ID + USER_ID, ASSET, DELETE_ACTION, portfolioId, userId);
+
+    assetService.delete(userId, portfolioId, assetId);
+    log.info(REQUEST_SUCCESS + PORTFOLIO_ID + USER_ID, ASSET, DELETE_ACTION, portfolioId, userId);
+
+    return buildNoStoreEmptyResponse(HttpStatus.NO_CONTENT);
   }
 
   @Override

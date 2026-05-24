@@ -21,6 +21,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -44,6 +45,12 @@ public interface AssetApi {
 
   @GetMapping(value = PORTFOLIO_ASSET_BY_ID_URL, produces = REQUEST_PRODUCES)
   ResponseEntity<AssetResponseDto> retrieve(
+      @AuthenticationPrincipal Long userId,
+      @PathVariable(PORTFOLIO_ID_PATH) Long portfolioId,
+      @PathVariable(ASSET_ID_PATH) Long assetId);
+
+  @DeleteMapping(value = PORTFOLIO_ASSET_BY_ID_URL)
+  ResponseEntity<Void> delete(
       @AuthenticationPrincipal Long userId,
       @PathVariable(PORTFOLIO_ID_PATH) Long portfolioId,
       @PathVariable(ASSET_ID_PATH) Long assetId);

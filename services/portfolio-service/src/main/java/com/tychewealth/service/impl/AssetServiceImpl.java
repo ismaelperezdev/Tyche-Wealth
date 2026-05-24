@@ -1,6 +1,7 @@
 package com.tychewealth.service.impl;
 
 import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
+import static com.tychewealth.constants.LogConstants.DELETE_ACTION;
 import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import static com.tychewealth.constants.RedisConstants.ASSET_IMPORT_RESULT_KEY_PREFIX;
 
@@ -19,6 +20,7 @@ import com.tychewealth.enums.AssetBatchActionEnum;
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.mapper.asset.AssetMapper;
+import com.tychewealth.repository.AssetRepository;
 import com.tychewealth.service.AssetService;
 import com.tychewealth.service.helper.CommonValidationHelper;
 import com.tychewealth.service.helper.asset.AssetCreateHelper;
@@ -47,6 +49,7 @@ import org.springframework.web.multipart.MultipartFile;
 @AllArgsConstructor
 public class AssetServiceImpl implements AssetService {
 
+  private final AssetRepository assetRepository;
   private final AssetCreateHelper assetCreateHelper;
   private final AssetMapper assetMapper;
   private final AssetValidationHelper assetValidationHelper;
@@ -83,6 +86,14 @@ public class AssetServiceImpl implements AssetService {
     commonValidationHelper.validateOwnedPortfolio(userId, portfolioId, RETRIEVE_ACTION);
     AssetEntity asset = assetValidationHelper.validateRetrievedAssetExists(portfolioId, assetId);
     return assetMapper.toDto(asset);
+  }
+
+  @Override
+  @Transactional
+  public void delete(Long userId, Long portfolioId, Long assetId) {
+    commonValidationHelper.validateAuthenticatedUser(userId);
+    commonValidationHelper.validateOwnedPortfolio(userId, portfolioId, DELETE_ACTION);
+    assetRepository.deleteByIdAndPortfolioId(assetId, portfolioId);
   }
 
   @Override

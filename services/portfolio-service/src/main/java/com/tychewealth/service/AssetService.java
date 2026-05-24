@@ -13,6 +13,8 @@ public interface AssetService {
 
   AssetResponseDto retrieve(Long userId, Long portfolioId, Long assetId);
 
+  void delete(Long userId, Long portfolioId, Long assetId);
+
   List<AssetResponseDto> createBatchFromImportedAssets(
       Long userId, Long portfolioId, AssetBatchCreateRequestDto request);
 

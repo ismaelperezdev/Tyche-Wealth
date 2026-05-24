@@ -19,6 +19,8 @@ public final class TestConstants {
   public static final String TEST_JSON_TYPE_PATH = "$.type";
   public static final String TEST_ME_PATH_SEGMENT = "/me/";
   public static final String TEST_PORTFOLIO_ID_TEMPLATE = "{portfolioId}";
+  public static final String TEST_ASSET_ID_TEMPLATE = "{assetId}";
+  public static final String TEST_ASSET_ID_PATH_SEGMENT = "/" + TEST_ASSET_ID_TEMPLATE;
   public static final String TEST_ASSET_IMPORT_ID = "import-123";
   public static final String TEST_MISSING_ASSET_IMPORT_ID = "missing-import";
   public static final String TEST_BATCH_ACTION_CREATE = "CREATE";

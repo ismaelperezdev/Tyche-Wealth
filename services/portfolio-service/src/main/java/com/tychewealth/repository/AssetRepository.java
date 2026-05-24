@@ -19,6 +19,8 @@ public interface AssetRepository extends JpaRepository<AssetEntity, Long> {
 
   Optional<AssetEntity> findByIdAndPortfolioId(Long id, Long portfolioId);
 
+  void deleteByIdAndPortfolioId(Long id, Long portfolioId);
+
   List<AssetEntity> findByCurrency(CurrencyCodeEnum currency);
 
   List<AssetEntity> findByAssetType(AssetTypeEnum assetType);

@@ -2,6 +2,7 @@ package com.tychewealth.service.impl;
 
 import static com.tychewealth.constants.CommonConstants.ERROR;
 import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
+import static com.tychewealth.constants.LogConstants.DELETE_ACTION;
 import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import static com.tychewealth.constants.RedisConstants.ASSET_IMPORT_RESULT_KEY_PREFIX;
 import static com.tychewealth.constants.TestConstants.TEST_ASSET_ID;
@@ -41,6 +42,7 @@ import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.mapper.asset.AssetMapper;
+import com.tychewealth.repository.AssetRepository;
 import com.tychewealth.service.helper.CommonValidationHelper;
 import com.tychewealth.service.helper.asset.AssetCreateHelper;
 import com.tychewealth.service.helper.asset.AssetValidationHelper;
@@ -65,6 +67,7 @@ import org.springframework.mock.web.MockMultipartFile;
 @ExtendWith(MockitoExtension.class)
 class AssetServiceImplTest {
 
+  @Mock private AssetRepository assetRepository;
   @Mock private AssetCreateHelper assetCreateHelper;
   @Mock private AssetMapper assetMapper;
   @Mock private AssetValidationHelper assetValidationHelper;
@@ -187,6 +190,42 @@ class AssetServiceImplTest {
         .validateOwnedPortfolio(TEST_USER_ID, TEST_PORTFOLIO_ID, RETRIEVE_ACTION);
     verify(assetValidationHelper).validateRetrievedAssetExists(TEST_PORTFOLIO_ID, assetId);
     verifyNoInteractions(assetMapper);
+  }
+
+  @Test
+  void deleteValidatesOwnershipAndDelegatesToRepository() {
+    when(commonValidationHelper.validateOwnedPortfolio(
+            TEST_USER_ID, TEST_PORTFOLIO_ID, DELETE_ACTION))
+        .thenReturn(portfolio);
+
+    assetService.delete(TEST_USER_ID, TEST_PORTFOLIO_ID, TEST_ASSET_ID);
+
+    verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
+    verify(commonValidationHelper)
+        .validateOwnedPortfolio(TEST_USER_ID, TEST_PORTFOLIO_ID, DELETE_ACTION);
+    verify(assetRepository).deleteByIdAndPortfolioId(TEST_ASSET_ID, TEST_PORTFOLIO_ID);
+  }
+
+  @Test
+  void deleteStopsWhenPortfolioValidationFails() {
+    PortfolioException notFound =
+        new PortfolioException(
+            ErrorDefinition.PORTFOLIO_NOT_FOUND, java.util.Map.of(), HttpStatus.NOT_FOUND);
+
+    when(commonValidationHelper.validateOwnedPortfolio(
+            TEST_USER_ID, TEST_PORTFOLIO_ID, DELETE_ACTION))
+        .thenThrow(notFound);
+
+    PortfolioException thrown =
+        assertThrows(
+            PortfolioException.class,
+            () -> assetService.delete(TEST_USER_ID, TEST_PORTFOLIO_ID, TEST_ASSET_ID));
+
+    assertSame(notFound, thrown);
+    verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
+    verify(commonValidationHelper)
+        .validateOwnedPortfolio(TEST_USER_ID, TEST_PORTFOLIO_ID, DELETE_ACTION);
+    verifyNoInteractions(assetRepository);
   }
 
   @Test
