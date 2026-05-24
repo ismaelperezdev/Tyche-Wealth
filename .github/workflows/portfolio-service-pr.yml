@@ -5,6 +5,13 @@ on:
     paths:
       - "pom.xml"
       - "services/portfolio-service/**"
+      - "docker-compose.yml"
+      - "docker/postgres/**"
+      - "docker/prometheus/**"
+      - "docker/grafana/**"
+      - "observability/prometheus/**"
+      - "observability/grafana/**"
+      - "application-local.properties"
       - ".github/workflows/portfolio-service-pr.yml"
   workflow_dispatch:
 
@@ -54,6 +61,78 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./mvnw sonar:sonar -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_TOKEN}
+
+      - name: Detect infra changes
+        if: ${{ github.event_name == 'pull_request' }}
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            redis:
+              - 'docker-compose.yml'
+            postgres:
+              - 'docker-compose.yml'
+              - 'docker/postgres/**'
+              - 'application-local.properties'
+            prometheus:
+              - 'docker-compose.yml'
+              - 'docker/prometheus/**'
+              - 'observability/prometheus/**'
+              - 'application-local.properties'
+            grafana:
+              - 'docker-compose.yml'
+              - 'docker/grafana/**'
+              - 'observability/grafana/**'
+              - 'application-local.properties'
+
+      - name: Build and start Docker services
+        working-directory: ${{ github.workspace }}
+        run: |
+          services="portfolio-service"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            [ "${{ steps.changes.outputs.redis }}" = "true" ] && services="$services redis"
+            [ "${{ steps.changes.outputs.postgres }}" = "true" ] && services="$services postgres"
+            [ "${{ steps.changes.outputs.prometheus }}" = "true" ] && services="$services prometheus"
+            [ "${{ steps.changes.outputs.grafana }}" = "true" ] && services="$services grafana"
+          fi
+          echo "Docker services to update: $services"
+          docker compose up -d --build $services
+
+      - name: Docker services status
+        if: always()
+        working-directory: ${{ github.workspace }}
+        run: docker compose ps
+
+      - name: Append Closes issue to PR description
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const sources = [pr.title || "", pr.head?.ref || "", pr.body || ""].join("\n");
+            const match = sources.match(/\bTYCHE-(\d+)\b/i);
+            if (!match) {
+              core.info("No TYCHE-XX token found in PR title/branch/body.");
+              return;
+            }
+
+            const issueNumber = match[1];
+            const closesLine = `Closes #${issueNumber}`;
+            const body = pr.body || "";
+
+            if (new RegExp(`\\bCloses\\s+#${issueNumber}\\b`, "i").test(body)) {
+              core.info(`PR body already contains '${closesLine}'.`);
+              return;
+            }
+
+            const updatedBody = body.trim().length === 0 ? closesLine : `${body.trim()}\n\n${closesLine}`;
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              body: updatedBody
+            });
+            core.info(`Added '${closesLine}' to PR description.`);
 
       - name: Trigger CodeRabbit review
         if: ${{ github.event_name == 'pull_request' }}
