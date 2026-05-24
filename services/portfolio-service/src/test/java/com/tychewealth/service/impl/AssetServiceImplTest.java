@@ -82,7 +82,6 @@ class AssetServiceImplTest {
   @Mock private ImportAssetsHelper importAssetsHelper;
   @Mock private AiResponseParser aiResponseParser;
   @Mock private RedisTemplate<String, String> redisTemplate;
-  @Mock private AssetRepository assetRepository;
   @Mock private ValueOperations<String, String> valueOperations;
   @Mock private ObjectMapper objectMapper;
 
