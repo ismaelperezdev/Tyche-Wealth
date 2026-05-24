@@ -3,9 +3,11 @@ package com.tychewealth.controller.impl;
 import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
 import static com.tychewealth.constants.TestConstants.TEST_ASSET_IMPORT_ID;
+import static com.tychewealth.constants.TestConstants.TEST_ASSET_SYMBOL_MSFT;
 import static com.tychewealth.constants.TestConstants.TEST_FILE_PART_NAME;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_ID;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
+import static com.tychewealth.testdata.AiTestData.TEST_ASSET_NAME_MICROSOFT;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_CONTENT_TYPE_CSV;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_EXTRACTED_TEXT;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_FILE_NAME;
@@ -21,7 +23,11 @@ import static org.mockito.Mockito.when;
 import com.tychewealth.dto.asset.AssetImportResponseDto;
 import com.tychewealth.dto.asset.AssetResponseDto;
 import com.tychewealth.dto.asset.request.AssetCreateRequestDto;
+import com.tychewealth.dto.asset.request.AssetUpdateRequestDto;
+import com.tychewealth.enums.AssetTypeEnum;
+import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.service.AssetService;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -96,6 +102,32 @@ class AssetApiControllerTest {
     assertEquals(PRAGMA_NO_CACHE_HEADER_VALUE, result.getHeaders().getPragma());
     assertEquals(response, result.getBody());
     verify(assetService).retrieve(TEST_USER_ID, TEST_PORTFOLIO_ID, assetId);
+  }
+
+  @Test
+  void updateReturnsOkResponse() {
+    Long assetId = 100L;
+    AssetUpdateRequestDto request =
+        new AssetUpdateRequestDto(
+            TEST_ASSET_NAME_MICROSOFT,
+            TEST_ASSET_SYMBOL_MSFT,
+            AssetTypeEnum.STOCK,
+            new BigDecimal("12.00000000"),
+            new BigDecimal("175.5000"),
+            CurrencyCodeEnum.USD);
+    AssetResponseDto response = defaultAssetResponseDto(assetId);
+
+    when(assetService.update(TEST_USER_ID, TEST_PORTFOLIO_ID, assetId, request))
+        .thenReturn(response);
+
+    ResponseEntity<AssetResponseDto> result =
+        assetApiController.update(TEST_USER_ID, TEST_PORTFOLIO_ID, assetId, request);
+
+    assertEquals(HttpStatus.OK, result.getStatusCode());
+    assertEquals(CACHE_CONTROL_NO_STORE_HEADER_VALUE, result.getHeaders().getCacheControl());
+    assertEquals(PRAGMA_NO_CACHE_HEADER_VALUE, result.getHeaders().getPragma());
+    assertEquals(response, result.getBody());
+    verify(assetService).update(TEST_USER_ID, TEST_PORTFOLIO_ID, assetId, request);
   }
 
   @Test

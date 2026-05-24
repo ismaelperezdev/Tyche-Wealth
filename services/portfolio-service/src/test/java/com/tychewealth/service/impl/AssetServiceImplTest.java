@@ -3,6 +3,7 @@ package com.tychewealth.service.impl;
 import static com.tychewealth.constants.CommonConstants.ERROR;
 import static com.tychewealth.constants.LogConstants.CREATE_ACTION;
 import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
+import static com.tychewealth.constants.LogConstants.UPDATE_ACTION;
 import static com.tychewealth.constants.RedisConstants.ASSET_IMPORT_RESULT_KEY_PREFIX;
 import static com.tychewealth.constants.TestConstants.TEST_ASSET_ID;
 import static com.tychewealth.constants.TestConstants.TEST_ASSET_IMPORT_ID;
@@ -34,13 +35,17 @@ import com.tychewealth.dto.asset.AssetResponseDto;
 import com.tychewealth.dto.asset.request.AssetBatchCreateRequestDto;
 import com.tychewealth.dto.asset.request.AssetCreateRequestDto;
 import com.tychewealth.dto.asset.request.AssetImportPayloadDto;
+import com.tychewealth.dto.asset.request.AssetUpdateRequestDto;
 import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.enums.AssetBatchActionEnum;
+import com.tychewealth.enums.AssetTypeEnum;
+import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.mapper.asset.AssetMapper;
+import com.tychewealth.repository.AssetRepository;
 import com.tychewealth.service.helper.CommonValidationHelper;
 import com.tychewealth.service.helper.asset.AssetCreateHelper;
 import com.tychewealth.service.helper.asset.AssetValidationHelper;
@@ -48,6 +53,7 @@ import com.tychewealth.service.helper.asset.ImportAssetsHelper;
 import com.tychewealth.service.helper.asset.ai.AiResponseParser;
 import com.tychewealth.service.helper.asset.ai.AssetAiValidationHelper;
 import com.tychewealth.service.helper.asset.ai.ImportAssetsAiHelper;
+import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -74,6 +80,7 @@ class AssetServiceImplTest {
   @Mock private ImportAssetsHelper importAssetsHelper;
   @Mock private AiResponseParser aiResponseParser;
   @Mock private RedisTemplate<String, String> redisTemplate;
+  @Mock private AssetRepository assetRepository;
   @Mock private ValueOperations<String, String> valueOperations;
   @Mock private ObjectMapper objectMapper;
 
@@ -187,6 +194,121 @@ class AssetServiceImplTest {
         .validateOwnedPortfolio(TEST_USER_ID, TEST_PORTFOLIO_ID, RETRIEVE_ACTION);
     verify(assetValidationHelper).validateRetrievedAssetExists(TEST_PORTFOLIO_ID, assetId);
     verifyNoInteractions(assetMapper);
+  }
+
+  @Test
+  void updateValidatesConflictsAndPersistsWhenNameAndSymbolChange() {
+    Long assetId = TEST_ASSET_ID;
+    AssetEntity asset = new AssetEntity();
+    asset.setId(assetId);
+    asset.setName(TEST_ASSET_NAME_APPLE);
+    asset.setSymbol(TEST_ASSET_SYMBOL_AAPL);
+    AssetUpdateRequestDto request =
+        new AssetUpdateRequestDto(
+            TEST_ASSET_NAME_MICROSOFT,
+            TEST_ASSET_SYMBOL_MSFT,
+            AssetTypeEnum.STOCK,
+            new BigDecimal("10.00000000"),
+            new BigDecimal("150.0000"),
+            CurrencyCodeEnum.USD);
+    AssetResponseDto response = new AssetResponseDto();
+    response.setId(assetId);
+
+    when(commonValidationHelper.validateOwnedPortfolio(
+            TEST_USER_ID, TEST_PORTFOLIO_ID, UPDATE_ACTION))
+        .thenReturn(portfolio);
+    when(assetValidationHelper.validateRetrievedAssetExists(TEST_PORTFOLIO_ID, assetId))
+        .thenReturn(asset);
+    when(assetRepository.saveAndFlush(asset)).thenReturn(asset);
+    when(assetMapper.toDto(asset)).thenReturn(response);
+
+    AssetResponseDto result =
+        assetService.update(TEST_USER_ID, TEST_PORTFOLIO_ID, assetId, request);
+
+    assertSame(response, result);
+    verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
+    verify(commonValidationHelper)
+        .validateOwnedPortfolio(TEST_USER_ID, TEST_PORTFOLIO_ID, UPDATE_ACTION);
+    verify(assetValidationHelper).validateRetrievedAssetExists(TEST_PORTFOLIO_ID, assetId);
+    verify(assetValidationHelper)
+        .validateCreateNameConflict(TEST_PORTFOLIO_ID, TEST_ASSET_NAME_MICROSOFT);
+    verify(assetValidationHelper)
+        .validateCreateSymbolConflict(TEST_PORTFOLIO_ID, TEST_ASSET_SYMBOL_MSFT);
+    verify(assetMapper).update(request, asset);
+    verify(assetRepository).saveAndFlush(asset);
+    verify(assetMapper).toDto(asset);
+  }
+
+  @Test
+  void updateSkipsConflictChecksWhenNameAndSymbolDoNotChange() {
+    Long assetId = TEST_ASSET_ID;
+    AssetEntity asset = new AssetEntity();
+    asset.setId(assetId);
+    asset.setName(TEST_ASSET_NAME_APPLE);
+    asset.setSymbol(TEST_ASSET_SYMBOL_AAPL);
+    AssetUpdateRequestDto request =
+        new AssetUpdateRequestDto(
+            TEST_ASSET_NAME_APPLE,
+            TEST_ASSET_SYMBOL_AAPL,
+            AssetTypeEnum.STOCK,
+            new BigDecimal("10.00000000"),
+            new BigDecimal("150.0000"),
+            CurrencyCodeEnum.USD);
+    AssetResponseDto response = new AssetResponseDto();
+    response.setId(assetId);
+
+    when(commonValidationHelper.validateOwnedPortfolio(
+            TEST_USER_ID, TEST_PORTFOLIO_ID, UPDATE_ACTION))
+        .thenReturn(portfolio);
+    when(assetValidationHelper.validateRetrievedAssetExists(TEST_PORTFOLIO_ID, assetId))
+        .thenReturn(asset);
+    when(assetRepository.saveAndFlush(asset)).thenReturn(asset);
+    when(assetMapper.toDto(asset)).thenReturn(response);
+
+    assetService.update(TEST_USER_ID, TEST_PORTFOLIO_ID, assetId, request);
+
+    verify(assetValidationHelper, never()).validateCreateNameConflict(anyLong(), anyString());
+    verify(assetValidationHelper, never()).validateCreateSymbolConflict(anyLong(), anyString());
+    verify(assetMapper).update(request, asset);
+    verify(assetRepository).saveAndFlush(asset);
+  }
+
+  @Test
+  void updateStopsWhenNameConflictValidationFails() {
+    Long assetId = TEST_ASSET_ID;
+    AssetEntity asset = new AssetEntity();
+    asset.setId(assetId);
+    asset.setName(TEST_ASSET_NAME_APPLE);
+    asset.setSymbol(TEST_ASSET_SYMBOL_AAPL);
+    AssetUpdateRequestDto request =
+        new AssetUpdateRequestDto(
+            TEST_ASSET_NAME_MICROSOFT,
+            TEST_ASSET_SYMBOL_AAPL,
+            AssetTypeEnum.STOCK,
+            new BigDecimal("10.00000000"),
+            new BigDecimal("150.0000"),
+            CurrencyCodeEnum.USD);
+    PortfolioException conflict =
+        new PortfolioException(
+            ErrorDefinition.ASSET_NAME_CONFLICT, java.util.Map.of(), HttpStatus.CONFLICT);
+
+    when(commonValidationHelper.validateOwnedPortfolio(
+            TEST_USER_ID, TEST_PORTFOLIO_ID, UPDATE_ACTION))
+        .thenReturn(portfolio);
+    when(assetValidationHelper.validateRetrievedAssetExists(TEST_PORTFOLIO_ID, assetId))
+        .thenReturn(asset);
+    doThrow(conflict)
+        .when(assetValidationHelper)
+        .validateCreateNameConflict(TEST_PORTFOLIO_ID, TEST_ASSET_NAME_MICROSOFT);
+
+    PortfolioException thrown =
+        assertThrows(
+            PortfolioException.class,
+            () -> assetService.update(TEST_USER_ID, TEST_PORTFOLIO_ID, assetId, request));
+
+    assertSame(conflict, thrown);
+    verify(assetMapper, never()).update(any(), any());
+    verifyNoInteractions(assetRepository);
   }
 
   @Test

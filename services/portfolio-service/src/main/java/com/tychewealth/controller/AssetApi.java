@@ -16,12 +16,14 @@ import com.tychewealth.dto.asset.AssetImportResponseDto;
 import com.tychewealth.dto.asset.AssetResponseDto;
 import com.tychewealth.dto.asset.request.AssetBatchCreateRequestDto;
 import com.tychewealth.dto.asset.request.AssetCreateRequestDto;
+import com.tychewealth.dto.asset.request.AssetUpdateRequestDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -47,6 +49,16 @@ public interface AssetApi {
       @AuthenticationPrincipal Long userId,
       @PathVariable(PORTFOLIO_ID_PATH) Long portfolioId,
       @PathVariable(ASSET_ID_PATH) Long assetId);
+
+  @PatchMapping(
+      value = PORTFOLIO_ASSET_BY_ID_URL,
+      consumes = REQUEST_CONSUMES,
+      produces = REQUEST_PRODUCES)
+  ResponseEntity<AssetResponseDto> update(
+      @AuthenticationPrincipal Long userId,
+      @PathVariable(PORTFOLIO_ID_PATH) Long portfolioId,
+      @PathVariable(ASSET_ID_PATH) Long assetId,
+      @Valid @RequestBody AssetUpdateRequestDto updateRequest);
 
   @PostMapping(
       value = PORTFOLIO_ASSET_BATCH_URL,

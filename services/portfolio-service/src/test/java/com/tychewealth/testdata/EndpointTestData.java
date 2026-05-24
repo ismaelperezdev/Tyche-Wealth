@@ -10,6 +10,7 @@ import static com.tychewealth.constants.CommonConstants.GET;
 import static com.tychewealth.constants.CommonConstants.PATCH;
 import static com.tychewealth.constants.CommonConstants.POST;
 import static com.tychewealth.constants.TestConstants.TEST_ASSET_ID;
+import static com.tychewealth.constants.TestConstants.TEST_ASSET_ID_TEMPLATE;
 import static com.tychewealth.constants.TestConstants.TEST_ASSET_IMPORT_ID;
 import static com.tychewealth.constants.TestConstants.TEST_ME_PATH_SEGMENT;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_ID;
@@ -18,6 +19,7 @@ import static com.tychewealth.testhelper.IdempotencyTestHelper.asset;
 import static com.tychewealth.testhelper.IdempotencyTestHelper.portfolio;
 
 import com.tychewealth.dto.asset.request.AssetCreateRequestDto;
+import com.tychewealth.dto.asset.request.AssetUpdateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
 import com.tychewealth.ratelimit.RateLimitKey;
@@ -63,12 +65,20 @@ public final class EndpointTestData {
                     TEST_PORTFOLIO_ID_TEMPLATE, String.valueOf(TEST_PORTFOLIO_ID))),
             asset("create", Long.class, Long.class, AssetCreateRequestDto.class)),
         Arguments.of(
+            RateLimitKey.ASSET_UPDATE,
+            new MockHttpServletRequest(
+                PATCH,
+                PORTFOLIO_ASSET_BY_ID_URL
+                    .replace(TEST_PORTFOLIO_ID_TEMPLATE, String.valueOf(TEST_PORTFOLIO_ID))
+                    .replace(TEST_ASSET_ID_TEMPLATE, String.valueOf(TEST_ASSET_ID))),
+            asset("update", Long.class, Long.class, Long.class, AssetUpdateRequestDto.class)),
+        Arguments.of(
             RateLimitKey.ASSET_RETRIEVE,
             new MockHttpServletRequest(
                 GET,
                 PORTFOLIO_ASSET_BY_ID_URL
                     .replace(TEST_PORTFOLIO_ID_TEMPLATE, String.valueOf(TEST_PORTFOLIO_ID))
-                    .replace("{assetId}", String.valueOf(TEST_ASSET_ID))),
+                    .replace(TEST_ASSET_ID_TEMPLATE, String.valueOf(TEST_ASSET_ID))),
             asset("retrieve", Long.class, Long.class, Long.class)),
         Arguments.of(
             RateLimitKey.ASSET_IMPORT,
