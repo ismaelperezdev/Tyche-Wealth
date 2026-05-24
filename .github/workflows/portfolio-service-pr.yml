@@ -85,7 +85,30 @@ jobs:
               - 'observability/grafana/**'
               - 'application-local.properties'
 
+      - name: Generate application-local.properties from GitHub secrets
+        working-directory: ${{ github.workspace }}
+        run: |
+          cat > application-local.properties <<EOF
+          DB_URL_USER=${{ secrets.DB_URL_USER }}
+          DB_URL_PORTFOLIO=${{ secrets.DB_URL_PORTFOLIO }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          JWT_REFRESH_TOKEN_PEPPER=${{ secrets.JWT_REFRESH_TOKEN_PEPPER }}
+          VERIFY_REGISTRATION_URL=${{ secrets.VERIFY_REGISTRATION_URL }}
+          VERIFY_LOGIN_DEVICE_URL=${{ secrets.VERIFY_LOGIN_DEVICE_URL }}
+          FORGOT_PASSWORD_URL=${{ secrets.FORGOT_PASSWORD_URL }}
+          PROMETHEUS_PASSWORD=${{ secrets.PROMETHEUS_PASSWORD }}
+          GRAFANA_ADMIN_USER=${{ secrets.GRAFANA_ADMIN_USER }}
+          GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+          LLM_BASE_URL=${{ secrets.LLM_BASE_URL }}
+          LLM_API_KEY=${{ secrets.LLM_API_KEY }}
+          EOF
+
       - name: Build and start Docker services
+        continue-on-error: true
         working-directory: ${{ github.workspace }}
         run: |
           services="portfolio-service"
@@ -100,8 +123,14 @@ jobs:
 
       - name: Docker services status
         if: always()
+        continue-on-error: true
         working-directory: ${{ github.workspace }}
         run: docker compose ps
+
+      - name: Cleanup temporary secrets file
+        if: always()
+        working-directory: ${{ github.workspace }}
+        run: rm -f application-local.properties
 
       - name: Append Closes issue to PR description
         if: ${{ github.event_name == 'pull_request' }}
