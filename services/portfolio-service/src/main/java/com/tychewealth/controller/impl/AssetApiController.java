@@ -1,6 +1,6 @@
 package com.tychewealth.controller.impl;
 
-import static com.tychewealth.constants.ApiConstants.DEFAULT_ASSET_LIST_LIMIT;
+import static com.tychewealth.constants.ApiConstants.DEFAULT_LIST_LIMIT;
 import static com.tychewealth.constants.ApiConstants.DEFAULT_PAGE;
 import static com.tychewealth.constants.ApiConstants.IMPORT_ID_PATH;
 import static com.tychewealth.constants.ApiConstants.LIMIT_PARAM;
@@ -77,7 +77,7 @@ public class AssetApiController implements AssetApi {
       @AuthenticationPrincipal Long userId,
       Long portfolioId,
       @RequestParam(name = PAGE_PARAM, defaultValue = DEFAULT_PAGE) int page,
-      @RequestParam(name = LIMIT_PARAM, defaultValue = DEFAULT_ASSET_LIST_LIMIT) int limit) {
+      @RequestParam(name = LIMIT_PARAM, defaultValue = DEFAULT_LIST_LIMIT) int limit) {
     log.info(
         REQUEST_START + PORTFOLIO_ID + USER_ID, ASSET, LIST_ASSETS_ACTION, portfolioId, userId);
 

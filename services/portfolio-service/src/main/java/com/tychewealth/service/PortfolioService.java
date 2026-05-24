@@ -3,11 +3,11 @@ package com.tychewealth.service;
 import com.tychewealth.dto.portfolio.PortfolioResponseDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
-import java.util.List;
+import org.springframework.data.domain.Page;
 
 public interface PortfolioService {
 
-  List<PortfolioResponseDto> listPortfolios(Long userId);
+  Page<PortfolioResponseDto> listPortfolios(Long userId, int page, int limit);
 
   PortfolioResponseDto retrieve(Long userId, Long portfolioId);
 

@@ -19,6 +19,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -39,17 +41,22 @@ class PortfolioApiControllerTest {
     secondPortfolio.setId(8L);
     secondPortfolio.setName(TEST_PORTFOLIO_NAME_RETIREMENT);
 
-    List<PortfolioResponseDto> response = List.of(firstPortfolio, secondPortfolio);
+    Page<PortfolioResponseDto> response = new PageImpl<>(List.of(firstPortfolio, secondPortfolio));
 
-    when(portfolioService.listPortfolios(42L)).thenReturn(response);
+    when(portfolioService.listPortfolios(42L, 0, 10)).thenReturn(response);
 
-    ResponseEntity<List<PortfolioResponseDto>> result = portfolioApiController.listPortfolios(42L);
+    ResponseEntity<List<PortfolioResponseDto>> result =
+        portfolioApiController.listPortfolios(42L, 0, 10);
 
     assertEquals(HttpStatus.OK, result.getStatusCode());
     assertEquals(CACHE_CONTROL_NO_STORE_HEADER_VALUE, result.getHeaders().getCacheControl());
     assertEquals(PRAGMA_NO_CACHE_HEADER_VALUE, result.getHeaders().getPragma());
-    assertEquals(response, result.getBody());
-    verify(portfolioService).listPortfolios(42L);
+    assertEquals(response.getContent(), result.getBody());
+    assertEquals("2", result.getHeaders().getFirst("X-Total-Count"));
+    assertEquals("0", result.getHeaders().getFirst("X-Page"));
+    assertEquals("10", result.getHeaders().getFirst("X-Limit"));
+    assertEquals("false", result.getHeaders().getFirst("X-Has-Next"));
+    verify(portfolioService).listPortfolios(42L, 0, 10);
   }
 
   @Test

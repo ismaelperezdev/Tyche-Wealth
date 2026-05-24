@@ -1,5 +1,7 @@
 package com.tychewealth.service.impl;
 
+import static com.tychewealth.constants.ApiConstants.MAX_PORTFOLIO_LIST_LIMIT;
+import static com.tychewealth.constants.CommonConstants.ID;
 import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 
 import com.tychewealth.dto.portfolio.PortfolioResponseDto;
@@ -11,9 +13,11 @@ import com.tychewealth.repository.PortfolioRepository;
 import com.tychewealth.service.PortfolioService;
 import com.tychewealth.service.helper.CommonValidationHelper;
 import com.tychewealth.service.helper.portfolio.PortfolioValidationHelper;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,11 +33,13 @@ public class PortfolioServiceImpl implements PortfolioService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<PortfolioResponseDto> listPortfolios(Long userId) {
+  public Page<PortfolioResponseDto> listPortfolios(Long userId, int page, int limit) {
     commonValidationHelper.validateAuthenticatedUser(userId);
-    return portfolioRepository.findByUserIdOrderByCreatedAtAsc(userId).stream()
-        .map(portfolioMapper::toDto)
-        .toList();
+    int safePage = Math.max(page, 0);
+    int safeLimit = Math.clamp(limit, 1, MAX_PORTFOLIO_LIST_LIMIT);
+    return portfolioRepository
+        .findByUserId(userId, PageRequest.of(safePage, safeLimit, Sort.by(ID)))
+        .map(portfolioMapper::toDto);
   }
 
   @Override

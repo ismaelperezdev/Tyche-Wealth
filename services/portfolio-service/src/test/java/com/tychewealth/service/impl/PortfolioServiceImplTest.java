@@ -38,6 +38,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 
 @ExtendWith(MockitoExtension.class)
@@ -83,16 +87,16 @@ class PortfolioServiceImplTest {
     secondResponse.setId(TEST_SECOND_PORTFOLIO_ID);
     secondResponse.setName(TEST_PORTFOLIO_NAME_RETIREMENT);
 
-    when(portfolioRepository.findByUserIdOrderByCreatedAtAsc(TEST_USER_ID))
-        .thenReturn(List.of(firstPortfolio, secondPortfolio));
+    when(portfolioRepository.findByUserId(TEST_USER_ID, PageRequest.of(0, 10, Sort.by("id"))))
+        .thenReturn(new PageImpl<>(List.of(firstPortfolio, secondPortfolio)));
     when(portfolioMapper.toDto(firstPortfolio)).thenReturn(firstResponse);
     when(portfolioMapper.toDto(secondPortfolio)).thenReturn(secondResponse);
 
-    List<PortfolioResponseDto> result = portfolioService.listPortfolios(TEST_USER_ID);
+    Page<PortfolioResponseDto> result = portfolioService.listPortfolios(TEST_USER_ID, 0, 10);
 
-    assertEquals(2, result.size());
-    assertEquals(List.of(firstResponse, secondResponse), result);
-    verify(portfolioRepository).findByUserIdOrderByCreatedAtAsc(TEST_USER_ID);
+    assertEquals(2, result.getContent().size());
+    assertEquals(List.of(firstResponse, secondResponse), result.getContent());
+    verify(portfolioRepository).findByUserId(TEST_USER_ID, PageRequest.of(0, 10, Sort.by("id")));
   }
 
   @Test

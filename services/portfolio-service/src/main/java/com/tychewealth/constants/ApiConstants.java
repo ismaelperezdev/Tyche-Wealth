@@ -13,8 +13,9 @@ public final class ApiConstants {
   public static final String PAGE_PARAM = "page";
   public static final String LIMIT_PARAM = "limit";
   public static final String DEFAULT_PAGE = "0";
-  public static final String DEFAULT_ASSET_LIST_LIMIT = "10";
+  public static final String DEFAULT_LIST_LIMIT = "10";
   public static final int MAX_ASSET_LIST_LIMIT = 10;
+  public static final int MAX_PORTFOLIO_LIST_LIMIT = 10;
   public static final String X_TOTAL_COUNT_HEADER = "X-Total-Count";
   public static final String X_PAGE_HEADER = "X-Page";
   public static final String X_LIMIT_HEADER = "X-Limit";

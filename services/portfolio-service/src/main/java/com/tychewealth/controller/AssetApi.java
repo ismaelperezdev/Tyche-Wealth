@@ -3,7 +3,7 @@ package com.tychewealth.controller;
 import static com.tychewealth.constants.ApiConstants.ASSET_ID_PATH;
 import static com.tychewealth.constants.ApiConstants.ASSET_IMPORT_BY_ID_URL;
 import static com.tychewealth.constants.ApiConstants.ASSET_IMPORT_URL;
-import static com.tychewealth.constants.ApiConstants.DEFAULT_ASSET_LIST_LIMIT;
+import static com.tychewealth.constants.ApiConstants.DEFAULT_LIST_LIMIT;
 import static com.tychewealth.constants.ApiConstants.DEFAULT_PAGE;
 import static com.tychewealth.constants.ApiConstants.IMPORT_ID_PATH;
 import static com.tychewealth.constants.ApiConstants.LIMIT_PARAM;
@@ -55,7 +55,7 @@ public interface AssetApi {
       @AuthenticationPrincipal Long userId,
       @PathVariable(PORTFOLIO_ID_PATH) Long portfolioId,
       @RequestParam(name = PAGE_PARAM, defaultValue = DEFAULT_PAGE) int page,
-      @RequestParam(name = LIMIT_PARAM, defaultValue = DEFAULT_ASSET_LIST_LIMIT) int limit);
+      @RequestParam(name = LIMIT_PARAM, defaultValue = DEFAULT_LIST_LIMIT) int limit);
 
   @GetMapping(value = PORTFOLIO_ASSET_BY_ID_URL, produces = REQUEST_PRODUCES)
   ResponseEntity<AssetResponseDto> retrieve(

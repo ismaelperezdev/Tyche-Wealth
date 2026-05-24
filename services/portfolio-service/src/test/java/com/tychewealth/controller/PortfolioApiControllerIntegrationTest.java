@@ -125,6 +125,10 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(header().string("X-Total-Count", "2"))
+        .andExpect(header().string("X-Page", "0"))
+        .andExpect(header().string("X-Limit", "10"))
+        .andExpect(header().string("X-Has-Next", "false"))
         .andExpect(jsonPath("$", hasSize(2)))
         .andExpect(jsonPath("$[0].name").value(TEST_PORTFOLIO_NAME_CORE))
         .andExpect(jsonPath("$[1].name").value(TEST_PORTFOLIO_NAME_RETIREMENT));
@@ -136,6 +140,10 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(header().string("X-Total-Count", "0"))
+        .andExpect(header().string("X-Page", "0"))
+        .andExpect(header().string("X-Limit", "10"))
+        .andExpect(header().string("X-Has-Next", "false"))
         .andExpect(jsonPath("$", hasSize(0)));
   }
 

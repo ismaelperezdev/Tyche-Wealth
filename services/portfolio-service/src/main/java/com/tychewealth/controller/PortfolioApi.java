@@ -1,5 +1,9 @@
 package com.tychewealth.controller;
 
+import static com.tychewealth.constants.ApiConstants.DEFAULT_LIST_LIMIT;
+import static com.tychewealth.constants.ApiConstants.DEFAULT_PAGE;
+import static com.tychewealth.constants.ApiConstants.LIMIT_PARAM;
+import static com.tychewealth.constants.ApiConstants.PAGE_PARAM;
 import static com.tychewealth.constants.ApiConstants.PORTFOLIO_BASE_URL;
 import static com.tychewealth.constants.ApiConstants.REQUEST_CONSUMES;
 import static com.tychewealth.constants.ApiConstants.REQUEST_PRODUCES;
@@ -19,13 +23,17 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RequestMapping(value = PORTFOLIO_BASE_URL)
 @Tag(name = "Portfolio")
 public interface PortfolioApi {
 
   @GetMapping(value = "/me", produces = REQUEST_PRODUCES)
-  ResponseEntity<List<PortfolioResponseDto>> listPortfolios(@AuthenticationPrincipal Long userId);
+  ResponseEntity<List<PortfolioResponseDto>> listPortfolios(
+      @AuthenticationPrincipal Long userId,
+      @RequestParam(name = PAGE_PARAM, defaultValue = DEFAULT_PAGE) int page,
+      @RequestParam(name = LIMIT_PARAM, defaultValue = DEFAULT_LIST_LIMIT) int limit);
 
   @GetMapping(value = "/me/{portfolioId}", produces = REQUEST_PRODUCES)
   ResponseEntity<PortfolioResponseDto> retrieve(
