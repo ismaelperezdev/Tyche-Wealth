@@ -17,6 +17,8 @@ public interface AssetService {
   AssetResponseDto update(
       Long userId, Long portfolioId, Long assetId, AssetUpdateRequestDto updateRequest);
 
+  void delete(Long userId, Long portfolioId, Long assetId);
+
   List<AssetResponseDto> createBatchFromImportedAssets(
       Long userId, Long portfolioId, AssetBatchCreateRequestDto request);
 

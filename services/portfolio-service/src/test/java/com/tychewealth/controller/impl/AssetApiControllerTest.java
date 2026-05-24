@@ -2,6 +2,7 @@ package com.tychewealth.controller.impl;
 
 import static com.tychewealth.constants.SecurityConstants.CACHE_CONTROL_NO_STORE_HEADER_VALUE;
 import static com.tychewealth.constants.SecurityConstants.PRAGMA_NO_CACHE_HEADER_VALUE;
+import static com.tychewealth.constants.TestConstants.TEST_ASSET_ID;
 import static com.tychewealth.constants.TestConstants.TEST_ASSET_IMPORT_ID;
 import static com.tychewealth.constants.TestConstants.TEST_ASSET_SYMBOL_MSFT;
 import static com.tychewealth.constants.TestConstants.TEST_FILE_PART_NAME;
@@ -146,5 +147,16 @@ class AssetApiControllerTest {
     assertEquals(PRAGMA_NO_CACHE_HEADER_VALUE, result.getHeaders().getPragma());
     assertEquals(response, result.getBody());
     verify(assetService).retrieveImportedAssets(TEST_USER_ID, importId);
+  }
+
+  @Test
+  void deleteReturnsNoContentResponse() {
+    ResponseEntity<Void> result =
+        assetApiController.delete(TEST_USER_ID, TEST_PORTFOLIO_ID, TEST_ASSET_ID);
+
+    assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+    assertEquals(CACHE_CONTROL_NO_STORE_HEADER_VALUE, result.getHeaders().getCacheControl());
+    assertEquals(PRAGMA_NO_CACHE_HEADER_VALUE, result.getHeaders().getPragma());
+    verify(assetService).delete(TEST_USER_ID, TEST_PORTFOLIO_ID, TEST_ASSET_ID);
   }
 }

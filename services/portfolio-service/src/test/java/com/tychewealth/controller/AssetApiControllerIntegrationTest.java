@@ -47,6 +47,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
 import static org.springframework.http.HttpHeaders.PRAGMA;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -417,6 +418,83 @@ class AssetApiControllerIntegrationTest {
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
         .andExpect(jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.ASSET_NOT_FOUND.getCode()))
         .andExpect(jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.ASSET_NOT_FOUND.getType()));
+  }
+
+  @Test
+  void deleteReturnsNoContentWhenAssetExistsInPortfolio() throws Exception {
+    PortfolioEntity portfolio = portfolioRepository.saveAndFlush(defaultPortfolioEntity());
+    AssetEntity existingAsset = assetRepository.saveAndFlush(defaultAssetEntity(portfolio));
+
+    mockMvc
+        .perform(
+            delete(
+                    PORTFOLIO_ASSET_BASE_URL + TEST_ASSET_ID_PATH_SEGMENT,
+                    portfolio.getId(),
+                    existingAsset.getId())
+                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+        .andExpect(status().isNoContent())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE));
+
+    org.junit.jupiter.api.Assertions.assertFalse(
+        assetRepository.findById(existingAsset.getId()).isPresent());
+  }
+
+  @Test
+  void deleteReturnsNoContentWhenAssetDoesNotExistInPortfolio() throws Exception {
+    PortfolioEntity portfolio = portfolioRepository.saveAndFlush(defaultPortfolioEntity());
+
+    mockMvc
+        .perform(
+            delete(
+                    PORTFOLIO_ASSET_BASE_URL + TEST_ASSET_ID_PATH_SEGMENT,
+                    portfolio.getId(),
+                    999999L)
+                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+        .andExpect(status().isNoContent())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE));
+  }
+
+  @Test
+  void deleteReturnsNotFoundWhenPortfolioDoesNotBelongToAuthenticatedUser() throws Exception {
+    PortfolioEntity portfolio = defaultPortfolioEntity();
+    portfolio.setUserId(TEST_OTHER_USER_ID);
+    portfolio = portfolioRepository.saveAndFlush(portfolio);
+    AssetEntity existingAsset = assetRepository.saveAndFlush(defaultAssetEntity(portfolio));
+
+    mockMvc
+        .perform(
+            delete(
+                    PORTFOLIO_ASSET_BASE_URL + TEST_ASSET_ID_PATH_SEGMENT,
+                    portfolio.getId(),
+                    existingAsset.getId())
+                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+        .andExpect(status().isNotFound())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(
+            jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getCode()))
+        .andExpect(
+            jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.PORTFOLIO_NOT_FOUND.getType()));
+  }
+
+  @Test
+  void deleteReturnsUnauthorizedWhenAuthenticatedUserIsMissing() throws Exception {
+    PortfolioEntity portfolio = portfolioRepository.saveAndFlush(defaultPortfolioEntity());
+    AssetEntity existingAsset = assetRepository.saveAndFlush(defaultAssetEntity(portfolio));
+
+    mockMvc
+        .perform(
+            delete(
+                PORTFOLIO_ASSET_BASE_URL + TEST_ASSET_ID_PATH_SEGMENT,
+                portfolio.getId(),
+                existingAsset.getId()))
+        .andExpect(status().isUnauthorized())
+        .andExpect(header().string(CACHE_CONTROL, CACHE_CONTROL_NO_STORE_HEADER_VALUE))
+        .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE))
+        .andExpect(jsonPath(TEST_JSON_CODE_PATH).value(ErrorDefinition.UNAUTHORIZED.getCode()))
+        .andExpect(jsonPath(TEST_JSON_TYPE_PATH).value(ErrorDefinition.UNAUTHORIZED.getType()));
   }
 
   @Test
