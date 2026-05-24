@@ -3,7 +3,7 @@ package com.tychewealth.testdata;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_NAME_CORE;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
 import static com.tychewealth.constants.ValidationConstants.MUST_BE_AT_MOST_20_CHARACTERS;
-import static com.tychewealth.constants.ValidationConstants.MUST_BE_BETWEEN_3_AND_60_CHARACTERS;
+import static com.tychewealth.constants.ValidationConstants.MUST_BE_BETWEEN_3_AND_200_CHARACTERS;
 import static com.tychewealth.constants.ValidationConstants.MUST_BE_GREATER_THAN_0;
 import static com.tychewealth.constants.ValidationConstants.MUST_HAVE_UP_TO_11_INTEGER_DIGITS_AND_8_DECIMALS;
 import static com.tychewealth.constants.ValidationConstants.MUST_HAVE_UP_TO_15_INTEGER_DIGITS_AND_4_DECIMALS;
@@ -65,7 +65,7 @@ public final class AssetTestData {
     return Stream.of(
         Arguments.of(invalidCreate(dto -> dto.setName(" ")), "name", MUST_NOT_BE_BLANK),
         Arguments.of(
-            invalidCreate(dto -> dto.setName("AB")), "name", MUST_BE_BETWEEN_3_AND_60_CHARACTERS),
+            invalidCreate(dto -> dto.setName("AB")), "name", MUST_BE_BETWEEN_3_AND_200_CHARACTERS),
         Arguments.of(
             invalidCreate(dto -> dto.setSymbol("X".repeat(21))),
             "symbol",
@@ -93,7 +93,7 @@ public final class AssetTestData {
         Arguments.of(invalidCreate(dto -> dto.setCurrency(null)), "currency", MUST_NOT_BE_NULL),
         Arguments.of(invalidUpdate(dto -> dto.setName(" ")), "name", MUST_NOT_BE_BLANK),
         Arguments.of(
-            invalidUpdate(dto -> dto.setName("AB")), "name", MUST_BE_BETWEEN_3_AND_60_CHARACTERS),
+            invalidUpdate(dto -> dto.setName("AB")), "name", MUST_BE_BETWEEN_3_AND_200_CHARACTERS),
         Arguments.of(invalidUpdate(dto -> dto.setSymbol(" ")), "symbol", MUST_NOT_BE_BLANK),
         Arguments.of(
             invalidUpdate(dto -> dto.setSymbol("X".repeat(21))),
@@ -121,7 +121,7 @@ public final class AssetTestData {
         Arguments.of(
             invalidEntity(entity -> entity.setName("AB")),
             "name",
-            MUST_BE_BETWEEN_3_AND_60_CHARACTERS),
+            MUST_BE_BETWEEN_3_AND_200_CHARACTERS),
         Arguments.of(invalidEntity(entity -> entity.setSymbol(" ")), "symbol", MUST_NOT_BE_BLANK),
         Arguments.of(
             invalidEntity(entity -> entity.setSymbol("X".repeat(21))),
@@ -205,6 +205,7 @@ public final class AssetTestData {
   }
 
   public static AssetResponseDto defaultAssetResponseDto(Long id) {
+    java.time.LocalDateTime now = java.time.LocalDateTime.now();
     return new AssetResponseDto(
         id,
         CurrencyCodeEnum.USD,
@@ -213,8 +214,8 @@ public final class AssetTestData {
         AssetTypeEnum.STOCK,
         TEST_ASSET_QUANTITY,
         TEST_ASSET_AVERAGE_PRICE,
-        java.time.LocalDateTime.now(),
-        java.time.LocalDateTime.now());
+        now,
+        now);
   }
 
   private static AssetUpdateRequestDto validUpdate() {

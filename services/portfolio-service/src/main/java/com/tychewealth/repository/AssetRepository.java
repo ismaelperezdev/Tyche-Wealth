@@ -13,7 +13,7 @@ public interface AssetRepository extends JpaRepository<AssetEntity, Long> {
 
   List<AssetEntity> findByPortfolioId(Long portfolioId);
 
-  Boolean existsByPortfolioIdAndName(Long portfolioId, String name);
+  boolean existsByPortfolioIdAndName(Long portfolioId, String name);
 
   Optional<AssetEntity> findByPortfolioIdAndSymbol(Long portfolioId, String symbol);
 
@@ -23,5 +23,5 @@ public interface AssetRepository extends JpaRepository<AssetEntity, Long> {
 
   List<AssetEntity> findByAssetType(AssetTypeEnum assetType);
 
-  Boolean existsByPortfolioIdAndSymbol(Long portfolioId, String symbol);
+  boolean existsByPortfolioIdAndSymbol(Long portfolioId, String symbol);
 }

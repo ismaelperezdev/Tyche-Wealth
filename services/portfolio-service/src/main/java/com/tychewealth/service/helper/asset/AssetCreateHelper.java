@@ -6,6 +6,7 @@ import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.mapper.asset.AssetMapper;
 import com.tychewealth.repository.AssetRepository;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -22,5 +23,21 @@ public class AssetCreateHelper {
 
     AssetEntity persistedAsset = assetRepository.saveAndFlush(asset);
     return assetMapper.toDto(persistedAsset);
+  }
+
+  public List<AssetResponseDto> createBatch(
+      PortfolioEntity portfolio, List<AssetCreateRequestDto> createRequests) {
+    List<AssetEntity> assets =
+        createRequests.stream()
+            .map(
+                request -> {
+                  AssetEntity asset = assetMapper.create(request);
+                  asset.setPortfolio(portfolio);
+                  return asset;
+                })
+            .toList();
+
+    List<AssetEntity> persistedAssets = assetRepository.saveAllAndFlush(assets);
+    return persistedAssets.stream().map(assetMapper::toDto).toList();
   }
 }

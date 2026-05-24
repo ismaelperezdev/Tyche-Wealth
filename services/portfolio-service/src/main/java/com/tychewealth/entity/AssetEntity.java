@@ -1,7 +1,7 @@
 package com.tychewealth.entity;
 
 import static com.tychewealth.constants.ValidationConstants.MUST_BE_AT_MOST_20_CHARACTERS;
-import static com.tychewealth.constants.ValidationConstants.MUST_BE_BETWEEN_3_AND_60_CHARACTERS;
+import static com.tychewealth.constants.ValidationConstants.MUST_BE_BETWEEN_3_AND_200_CHARACTERS;
 import static com.tychewealth.constants.ValidationConstants.MUST_BE_GREATER_THAN_0;
 import static com.tychewealth.constants.ValidationConstants.MUST_HAVE_UP_TO_11_INTEGER_DIGITS_AND_8_DECIMALS;
 import static com.tychewealth.constants.ValidationConstants.MUST_HAVE_UP_TO_15_INTEGER_DIGITS_AND_4_DECIMALS;
@@ -52,9 +52,9 @@ public class AssetEntity {
   @NotNull(message = MUST_NOT_BE_NULL)
   private PortfolioEntity portfolio;
 
-  @Column(name = "name", nullable = false, length = 60)
+  @Column(name = "name", nullable = false, length = 200)
   @NotBlank(message = MUST_NOT_BE_BLANK)
-  @Size(min = 3, max = 60, message = MUST_BE_BETWEEN_3_AND_60_CHARACTERS)
+  @Size(min = 3, max = 200, message = MUST_BE_BETWEEN_3_AND_200_CHARACTERS)
   private String name;
 
   @Column(name = "symbol", nullable = false, length = 20)

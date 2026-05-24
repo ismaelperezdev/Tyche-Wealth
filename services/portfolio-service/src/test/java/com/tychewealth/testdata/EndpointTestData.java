@@ -3,6 +3,7 @@ package com.tychewealth.testdata;
 import static com.tychewealth.constants.ApiConstants.ASSET_IMPORT_BY_ID_URL;
 import static com.tychewealth.constants.ApiConstants.ASSET_IMPORT_URL;
 import static com.tychewealth.constants.ApiConstants.PORTFOLIO_ASSET_BASE_URL;
+import static com.tychewealth.constants.ApiConstants.PORTFOLIO_ASSET_BY_ID_URL;
 import static com.tychewealth.constants.ApiConstants.PORTFOLIO_BASE_URL;
 import static com.tychewealth.constants.CommonConstants.DELETE;
 import static com.tychewealth.constants.CommonConstants.GET;
@@ -65,10 +66,9 @@ public final class EndpointTestData {
             RateLimitKey.ASSET_RETRIEVE,
             new MockHttpServletRequest(
                 GET,
-                PORTFOLIO_ASSET_BASE_URL.replace(
-                        TEST_PORTFOLIO_ID_TEMPLATE, String.valueOf(TEST_PORTFOLIO_ID))
-                    + "/"
-                    + TEST_ASSET_ID),
+                PORTFOLIO_ASSET_BY_ID_URL
+                    .replace(TEST_PORTFOLIO_ID_TEMPLATE, String.valueOf(TEST_PORTFOLIO_ID))
+                    .replace("{assetId}", String.valueOf(TEST_ASSET_ID))),
             asset("retrieve", Long.class, Long.class, Long.class)),
         Arguments.of(
             RateLimitKey.ASSET_IMPORT,

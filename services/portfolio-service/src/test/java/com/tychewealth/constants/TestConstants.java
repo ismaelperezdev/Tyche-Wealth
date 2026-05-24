@@ -21,6 +21,12 @@ public final class TestConstants {
   public static final String TEST_PORTFOLIO_ID_TEMPLATE = "{portfolioId}";
   public static final String TEST_ASSET_IMPORT_ID = "import-123";
   public static final String TEST_MISSING_ASSET_IMPORT_ID = "missing-import";
+  public static final String TEST_BATCH_ACTION_CREATE = "CREATE";
+  public static final String TEST_BATCH_ACTION_DISCARD = "DISCARD";
+  public static final String TEST_BATCH_FIELD_ACTION = "action";
+  public static final String TEST_BATCH_FIELD_IMPORT_ID = "importId";
+  public static final String TEST_BATCH_FIELD_ASSETS = "assets";
+  public static final String TEST_ASSET_IMPORT_RESULT_KEY_PREFIX = "asset-import:result:";
   public static final long TEST_ASSET_ID = 11L;
   public static final long TEST_USER_ID = 42L;
   public static final long TEST_OTHER_USER_ID = 84L;

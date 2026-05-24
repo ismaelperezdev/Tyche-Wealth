@@ -10,10 +10,12 @@ import com.tychewealth.dto.ai.AiModelTypeEnum;
 import com.tychewealth.dto.asset.AssetImportResponseDto;
 import com.tychewealth.dto.asset.AssetPersistRedisDto;
 import com.tychewealth.dto.asset.AssetResponseDto;
+import com.tychewealth.dto.asset.request.AssetBatchCreateRequestDto;
 import com.tychewealth.dto.asset.request.AssetCreateRequestDto;
 import com.tychewealth.dto.asset.request.AssetImportPayloadDto;
 import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.entity.PortfolioEntity;
+import com.tychewealth.enums.AssetBatchActionEnum;
 import com.tychewealth.error.exception.AssetImportException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.mapper.asset.AssetMapper;
@@ -29,6 +31,7 @@ import com.tychewealth.utils.Utils;
 import com.tychewealth.utils.prompts.AssetImportPromptUtils;
 import java.io.IOException;
 import java.time.Instant;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -64,6 +67,7 @@ public class AssetServiceImpl implements AssetService {
         commonValidationHelper.validateOwnedPortfolio(userId, portfolioId, CREATE_ACTION);
     assetValidationHelper.validateCreateLimit(portfolioId);
     assetValidationHelper.validateCreateNameConflict(portfolioId, createRequest.getName());
+    assetValidationHelper.validateCreateSymbolConflict(portfolioId, createRequest.getSymbol());
     try {
       return assetCreateHelper.create(portfolio, createRequest);
     } catch (DataIntegrityViolationException ex) {
@@ -79,6 +83,37 @@ public class AssetServiceImpl implements AssetService {
     commonValidationHelper.validateOwnedPortfolio(userId, portfolioId, RETRIEVE_ACTION);
     AssetEntity asset = assetValidationHelper.validateRetrievedAssetExists(portfolioId, assetId);
     return assetMapper.toDto(asset);
+  }
+
+  @Override
+  @Transactional(isolation = Isolation.SERIALIZABLE)
+  public List<AssetResponseDto> createBatchFromImportedAssets(
+      Long userId, Long portfolioId, AssetBatchCreateRequestDto request) {
+    commonValidationHelper.validateAuthenticatedUser(userId);
+    PortfolioEntity portfolio =
+        commonValidationHelper.validateOwnedPortfolio(userId, portfolioId, CREATE_ACTION);
+
+    assetValidationHelper.validateBatchCreateRequest(
+        request.getAction(), request.getImportId(), request.getAssets());
+
+    if (request.getAction() == AssetBatchActionEnum.DISCARD) {
+      cleanupImportedResult(userId, request.getImportId());
+      return List.of();
+    }
+
+    List<AssetCreateRequestDto> assets = request.getAssets();
+    assetValidationHelper.validateBatchCreateLimit(portfolioId, assets.size());
+    assetValidationHelper.validateBatchCreateRequestDuplicates(assets);
+    assetValidationHelper.validateBatchCreateDatabaseConflicts(portfolioId, assets);
+
+    try {
+      List<AssetResponseDto> createdAssets = assetCreateHelper.createBatch(portfolio, assets);
+      cleanupImportedResult(userId, request.getImportId());
+      return createdAssets;
+    } catch (DataIntegrityViolationException ex) {
+      String symbol = assets.isEmpty() ? null : assets.getFirst().getSymbol();
+      throw assetValidationHelper.translateSymbolPersistenceConflict(ex, portfolioId, symbol);
+    }
   }
 
   @Override
@@ -129,5 +164,13 @@ public class AssetServiceImpl implements AssetService {
     } catch (JsonProcessingException ex) {
       throw new IllegalStateException("Unable to read persisted asset import result", ex);
     }
+  }
+
+  private void cleanupImportedResult(Long userId, String importId) {
+    String sanitizedImportId = Utils.trimToNull(importId);
+    if (sanitizedImportId == null) {
+      return;
+    }
+    redisTemplate.delete(ASSET_IMPORT_RESULT_KEY_PREFIX + userId + ":" + sanitizedImportId);
   }
 }
