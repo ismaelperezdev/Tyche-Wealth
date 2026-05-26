@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: market-data-service
+  config:
+    import:
+      - optional:file:./application-local.properties
+      - optional:file:../../application-local.properties
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+
+clients:
+  resources:
+    base-url: ${VEHICLE_RESOURCES_BASE_URL:http://localhost:${mock.provider.port}}
+    resources-path: ${VEHICLE_RESOURCES_PATH:/external-api/resources}
+    lower-left-lat-lon: ${VEHICLE_RESOURCES_LOWER_LEFT_LAT_LON:40.4168,-3.7038}
+    upper-right-lat-lon: ${VEHICLE_RESOURCES_UPPER_RIGHT_LAT_LON:40.4268,-3.6938}
+    company-zone-ids:
+      - 100
+      - 101
+      - 102
+    user-agent: ${VEHICLE_RESOURCES_USER_AGENT:vehicle-availability-service/1.0}
+    request-timeout: 5s
+    max-retries: 2
+    retry-backoff: 500ms
+
+vehicle:
+  polling:
+    enabled: true
+    fixed-delay: 90s
+    initial-delay: 0s
+
+mock:
+  provider:
+    enabled: true
+    port: 8089
+    min-vehicles-per-response: 20
+    max-vehicles-per-response: 50
+    min-vehicles-changed-per-refresh: 0
+    max-vehicles-changed-per-refresh: 8
+    min-response-duration-seconds: 20
+    max-response-duration-seconds: 180
+

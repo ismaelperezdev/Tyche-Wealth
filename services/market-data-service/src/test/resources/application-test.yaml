@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: market-data-service-test
+
+clients:
+  resources:
+    base-url: http://localhost:${mock.provider.port}
+    resources-path: /external-api/resources
+    lower-left-lat-lon: 40.4168,-3.7038
+    upper-right-lat-lon: 40.4268,-3.6938
+    company-zone-ids:
+      - 100
+      - 101
+      - 102
+    user-agent: market-data-service-test/1.0
+    request-timeout: 100ms
+    max-retries: 2
+    retry-backoff: 10ms
+mock:
+  provider:
+    enabled: true
+    port: 18089
+    min-vehicles-per-response: 1
+    max-vehicles-per-response: 2
+    min-vehicles-changed-per-refresh: 0
+    max-vehicles-changed-per-refresh: 1
+    min-response-duration-seconds: 1
+    max-response-duration-seconds: 1
+
+vehicle:
+  polling:
+    enabled: false
