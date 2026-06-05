@@ -55,6 +55,8 @@ public final class ClientTestData {
               RESOURCE_TYPE,
               COMPANY_ZONE_ID);
 
+  private ClientTestData() {}
+
   public static ExternalVehicleDto defaultExternalVehicleDto() {
     return externalVehicleDto(VEHICLE_ID, VEHICLE_NAME);
   }
