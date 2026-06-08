@@ -6,12 +6,11 @@ import com.tychewealth.config.properties.MockProviderProperties;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.IntConsumer;
 import java.util.stream.IntStream;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 
 public class RandomVehicleHelper {
-
-  private static final String CONTENT_TYPE_HEADER = "Content-Type";
-  private static final String APPLICATION_JSON = "application/json";
 
   private final MockProviderProperties properties;
 
@@ -46,7 +45,7 @@ public class RandomVehicleHelper {
   public ResponseDefinition jsonResponse(String responseBody) {
     return ResponseDefinitionBuilder.responseDefinition()
         .withStatus(HttpStatus.OK.value())
-        .withHeader(CONTENT_TYPE_HEADER, APPLICATION_JSON)
+        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
         .withBody(responseBody)
         .build();
   }

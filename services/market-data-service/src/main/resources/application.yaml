@@ -5,6 +5,27 @@ spring:
     import:
       - optional:file:./application-local.properties
       - optional:file:../../application-local.properties
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: ${REDIS_TIMEOUT:2s}
+
+server:
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: never
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 springdoc:
   api-docs:
@@ -14,6 +35,17 @@ springdoc:
     path: /swagger-ui.html
 
 clients:
+  twelve-data:
+    base-url: ${TWELVE_DATA_BASE_URL:https://api.twelvedata.com}
+    price-path: ${TWELVE_DATA_PRICE_PATH:/price}
+    quote-path: ${TWELVE_DATA_QUOTE_PATH:/quote}
+    time-series-path: ${TWELVE_DATA_TIME_SERIES_PATH:/time_series}
+    api-key: ${TWELVE_DATA_API_KEY:}
+    connect-timeout: ${TWELVE_DATA_CONNECT_TIMEOUT:5s}
+    request-timeout: ${TWELVE_DATA_REQUEST_TIMEOUT:10s}
+    max-retries: ${TWELVE_DATA_MAX_RETRIES:2}
+    retry-backoff: ${TWELVE_DATA_RETRY_BACKOFF:500ms}
+    default-interval: ${TWELVE_DATA_DEFAULT_INTERVAL:4min}
   resources:
     base-url: ${VEHICLE_RESOURCES_BASE_URL:http://localhost:${mock.provider.port}}
     resources-path: ${VEHICLE_RESOURCES_PATH:/external-api/resources}

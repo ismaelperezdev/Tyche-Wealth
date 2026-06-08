@@ -3,6 +3,17 @@ spring:
     name: market-data-service-test
 
 clients:
+  twelve-data:
+    base-url: https://api.twelvedata.com
+    price-path: /price
+    quote-path: /quote
+    time-series-path: /time_series
+    api-key: test-api-key
+    connect-timeout: 100ms
+    request-timeout: 100ms
+    max-retries: 2
+    retry-backoff: 10ms
+    default-interval: 4min
   resources:
     base-url: http://localhost:${mock.provider.port}
     resources-path: /external-api/resources
