@@ -21,7 +21,7 @@ public class RedisRateLimitStore implements RateLimitStore {
   @Override
   public long increment(String namespace, String clientKey, Duration window) {
     String redisKey = namespace + ":" + clientKey;
-    return Optional.of(
+    return Optional.ofNullable(
             redisTemplate.execute(
                 INCREMENT_WITH_TTL_SCRIPT, List.of(redisKey), String.valueOf(window.toMillis())))
         .orElseThrow(
