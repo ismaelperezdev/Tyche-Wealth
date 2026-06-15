@@ -18,6 +18,7 @@
     <description>Parent build for Tyche Wealth services</description>
 
     <modules>
+        <module>libraries/redis-support</module>
         <module>services/user-service</module>
         <module>services/portfolio-service</module>
         <module>services/market-data-service</module>

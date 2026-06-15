@@ -1,17 +1,21 @@
 FROM eclipse-temurin:21-jdk AS build
 
-WORKDIR /app/services/user-service
+WORKDIR /app
 
-COPY pom.xml /app/pom.xml
-COPY services/user-service/.mvn/ .mvn/
-COPY services/user-service/mvnw services/user-service/pom.xml ./
+COPY .mvn/ .mvn/
+COPY mvnw pom.xml ./
+COPY libraries/redis-support/pom.xml libraries/redis-support/pom.xml
+COPY services/user-service/pom.xml services/user-service/pom.xml
+COPY services/portfolio-service/pom.xml services/portfolio-service/pom.xml
+COPY services/market-data-service/pom.xml services/market-data-service/pom.xml
 
 RUN chmod +x mvnw
-RUN ./mvnw dependency:go-offline
+RUN ./mvnw -pl services/user-service -am dependency:go-offline
 
-COPY services/user-service/src/ src/
+COPY libraries/redis-support/src/ libraries/redis-support/src/
+COPY services/user-service/src/ services/user-service/src/
 
-RUN ./mvnw clean package -DskipTests
+RUN ./mvnw -pl services/user-service -am clean package -DskipTests
 
 FROM eclipse-temurin:21-jre
 

@@ -40,7 +40,7 @@ clients:
     price-path: ${TWELVE_DATA_PRICE_PATH:/price}
     quote-path: ${TWELVE_DATA_QUOTE_PATH:/quote}
     time-series-path: ${TWELVE_DATA_TIME_SERIES_PATH:/time_series}
-    api-key: ${TWELVE_DATA_API_KEY:}
+    api-key: ${TWELVE_DATA_API_KEY}
     connect-timeout: ${TWELVE_DATA_CONNECT_TIMEOUT:5s}
     request-timeout: ${TWELVE_DATA_REQUEST_TIMEOUT:10s}
     max-retries: ${TWELVE_DATA_MAX_RETRIES:2}

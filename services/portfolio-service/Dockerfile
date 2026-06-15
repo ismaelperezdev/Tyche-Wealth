@@ -1,17 +1,21 @@
 FROM eclipse-temurin:21-jdk AS build
 
-WORKDIR /app/services/portfolio-service
+WORKDIR /app
 
-COPY pom.xml /app/pom.xml
-COPY services/portfolio-service/.mvn/ .mvn/
-COPY services/portfolio-service/mvnw services/portfolio-service/pom.xml ./
+COPY .mvn/ .mvn/
+COPY mvnw pom.xml ./
+COPY libraries/redis-support/pom.xml libraries/redis-support/pom.xml
+COPY services/user-service/pom.xml services/user-service/pom.xml
+COPY services/portfolio-service/pom.xml services/portfolio-service/pom.xml
+COPY services/market-data-service/pom.xml services/market-data-service/pom.xml
 
 RUN chmod +x mvnw
-RUN ./mvnw dependency:go-offline
+RUN ./mvnw -pl services/portfolio-service -am dependency:go-offline
 
-COPY services/portfolio-service/src/ src/
+COPY libraries/redis-support/src/ libraries/redis-support/src/
+COPY services/portfolio-service/src/ services/portfolio-service/src/
 
-RUN ./mvnw clean package -DskipTests
+RUN ./mvnw -pl services/portfolio-service -am clean package -DskipTests
 
 FROM eclipse-temurin:21-jre
 

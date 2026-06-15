@@ -1,6 +1,8 @@
 package com.tychewealth.client;
 
 import static com.tychewealth.constants.TestConstants.RETRY_ATTEMPTS;
+import static com.tychewealth.constants.TestConstants.SINGLE_ATTEMPT;
+import static com.tychewealth.constants.TestConstants.SINGLE_RESULT_SIZE;
 import static com.tychewealth.constants.TestConstants.TEST_API_KEY;
 import static com.tychewealth.constants.TestConstants.TEST_BASE_URL;
 import static com.tychewealth.constants.TestConstants.TEST_CONNECTION_RESET_MESSAGE;
@@ -9,12 +11,10 @@ import static com.tychewealth.constants.TestConstants.TEST_META_FIELD;
 import static com.tychewealth.constants.TestConstants.TEST_PRICE;
 import static com.tychewealth.constants.TestConstants.TEST_PRICE_PATH;
 import static com.tychewealth.constants.TestConstants.TEST_QUOTE_PATH;
-import static com.tychewealth.constants.TestConstants.TEST_SYMBOL_FIELD;
 import static com.tychewealth.constants.TestConstants.TEST_SYMBOL;
+import static com.tychewealth.constants.TestConstants.TEST_SYMBOL_FIELD;
 import static com.tychewealth.constants.TestConstants.TEST_TIME_SERIES_PATH;
 import static com.tychewealth.constants.TestConstants.TIMEOUT_BUFFER_MILLIS;
-import static com.tychewealth.constants.TestConstants.SINGLE_ATTEMPT;
-import static com.tychewealth.constants.TestConstants.SINGLE_RESULT_SIZE;
 import static com.tychewealth.constants.TestConstants.TIME_SERIES_OUTPUT_SIZE;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -24,6 +24,10 @@ import com.tychewealth.testdata.TwelveDataClientTestData;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
@@ -73,7 +77,9 @@ class TwelveDataApiClientIntegrationTest {
         .verifyComplete();
 
     assertThat(requestedUri.get())
-        .hasToString("%s%s?symbol=%s&apikey=%s".formatted(TEST_BASE_URL, TEST_QUOTE_PATH, TEST_SYMBOL, TEST_API_KEY));
+        .hasToString(
+            "%s%s?symbol=%s&apikey=%s"
+                .formatted(TEST_BASE_URL, TEST_QUOTE_PATH, TEST_SYMBOL, TEST_API_KEY));
   }
 
   @Test
@@ -99,7 +105,9 @@ class TwelveDataApiClientIntegrationTest {
         .verifyComplete();
 
     assertThat(requestedUri.get())
-        .hasToString("%s%s?symbol=%s&apikey=%s".formatted(TEST_BASE_URL, TEST_PRICE_PATH, TEST_SYMBOL, TEST_API_KEY));
+        .hasToString(
+            "%s%s?symbol=%s&apikey=%s"
+                .formatted(TEST_BASE_URL, TEST_PRICE_PATH, TEST_SYMBOL, TEST_API_KEY));
   }
 
   @Test
@@ -164,7 +172,8 @@ class TwelveDataApiClientIntegrationTest {
 
     StepVerifier.create(client.fetchQuote(TEST_SYMBOL))
         .assertNext(
-            response -> assertThat(response.path(TEST_SYMBOL_FIELD).asText()).isEqualTo(TEST_SYMBOL))
+            response ->
+                assertThat(response.path(TEST_SYMBOL_FIELD).asText()).isEqualTo(TEST_SYMBOL))
         .verifyComplete();
 
     assertThat(attempts.get()).isEqualTo(RETRY_ATTEMPTS);
@@ -202,7 +211,8 @@ class TwelveDataApiClientIntegrationTest {
     ExchangeFunction exchangeFunction =
         clientRequest -> {
           if (attempts.getAndIncrement() == 0) {
-            return Mono.delay(properties.requestTimeout().plus(Duration.ofMillis(TIMEOUT_BUFFER_MILLIS)))
+            return Mono.delay(
+                    properties.requestTimeout().plus(Duration.ofMillis(TIMEOUT_BUFFER_MILLIS)))
                 .thenReturn(
                     ClientResponse.create(HttpStatus.OK)
                         .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -222,7 +232,8 @@ class TwelveDataApiClientIntegrationTest {
 
     StepVerifier.create(client.fetchQuote(TEST_SYMBOL))
         .assertNext(
-            response -> assertThat(response.path(TEST_SYMBOL_FIELD).asText()).isEqualTo(TEST_SYMBOL))
+            response ->
+                assertThat(response.path(TEST_SYMBOL_FIELD).asText()).isEqualTo(TEST_SYMBOL))
         .verifyComplete();
 
     assertThat(attempts.get()).isEqualTo(RETRY_ATTEMPTS);
@@ -254,9 +265,55 @@ class TwelveDataApiClientIntegrationTest {
 
     StepVerifier.create(client.fetchQuote(TEST_SYMBOL))
         .assertNext(
-            response -> assertThat(response.path(TEST_SYMBOL_FIELD).asText()).isEqualTo(TEST_SYMBOL))
+            response ->
+                assertThat(response.path(TEST_SYMBOL_FIELD).asText()).isEqualTo(TEST_SYMBOL))
         .verifyComplete();
 
     assertThat(attempts.get()).isEqualTo(RETRY_ATTEMPTS);
+  }
+
+  @Test
+  void shouldHonorNumericRetryAfterHeaderBeforeRetrying() {
+    AtomicInteger attempts = new AtomicInteger();
+    ExchangeFunction exchangeFunction =
+        clientRequest -> {
+          if (attempts.getAndIncrement() == 0) {
+            return Mono.just(
+                ClientResponse.create(HttpStatus.TOO_MANY_REQUESTS)
+                    .header(HttpHeaders.RETRY_AFTER, "2")
+                    .build());
+          }
+
+          return Mono.just(
+              ClientResponse.create(HttpStatus.OK)
+                  .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                  .body(TwelveDataClientTestData.QUOTE_RESPONSE)
+                  .build());
+        };
+
+    TwelveDataApiClient client =
+        new TwelveDataApiClient(WebClient.builder().exchangeFunction(exchangeFunction), properties);
+
+    StepVerifier.withVirtualTime(() -> client.fetchQuote(TEST_SYMBOL))
+        .expectSubscription()
+        .expectNoEvent(Duration.ofSeconds(2))
+        .assertNext(
+            response ->
+                assertThat(response.path(TEST_SYMBOL_FIELD).asText()).isEqualTo(TEST_SYMBOL))
+        .verifyComplete();
+
+    assertThat(attempts.get()).isEqualTo(RETRY_ATTEMPTS);
+  }
+
+  @Test
+  void shouldParseHttpDateRetryAfterHeader() {
+    Instant now = Instant.parse("2026-06-09T12:00:00Z");
+    String retryAfter =
+        DateTimeFormatter.RFC_1123_DATE_TIME.format(
+            ZonedDateTime.ofInstant(now.plusSeconds(3), java.time.ZoneOffset.UTC));
+
+    Optional<Duration> delay = TwelveDataApiClient.parseRetryAfter(retryAfter, now);
+
+    assertThat(delay).contains(Duration.ofSeconds(3));
   }
 }
