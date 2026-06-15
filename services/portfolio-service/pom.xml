@@ -21,6 +21,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.ismaelperezdev</groupId>
+            <artifactId>tyche-wealth-redis-support</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
             <version>3.0.4</version>

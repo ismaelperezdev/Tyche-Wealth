@@ -1,9 +1,10 @@
 package com.tychewealth.ratelimit;
 
-import static com.tychewealth.constants.RedisConstants.INCREMENT_WITH_TTL_SCRIPT;
+import static com.tychewealth.redis.RedisScripts.INCREMENT_WITH_TTL_SCRIPT;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
@@ -19,21 +20,17 @@ public class RedisRateLimitStore implements RateLimitStore {
 
   @Override
   public long increment(String namespace, String clientKey, Duration window) {
-    String redisKey = buildKey(namespace, clientKey);
-    Long count =
-        redisTemplate.execute(
-            INCREMENT_WITH_TTL_SCRIPT, List.of(redisKey), String.valueOf(window.toMillis()));
-
-    if (count == null) {
-      throw new IllegalStateException("Failed to increment Redis rate-limit counter");
-    }
-
-    return count;
+    String redisKey = namespace + ":" + clientKey;
+    return Optional.ofNullable(
+            redisTemplate.execute(
+                INCREMENT_WITH_TTL_SCRIPT, List.of(redisKey), String.valueOf(window.toMillis())))
+        .orElseThrow(
+            () -> new IllegalStateException("Failed to increment Redis rate-limit counter"));
   }
 
   @Override
   public void clear(String namespace, String clientKey) {
-    redisTemplate.delete(buildKey(namespace, clientKey));
+    redisTemplate.delete(namespace + ":" + clientKey);
   }
 
   @Override
@@ -42,9 +39,5 @@ public class RedisRateLimitStore implements RateLimitStore {
     if (keys != null && !keys.isEmpty()) {
       redisTemplate.delete(keys);
     }
-  }
-
-  private String buildKey(String namespace, String clientKey) {
-    return namespace + ":" + clientKey;
   }
 }

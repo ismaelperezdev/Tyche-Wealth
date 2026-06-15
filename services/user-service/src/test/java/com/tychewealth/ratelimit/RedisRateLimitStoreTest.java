@@ -1,6 +1,6 @@
 package com.tychewealth.ratelimit;
 
-import static com.tychewealth.constants.RedisConstants.INCREMENT_WITH_TTL_SCRIPT;
+import static com.tychewealth.redis.RedisScripts.INCREMENT_WITH_TTL_SCRIPT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anySet;

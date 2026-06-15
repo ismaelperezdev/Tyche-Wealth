@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "pom.xml"
+      - "libraries/redis-support/**"
       - "services/user-service/**"
       - "docker-compose.yml"
       - "docker/postgres/**"
@@ -39,10 +40,6 @@ jobs:
       REDIS_HOST: localhost
       REDIS_PORT: 6379
 
-    defaults:
-      run:
-        working-directory: services/user-service
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -60,19 +57,19 @@ jobs:
         run: chmod +x mvnw
 
       - name: Check format
-        run: ./mvnw spotless:check
+        run: ./mvnw -pl services/user-service -am spotless:check
 
       - name: Check build
-        run: ./mvnw -DskipTests package
+        run: ./mvnw -pl services/user-service -am -DskipTests package
 
       - name: Tests
-        run: ./mvnw test
+        run: ./mvnw -pl services/user-service -am test
 
       - name: Run SonarQube analysis
         if: ${{ env.SONAR_HOST_URL != '' && env.SONAR_TOKEN != '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./mvnw sonar:sonar -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_TOKEN}
+        run: ./mvnw -pl services/user-service -am sonar:sonar -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_TOKEN}
 
       - name: Detect infra changes
         if: ${{ github.event_name == 'pull_request' }}

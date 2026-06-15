@@ -19,4 +19,12 @@
         <jacoco.minimum.branch.coverage>0.60</jacoco.minimum.branch.coverage>
     </properties>
 
+    <dependencies>
+        <dependency>
+            <groupId>com.ismaelperezdev</groupId>
+            <artifactId>tyche-wealth-redis-support</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
 </project>

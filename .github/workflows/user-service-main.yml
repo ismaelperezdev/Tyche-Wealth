@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "pom.xml"
+      - "libraries/redis-support/**"
       - "services/user-service/**"
       - ".github/workflows/user-service-main.yml"
   workflow_dispatch:
@@ -36,10 +37,6 @@ jobs:
       REDIS_HOST: localhost
       REDIS_PORT: 6379
 
-    defaults:
-      run:
-        working-directory: services/user-service
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,13 +52,13 @@ jobs:
         run: chmod +x mvnw
 
       - name: Check format
-        run: ./mvnw spotless:check
+        run: ./mvnw -pl services/user-service -am spotless:check
 
       - name: Check build
-        run: ./mvnw -DskipTests package
+        run: ./mvnw -pl services/user-service -am -DskipTests package
 
       - name: Tests
-        run: ./mvnw verify -Ddependency-check.skip=true
+        run: ./mvnw -pl services/user-service -am verify -Ddependency-check.skip=true
 
   security:
     runs-on: ubuntu-latest
@@ -69,10 +66,6 @@ jobs:
     env:
       NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
       DEPENDENCY_CHECK_DATA_DIR: ~/.dependency-check-data
-
-    defaults:
-      run:
-        working-directory: services/user-service
 
     steps:
       - name: Checkout
@@ -97,7 +90,7 @@ jobs:
         run: chmod +x mvnw
 
       - name: Run OWASP Dependency Check
-        run: ./mvnw org.owasp:dependency-check-maven:check
+        run: ./mvnw -pl services/user-service -am org.owasp:dependency-check-maven:check
 
       - name: Upload Dependency Check report
         if: always()

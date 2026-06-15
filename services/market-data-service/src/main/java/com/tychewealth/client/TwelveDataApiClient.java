@@ -16,15 +16,25 @@ import static com.tychewealth.constants.LogConstants.TWELVE_DATA_CLIENT;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.tychewealth.config.properties.TwelveDataClientProperties;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
+import reactor.util.retry.RetryBackoffSpec;
 
 @Slf4j
 @Component
@@ -100,16 +110,13 @@ public class TwelveDataApiClient {
   }
 
   private Retry retrySpec(String action) {
-    return Retry.backoff(properties.maxRetries(), properties.retryBackoff())
-        .filter(this::isRetryableError)
-        .doBeforeRetry(
-            retrySignal ->
-                log.warn(
-                    REQUEST_RETRY,
-                    TWELVE_DATA_CLIENT,
-                    FETCH_ACTION + action,
-                    retrySignal.totalRetries() + 1,
-                    retrySignal.failure().getMessage()));
+    RetryBackoffSpec fallbackRetry =
+        Retry.backoff(properties.maxRetries(), properties.retryBackoff())
+            .filter(this::isRetryableError);
+
+    return Retry.from(
+        retrySignals ->
+            retrySignals.concatMap(retrySignal -> retryDelay(retrySignal, action, fallbackRetry)));
   }
 
   private boolean isRetryableError(Throwable error) {
@@ -123,5 +130,65 @@ public class TwelveDataApiClient {
     }
 
     return false;
+  }
+
+  private Mono<Long> retryDelay(
+      Retry.RetrySignal retrySignal, String action, RetryBackoffSpec fallbackRetry) {
+    Throwable failure = retrySignal.failure();
+    if (!isRetryableError(failure)) {
+      return Mono.error(failure);
+    }
+
+    if (retrySignal.totalRetries() >= properties.maxRetries()) {
+      return Mono.error(Exceptions.retryExhausted("Retries exhausted", failure));
+    }
+
+    Mono<Long> retryTrigger =
+        retryAfterDelay(failure)
+            .map(Mono::delay)
+            .orElseGet(
+                () ->
+                    Mono.from(fallbackRetry.generateCompanion(Flux.just(retrySignal)))
+                        .cast(Long.class));
+
+    return retryTrigger.doOnNext(
+        ignored ->
+            log.warn(
+                REQUEST_RETRY,
+                TWELVE_DATA_CLIENT,
+                FETCH_ACTION + action,
+                retrySignal.totalRetries() + 1,
+                failure.getMessage()));
+  }
+
+  private Optional<Duration> retryAfterDelay(Throwable failure) {
+    if (!(failure instanceof WebClientResponseException responseException)
+        || responseException.getStatusCode().value() != 429) {
+      return Optional.empty();
+    }
+
+    return parseRetryAfter(
+        responseException.getHeaders().getFirst(HttpHeaders.RETRY_AFTER), Instant.now());
+  }
+
+  static Optional<Duration> parseRetryAfter(String retryAfterHeader, Instant now) {
+    if (retryAfterHeader == null || retryAfterHeader.isBlank()) {
+      return Optional.empty();
+    }
+
+    String trimmedHeader = retryAfterHeader.trim();
+    try {
+      long delaySeconds = Long.parseLong(trimmedHeader);
+      return Optional.of(Duration.ofSeconds(Math.max(0L, delaySeconds)));
+    } catch (NumberFormatException ignored) {
+      try {
+        Instant retryAt =
+            ZonedDateTime.parse(trimmedHeader, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant();
+        Duration delay = Duration.between(now, retryAt);
+        return Optional.of(delay.isNegative() ? Duration.ZERO : delay);
+      } catch (DateTimeParseException ignoredDateParseException) {
+        return Optional.empty();
+      }
+    }
   }
 }
