@@ -2,6 +2,7 @@ package com.tychewealth.repository;
 
 import com.tychewealth.entity.RefreshTokenEntity;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -12,6 +13,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity, Long> {
+
+  @Query(
+      """
+      select distinct rt.user.id
+        from RefreshTokenEntity rt
+       where rt.revoked = false
+         and rt.expiresAt > :currentTime
+      """)
+  List<Long> findDistinctUserIdsWithActiveTokens(@Param("currentTime") Instant currentTime);
 
   @Query("select rt from RefreshTokenEntity rt where rt.token = :token")
   Optional<RefreshTokenEntity> findByToken(@Param("token") String token);

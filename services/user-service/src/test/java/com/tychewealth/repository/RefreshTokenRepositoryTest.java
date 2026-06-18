@@ -2,10 +2,12 @@ package com.tychewealth.repository;
 
 import static com.tychewealth.constants.TestConstants.TEST_EMAIL_LAURA;
 import static com.tychewealth.constants.TestConstants.TEST_EMAIL_VALID;
+import static com.tychewealth.constants.TestConstants.TEST_MISSING_EMAIL;
 import static com.tychewealth.constants.TestConstants.TEST_OCCUPIED_USERNAME;
 import static com.tychewealth.constants.TestConstants.TEST_OTHER_EMAIL;
 import static com.tychewealth.constants.TestConstants.TEST_PASSWORD_VALID;
 import static com.tychewealth.constants.TestConstants.TEST_REFRESH_TOKEN_PEPPER;
+import static com.tychewealth.constants.TestConstants.TEST_UPDATE_USERNAME_REQUEST;
 import static com.tychewealth.constants.TestConstants.TEST_USERNAME_LAURA;
 import static com.tychewealth.constants.TestConstants.TEST_USERNAME_VALID;
 import static com.tychewealth.testdata.EntityBuilder.buildRefreshToken;
@@ -19,7 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.tychewealth.entity.RefreshTokenEntity;
 import com.tychewealth.entity.UserEntity;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -166,5 +170,35 @@ class RefreshTokenRepositoryTest {
             .findByToken(hmacSha256Hex(REVOKED_REFRESH_TOKEN, TEST_REFRESH_TOKEN_PEPPER))
             .orElseThrow()
             .isRevoked());
+  }
+
+  @Test
+  void findDistinctUserIdsWithActiveTokensReturnsOnlyUsersWithNonRevokedNonExpiredTokens() {
+    UserEntity activeUser =
+        userRepository.save(buildUser(TEST_EMAIL_LAURA, TEST_USERNAME_LAURA, TEST_PASSWORD_VALID));
+    UserEntity secondActiveUser =
+        userRepository.save(
+            buildUser(TEST_OTHER_EMAIL, TEST_OCCUPIED_USERNAME, TEST_PASSWORD_VALID));
+    UserEntity expiredOnlyUser =
+        userRepository.save(
+            buildUser(TEST_MISSING_EMAIL, TEST_UPDATE_USERNAME_REQUEST, TEST_PASSWORD_VALID));
+    UserEntity revokedOnlyUser =
+        userRepository.save(buildUser(TEST_EMAIL_VALID, TEST_USERNAME_VALID, TEST_PASSWORD_VALID));
+    Instant now = Instant.now();
+
+    refreshTokenRepository.save(
+        buildRefreshToken("active-token-1", activeUser, now.plusSeconds(3600), false));
+    refreshTokenRepository.save(
+        buildRefreshToken("active-token-2", activeUser, now.plusSeconds(7200), false));
+    refreshTokenRepository.save(
+        buildRefreshToken("second-active-token", secondActiveUser, now.plusSeconds(3600), false));
+    refreshTokenRepository.save(
+        buildRefreshToken("expired-only-token", expiredOnlyUser, now.minusSeconds(5), false));
+    refreshTokenRepository.save(
+        buildRefreshToken("revoked-only-token", revokedOnlyUser, now.plusSeconds(3600), true));
+
+    List<Long> activeUserIds = refreshTokenRepository.findDistinctUserIdsWithActiveTokens(now);
+
+    assertEquals(Set.of(activeUser.getId(), secondActiveUser.getId()), Set.copyOf(activeUserIds));
   }
 }
