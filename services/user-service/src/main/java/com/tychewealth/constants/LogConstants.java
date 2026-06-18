@@ -23,6 +23,7 @@ public final class LogConstants {
   public static final String ACCESS_TOKEN_ACTION = "[access-token]";
   public static final String ERROR_HANDLER_ACTION = "[error-handler]";
   public static final String SEND_ACTION = "[send]";
+  public static final String ACTIVE_USER_SNAPSHOT_ACTION = "[active-user-snapshot]";
 
   public static final String REQUEST_START = BASE_LOG + " Request started";
   public static final String REQUEST_SUCCESS = BASE_LOG + " Request succeeded";
@@ -46,6 +47,9 @@ public final class LogConstants {
   public static final String RESEND_DELIVERY_FAILED_MESSAGE = "resend delivery failed";
   public static final String EMAIL_DAILY_QUOTA_SKIPPED_MESSAGE =
       "daily email quota exceeded; skipping send";
+  public static final String ACTIVE_USER_SNAPSHOT_SUCCESS_CONTEXT = " activeUsers={} durationMs={}";
+  public static final String ACTIVE_USER_SNAPSHOT_FAILURE_MESSAGE =
+      "active user snapshot refresh failed";
 
   private LogConstants() {}
 }

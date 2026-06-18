@@ -30,6 +30,7 @@ services/user-service/application-local.properties
 
 # IDEs and editors
 .idea/
+.ai/
 *.iml
 .vscode/
 .classpath
