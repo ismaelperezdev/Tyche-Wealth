@@ -8,7 +8,11 @@ import static com.tychewealth.constants.LogConstants.REQUEST_START;
 import static com.tychewealth.constants.LogConstants.REQUEST_SUCCESS;
 import static com.tychewealth.constants.LogConstants.SYSTEM;
 
+import com.tychewealth.kafka.events.ActiveUsersEvent;
+import com.tychewealth.kafka.publishers.ActiveUsersEventPublisher;
 import com.tychewealth.service.activeuser.ActiveUserSnapshotService;
+import java.time.Instant;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -25,6 +29,7 @@ import org.springframework.stereotype.Component;
 public class ActiveUserSnapshotScheduler {
 
   private final ActiveUserSnapshotService activeUserSnapshotService;
+  private final ActiveUsersEventPublisher activeUsersEventPublisher;
 
   @Scheduled(
       fixedDelayString = "${app.active-users.snapshot.fixed-delay:5m}",
@@ -34,7 +39,9 @@ public class ActiveUserSnapshotScheduler {
     log.info(REQUEST_START, SYSTEM, ACTIVE_USER_SNAPSHOT_ACTION);
 
     try {
-      int activeUsers = activeUserSnapshotService.refreshSnapshot().size();
+      Set<Long> userIds = activeUserSnapshotService.refreshSnapshot();
+      activeUsersEventPublisher.publish(new ActiveUsersEvent(Instant.now(), userIds));
+      int activeUsers = userIds.size();
       log.info(
           REQUEST_SUCCESS + ACTIVE_USER_SNAPSHOT_SUCCESS_CONTEXT,
           SYSTEM,

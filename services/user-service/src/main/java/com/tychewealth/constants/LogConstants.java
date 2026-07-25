@@ -35,6 +35,8 @@ public final class LogConstants {
   public static final String LOGIN_REQUEST_FIELDS = " email={}";
   public static final String UPDATE_REQUEST_FIELDS = " username={}";
   public static final String USER_ID = " userId={}";
+  public static final String TOPIC = " topic={}";
+  public static final String ACTIVE_USERS_EVENT_SUCCESS_CONTEXT = TOPIC + " activeUsers={}";
 
   public static final String INVALID_LOGIN_CREDENTIALS_MESSAGE = "invalid login credentials";
   public static final String INVALID_PASSWORD_FORMAT_MESSAGE = "invalid password format";
@@ -50,6 +52,8 @@ public final class LogConstants {
   public static final String ACTIVE_USER_SNAPSHOT_SUCCESS_CONTEXT = " activeUsers={} durationMs={}";
   public static final String ACTIVE_USER_SNAPSHOT_FAILURE_MESSAGE =
       "active user snapshot refresh failed";
+  public static final String ACTIVE_USERS_EVENT_PUBLISH_FAILURE_MESSAGE =
+      "active users event publishing failed";
 
   private LogConstants() {}
 }
