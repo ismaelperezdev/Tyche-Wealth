@@ -1,0 +1,51 @@
+name: Market Data Service PR CI
+
+on:
+  pull_request:
+    paths:
+      - "services/market-data-service/**"
+      - ".github/workflows/market-data-service-pr.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Maven wrapper
+        run: chmod +x mvnw
+
+      - name: Check format
+        run: ./mvnw -pl services/market-data-service -am spotless:check
+
+      - name: Check build
+        run: ./mvnw -pl services/market-data-service -am -DskipTests package
+
+      - name: Tests
+        run: ./mvnw -pl services/market-data-service -am test
+
+      - name: Run SonarQube analysis
+        if: ${{ env.SONAR_HOST_URL != '' && env.SONAR_TOKEN != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./mvnw -pl services/market-data-service -am sonar:sonar -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_TOKEN}

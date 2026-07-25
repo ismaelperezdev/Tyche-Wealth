@@ -1,19 +1,28 @@
-name: Portfolio Service Main CI
+name: Shared Changes CI
 
 on:
   push:
     branches:
       - main
     paths:
-      - "services/portfolio-service/**"
-      - ".github/workflows/portfolio-service-main.yml"
+      - "pom.xml"
+      - "libraries/**"
+      - "docker-compose.yml"
+      - ".github/workflows/shared-changes.yml"
+  pull_request:
+    paths:
+      - "pom.xml"
+      - "libraries/**"
+      - "docker-compose.yml"
+      - ".github/workflows/shared-changes.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
-  verify:
+  format:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,13 +40,7 @@ jobs:
         run: chmod +x mvnw
 
       - name: Check format
-        run: ./mvnw -pl services/portfolio-service -am spotless:check
-
-      - name: Check build
-        run: ./mvnw -pl services/portfolio-service -am -DskipTests package
-
-      - name: Tests
-        run: ./mvnw -pl services/portfolio-service -am verify -Ddependency-check.skip=true
+        run: ./mvnw spotless:check
 
   security:
     runs-on: ubuntu-latest
@@ -61,22 +64,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.dependency-check-data
-          key: dependency-check-${{ runner.os }}-${{ hashFiles('pom.xml', 'services/portfolio-service/pom.xml') }}
+          key: dependency-check-${{ runner.os }}-${{ hashFiles('pom.xml') }}
           restore-keys: |
             dependency-check-${{ runner.os }}-
 
-      - name: Make Maven wrapper executable
+      - name: Maven wrapper
         run: chmod +x mvnw
 
       - name: Run OWASP Dependency Check
-        run: ./mvnw -pl services/portfolio-service -am org.owasp:dependency-check-maven:check
-
-      - name: Upload Dependency Check report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: portfolio-service-dependency-check-main
-          path: |
-            services/portfolio-service/target/dependency-check-report.html
-            services/portfolio-service/target/dependency-check-report.json
-          if-no-files-found: ignore
+        run: ./mvnw org.owasp:dependency-check-maven:check

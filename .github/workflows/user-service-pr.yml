@@ -3,16 +3,7 @@ name: User Service PR CI
 on:
   pull_request:
     paths:
-      - "pom.xml"
-      - "libraries/redis-support/**"
       - "services/user-service/**"
-      - "docker-compose.yml"
-      - "docker/postgres/**"
-      - "docker/prometheus/**"
-      - "docker/grafana/**"
-      - "observability/prometheus/**"
-      - "observability/grafana/**"
-      - "application-local.properties"
       - ".github/workflows/user-service-pr.yml"
   workflow_dispatch:
 

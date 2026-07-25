@@ -3,16 +3,7 @@ name: Portfolio Service PR CI
 on:
   pull_request:
     paths:
-      - "pom.xml"
-      - "libraries/redis-support/**"
       - "services/portfolio-service/**"
-      - "docker-compose.yml"
-      - "docker/postgres/**"
-      - "docker/prometheus/**"
-      - "docker/grafana/**"
-      - "observability/prometheus/**"
-      - "observability/grafana/**"
-      - "application-local.properties"
       - ".github/workflows/portfolio-service-pr.yml"
   workflow_dispatch:
 

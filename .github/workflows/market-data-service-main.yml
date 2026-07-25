@@ -1,12 +1,12 @@
-name: User Service Main CI
+name: Market Data Service Main CI
 
 on:
   push:
     branches:
       - main
     paths:
-      - "services/user-service/**"
-      - ".github/workflows/user-service-main.yml"
+      - "services/market-data-service/**"
+      - ".github/workflows/market-data-service-main.yml"
   workflow_dispatch:
 
 permissions:
@@ -15,19 +15,6 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    services:
-      redis:
-        image: redis:8-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    env:
-      REDIS_HOST: localhost
-      REDIS_PORT: 6379
 
     steps:
       - name: Checkout
@@ -44,13 +31,13 @@ jobs:
         run: chmod +x mvnw
 
       - name: Check format
-        run: ./mvnw -pl services/user-service -am spotless:check
+        run: ./mvnw -pl services/market-data-service -am spotless:check
 
       - name: Check build
-        run: ./mvnw -pl services/user-service -am -DskipTests package
+        run: ./mvnw -pl services/market-data-service -am -DskipTests package
 
       - name: Tests
-        run: ./mvnw -pl services/user-service -am verify -Ddependency-check.skip=true
+        run: ./mvnw -pl services/market-data-service -am verify -Ddependency-check.skip=true
 
   security:
     runs-on: ubuntu-latest
@@ -74,7 +61,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.dependency-check-data
-          key: dependency-check-${{ runner.os }}-${{ hashFiles('services/user-service/pom.xml') }}
+          key: dependency-check-${{ runner.os }}-${{ hashFiles('services/market-data-service/pom.xml') }}
           restore-keys: |
             dependency-check-${{ runner.os }}-
 
@@ -82,14 +69,14 @@ jobs:
         run: chmod +x mvnw
 
       - name: Run OWASP Dependency Check
-        run: ./mvnw -pl services/user-service -am org.owasp:dependency-check-maven:check
+        run: ./mvnw -pl services/market-data-service -am org.owasp:dependency-check-maven:check
 
       - name: Upload Dependency Check report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: user-service-dependency-check-main
+          name: market-data-service-dependency-check-main
           path: |
-            services/user-service/target/dependency-check-report.html
-            services/user-service/target/dependency-check-report.json
+            services/market-data-service/target/dependency-check-report.html
+            services/market-data-service/target/dependency-check-report.json
           if-no-files-found: ignore
