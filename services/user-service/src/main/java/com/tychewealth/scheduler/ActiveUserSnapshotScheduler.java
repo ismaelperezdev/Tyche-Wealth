@@ -26,6 +26,7 @@ import org.springframework.stereotype.Component;
     value = "app.active-users.snapshot.enabled",
     havingValue = "true",
     matchIfMissing = true)
+@ConditionalOnProperty(name = "kafka.enabled", havingValue = "true", matchIfMissing = false)
 public class ActiveUserSnapshotScheduler {
 
   private final ActiveUserSnapshotService activeUserSnapshotService;
