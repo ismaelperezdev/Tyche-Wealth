@@ -45,7 +45,7 @@ public class RedisActiveUserStore implements ActiveUserStore {
       return Set.of();
     }
 
-    Set<Long> userIds = new LinkedHashSet<>(members.size());
+    Set<Long> userIds = LinkedHashSet.newLinkedHashSet(members.size());
     for (String member : members) {
       userIds.add(Long.valueOf(member));
     }
