@@ -7,19 +7,20 @@ on:
     paths:
       - "pom.xml"
       - "libraries/**"
+      - "services/**"
       - "docker-compose.yml"
       - ".github/workflows/shared-changes.yml"
   pull_request:
     paths:
       - "pom.xml"
       - "libraries/**"
+      - "services/**"
       - "docker-compose.yml"
       - ".github/workflows/shared-changes.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   format:
@@ -28,6 +29,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -43,15 +46,17 @@ jobs:
         run: ./mvnw spotless:check
 
   security:
+    if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     env:
-      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
       DEPENDENCY_CHECK_DATA_DIR: ~/.dependency-check-data
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -72,4 +77,6 @@ jobs:
         run: chmod +x mvnw
 
       - name: Run OWASP Dependency Check
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: ./mvnw org.owasp:dependency-check-maven:check
