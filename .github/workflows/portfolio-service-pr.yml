@@ -3,35 +3,26 @@ name: Portfolio Service PR CI
 on:
   pull_request:
     paths:
-      - "pom.xml"
-      - "libraries/redis-support/**"
       - "services/portfolio-service/**"
-      - "docker-compose.yml"
-      - "docker/postgres/**"
-      - "docker/prometheus/**"
-      - "docker/grafana/**"
-      - "observability/prometheus/**"
-      - "observability/grafana/**"
-      - "application-local.properties"
+      - "pom.xml"
+      - "mvnw"
+      - "mvnw.cmd"
+      - ".mvn/**"
       - ".github/workflows/portfolio-service-pr.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
-    env:
-      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Setup Java
@@ -54,78 +45,11 @@ jobs:
         run: ./mvnw -pl services/portfolio-service -am test
 
       - name: Run SonarQube analysis
-        if: ${{ env.SONAR_HOST_URL != '' && env.SONAR_TOKEN != '' }}
+        if: ${{ secrets.SONAR_HOST_URL != '' && secrets.SONAR_TOKEN != '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./mvnw -pl services/portfolio-service -am sonar:sonar -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_TOKEN}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: ./mvnw -pl services/portfolio-service -am sonar:sonar
 
-      - name: Detect infra changes
-        if: ${{ github.event_name == 'pull_request' }}
-        id: changes
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            redis:
-              - 'docker-compose.yml'
-            postgres:
-              - 'docker-compose.yml'
-              - 'docker/postgres/**'
-              - 'application-local.properties'
-            prometheus:
-              - 'docker-compose.yml'
-              - 'docker/prometheus/**'
-              - 'observability/prometheus/**'
-              - 'application-local.properties'
-            grafana:
-              - 'docker-compose.yml'
-              - 'docker/grafana/**'
-              - 'observability/grafana/**'
-              - 'application-local.properties'
-
-      - name: Generate application-local.properties from GitHub secrets
-        working-directory: ${{ github.workspace }}
-        run: |
-          cat > application-local.properties <<EOF
-          DB_URL_USER=${{ secrets.DB_URL_USER }}
-          DB_URL_PORTFOLIO=${{ secrets.DB_URL_PORTFOLIO }}
-          DB_USER=${{ secrets.DB_USER }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          JWT_REFRESH_TOKEN_PEPPER=${{ secrets.JWT_REFRESH_TOKEN_PEPPER }}
-          VERIFY_REGISTRATION_URL=${{ secrets.VERIFY_REGISTRATION_URL }}
-          VERIFY_LOGIN_DEVICE_URL=${{ secrets.VERIFY_LOGIN_DEVICE_URL }}
-          FORGOT_PASSWORD_URL=${{ secrets.FORGOT_PASSWORD_URL }}
-          PROMETHEUS_PASSWORD=${{ secrets.PROMETHEUS_PASSWORD }}
-          GRAFANA_ADMIN_USER=${{ secrets.GRAFANA_ADMIN_USER }}
-          GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
-          LLM_BASE_URL=${{ secrets.LLM_BASE_URL }}
-          LLM_API_KEY=${{ secrets.LLM_API_KEY }}
-          EOF
-
-      - name: Build and start Docker services
-        continue-on-error: true
-        working-directory: ${{ github.workspace }}
-        run: |
-          services="portfolio-service"
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            [ "${{ steps.changes.outputs.redis }}" = "true" ] && services="$services redis"
-            [ "${{ steps.changes.outputs.postgres }}" = "true" ] && services="$services postgres"
-            [ "${{ steps.changes.outputs.prometheus }}" = "true" ] && services="$services prometheus"
-            [ "${{ steps.changes.outputs.grafana }}" = "true" ] && services="$services grafana"
-          fi
-          echo "Docker services to update: $services"
-          docker compose up -d --build $services
-
-      - name: Docker services status
-        if: always()
-        continue-on-error: true
-        working-directory: ${{ github.workspace }}
-        run: docker compose ps
-
-      - name: Cleanup temporary secrets file
-        if: always()
-        working-directory: ${{ github.workspace }}
-        run: rm -f application-local.properties
 

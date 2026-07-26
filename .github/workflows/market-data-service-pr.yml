@@ -1,14 +1,14 @@
-name: User Service PR CI
+name: Market Data Service PR CI
 
 on:
   pull_request:
     paths:
-      - "services/user-service/**"
+      - "services/market-data-service/**"
       - "pom.xml"
       - "mvnw"
       - "mvnw.cmd"
       - ".mvn/**"
-      - ".github/workflows/user-service-pr.yml"
+      - ".github/workflows/market-data-service-pr.yml"
   workflow_dispatch:
 
 permissions:
@@ -17,20 +17,6 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    services:
-      redis:
-        image: redis:8-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    env:
-      REDIS_HOST: localhost
-      REDIS_PORT: 6379
 
     steps:
       - name: Checkout
@@ -50,13 +36,13 @@ jobs:
         run: chmod +x mvnw
 
       - name: Check format
-        run: ./mvnw -pl services/user-service -am spotless:check
+        run: ./mvnw -pl services/market-data-service -am spotless:check
 
       - name: Check build
-        run: ./mvnw -pl services/user-service -am -DskipTests package
+        run: ./mvnw -pl services/market-data-service -am -DskipTests package
 
       - name: Tests
-        run: ./mvnw -pl services/user-service -am test
+        run: ./mvnw -pl services/market-data-service -am test
 
       - name: Check Sonar configuration
         id: sonar-config
@@ -76,6 +62,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: ./mvnw -pl services/user-service -am sonar:sonar
-
-
+        run: ./mvnw -pl services/market-data-service -am sonar:sonar -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_TOKEN}

@@ -1,0 +1,71 @@
+name: Documentation Main CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "services/**"
+      - "libraries/**"
+      - "docs/**"
+      - "scripts/**"
+      - "mkdocs.yml"
+      - "requirements-docs.txt"
+      - ".github/workflows/docs-main.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  docs-generation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install docs dependencies
+        run: pip install -r requirements-docs.txt
+
+      - name: Generate documentation
+        run: python scripts/generate_docs.py
+
+      - name: Review diagrams
+        run: python scripts/review_diagrams.py
+
+      - name: Docs polish
+        run: python scripts/polish_docs.py --deterministic-only
+
+      - name: Build documentation site
+        run: mkdocs build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy-docs:
+    needs: docs-generation
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
