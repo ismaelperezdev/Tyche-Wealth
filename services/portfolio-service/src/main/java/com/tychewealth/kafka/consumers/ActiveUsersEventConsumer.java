@@ -5,6 +5,9 @@ import static com.tychewealth.constants.LogConstants.REQUEST_SUCCESS;
 import static com.tychewealth.constants.LogConstants.SYSTEM;
 
 import com.tychewealth.kafka.events.ActiveUsersEvent;
+import com.tychewealth.service.activesymbol.ActiveSymbolService;
+import java.util.Set;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -14,10 +17,13 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 @ConditionalOnProperty(name = "kafka.enabled", havingValue = "true", matchIfMissing = false)
 public class ActiveUsersEventConsumer {
 
   private static final String ACTIVE_USERS_EVENT_ACTION = "[active-users-event]";
+
+  private final ActiveSymbolService activeSymbolService;
 
   @KafkaListener(
       topics = "${app.kafka.topics.active-users}",
@@ -32,5 +38,6 @@ public class ActiveUsersEventConsumer {
         ACTIVE_USERS_EVENT_ACTION,
         receivedTopic,
         activeUsers);
+    activeSymbolService.synchronizeSymbols(event == null ? Set.of() : event.userIds());
   }
 }

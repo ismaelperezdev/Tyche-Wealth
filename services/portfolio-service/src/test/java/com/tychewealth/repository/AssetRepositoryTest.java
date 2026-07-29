@@ -4,6 +4,7 @@ import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
 import static com.tychewealth.testdata.EntityBuilder.buildAsset;
 import static com.tychewealth.testdata.EntityBuilder.buildPortfolio;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -114,5 +115,36 @@ class AssetRepositoryTest {
     boolean exists = assetRepository.existsByPortfolioIdAndName(portfolio.getId(), "Tesla, Inc.");
 
     assertTrue(exists);
+  }
+
+  @Test
+  void findDistinctSymbolsByUserIdsReturnsDistinctSymbolsForMatchingUsersOnly() {
+    PortfolioEntity otherPortfolio =
+        portfolioRepository.save(
+            buildPortfolio(
+                TEST_USER_ID + 1,
+                "Other Asset Book",
+                CurrencyCodeEnum.EUR,
+                RiskProfileEnum.LOW,
+                StrategyTypeEnum.INDEX,
+                InvestmentHorizonEnum.MEDIUM));
+
+    assetRepository.save(
+        buildAsset(portfolio, "Apple Inc.", "AAPL", AssetTypeEnum.STOCK, CurrencyCodeEnum.USD));
+    assetRepository.save(
+        buildAsset(portfolio, "Apple Again", "AAPL", AssetTypeEnum.ETF, CurrencyCodeEnum.USD));
+    assetRepository.save(
+        buildAsset(
+            portfolio, "Microsoft Corporation", "MSFT", AssetTypeEnum.STOCK, CurrencyCodeEnum.USD));
+    assetRepository.save(
+        buildAsset(otherPortfolio, "Bitcoin", "BTC", AssetTypeEnum.CRYPTO, CurrencyCodeEnum.EUR));
+
+    List<String> result = assetRepository.findDistinctSymbolsByUserIds(List.of(TEST_USER_ID));
+
+    assertNotNull(result);
+    assertEquals(2, result.size());
+    assertTrue(result.contains("AAPL"));
+    assertTrue(result.contains("MSFT"));
+    assertFalse(result.contains("BTC"));
   }
 }

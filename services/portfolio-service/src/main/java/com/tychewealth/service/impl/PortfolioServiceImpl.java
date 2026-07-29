@@ -68,7 +68,7 @@ public class PortfolioServiceImpl implements PortfolioService {
   }
 
   @Override
-  @Transactional(isolation = Isolation.SERIALIZABLE)
+  @Transactional()
   public PortfolioResponseDto update(
       Long userId, Long portfolioId, PortfolioUpdateRequestDto updateRequest) {
     commonValidationHelper.validateAuthenticatedUser(userId);
