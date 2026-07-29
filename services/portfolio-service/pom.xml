@@ -16,7 +16,7 @@
 
     <properties>
         <jacoco.minimum.line.coverage>0.80</jacoco.minimum.line.coverage>
-        <jacoco.minimum.branch.coverage>0.60</jacoco.minimum.branch.coverage>
+        <jacoco.minimum.branch.coverage>0.70</jacoco.minimum.branch.coverage>
     </properties>
 
     <dependencies>
