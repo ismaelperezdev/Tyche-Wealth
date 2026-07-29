@@ -3,7 +3,6 @@ package com.tychewealth.kafka.consumers;
 import static com.tychewealth.constants.LogConstants.ACTIVE_USERS_EVENT_SUCCESS_CONTEXT;
 import static com.tychewealth.constants.LogConstants.REQUEST_SUCCESS;
 import static com.tychewealth.constants.LogConstants.SYSTEM;
-import static com.tychewealth.constants.LogConstants.USER_ID;
 
 import com.tychewealth.kafka.events.ActiveUsersEvent;
 import lombok.extern.slf4j.Slf4j;
@@ -33,13 +32,5 @@ public class ActiveUsersEventConsumer {
         ACTIVE_USERS_EVENT_ACTION,
         receivedTopic,
         activeUsers);
-
-    if (log.isDebugEnabled() && event != null && event.userIds() != null) {
-      event
-          .userIds()
-          .forEach(
-              userId ->
-                  log.debug(REQUEST_SUCCESS + USER_ID, SYSTEM, ACTIVE_USERS_EVENT_ACTION, userId));
-    }
   }
 }
