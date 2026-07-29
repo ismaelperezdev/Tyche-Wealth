@@ -22,8 +22,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.InOrder;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -74,7 +74,9 @@ class ActiveSymbolServiceTest {
 
     InOrder inOrder = inOrder(activeSymbolChangesEventPublisher, activeSymbolStore);
     inOrder.verify(activeSymbolChangesEventPublisher).publish(changesCaptor.getValue());
-    inOrder.verify(activeSymbolStore).replaceAll(Set.of(TEST_ASSET_SYMBOL_AAPL, TEST_ASSET_SYMBOL_MSFT));
+    inOrder
+        .verify(activeSymbolStore)
+        .replaceAll(Set.of(TEST_ASSET_SYMBOL_AAPL, TEST_ASSET_SYMBOL_MSFT));
   }
 
   @Test
@@ -100,10 +102,13 @@ class ActiveSymbolServiceTest {
         .publish(org.mockito.ArgumentMatchers.any());
 
     assertThrows(
-        IllegalStateException.class, () -> activeSymbolService.synchronizeSymbols(Set.of(TEST_USER_ID)));
+        IllegalStateException.class,
+        () -> activeSymbolService.synchronizeSymbols(Set.of(TEST_USER_ID)));
 
     verify(activeSymbolChangesEventPublisher)
-        .publish(new ActiveSymbolChanges(Set.of(TEST_ASSET_SYMBOL_AAPL), Set.of(TEST_ASSET_SYMBOL_MSFT)));
+        .publish(
+            new ActiveSymbolChanges(
+                Set.of(TEST_ASSET_SYMBOL_AAPL), Set.of(TEST_ASSET_SYMBOL_MSFT)));
     verify(activeSymbolStore, never()).replaceAll(org.mockito.ArgumentMatchers.anySet());
   }
 
