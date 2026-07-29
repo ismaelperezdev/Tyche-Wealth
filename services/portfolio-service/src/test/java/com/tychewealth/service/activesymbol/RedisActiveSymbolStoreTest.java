@@ -7,17 +7,20 @@ import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_SYMBOL_AAPL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -58,7 +61,11 @@ class RedisActiveSymbolStoreTest {
     assertEquals(
         Set.of(TEST_ASSET_SYMBOL_AAPL, TEST_ASSET_SYMBOL_MSFT),
         Set.copyOf(Arrays.asList(membersCaptor.getValue())));
-    verify(redisTemplate).rename(tempKey, ACTIVE_SYMBOLS_KEY);
+
+    InOrder inOrder = inOrder(setOperations, redisTemplate);
+    inOrder.verify(setOperations).add(tempKey, membersCaptor.getValue());
+    inOrder.verify(redisTemplate).expire(tempKey, Duration.ofMinutes(2));
+    inOrder.verify(redisTemplate).rename(tempKey, ACTIVE_SYMBOLS_KEY);
   }
 
   @Test

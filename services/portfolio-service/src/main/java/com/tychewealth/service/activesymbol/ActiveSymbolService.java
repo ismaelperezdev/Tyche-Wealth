@@ -7,6 +7,7 @@ import static com.tychewealth.constants.LogConstants.SYSTEM;
 import com.tychewealth.kafka.events.ActiveSymbolChanges;
 import com.tychewealth.kafka.publishers.ActiveSymbolChangesEventPublisher;
 import com.tychewealth.repository.AssetRepository;
+import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -14,11 +15,13 @@ import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "kafka.enabled", havingValue = "true", matchIfMissing = false)
 public class ActiveSymbolService {
 
   private static final String ACTIVE_SYMBOL_ACTION = "[active-symbol-sync]";
@@ -30,6 +33,14 @@ public class ActiveSymbolService {
   @Value("${app.active-symbol.user-id-batch-size:600}")
   private int userIdBatchSize;
 
+  @PostConstruct
+  void validateUserIdBatchSize() {
+    if (userIdBatchSize <= 0) {
+      throw new IllegalStateException(
+          "app.active-symbol.user-id-batch-size must be greater than zero");
+    }
+  }
+
   public void synchronizeSymbols(Set<Long> userIds) {
     log.info(REQUEST_START, SYSTEM, ACTIVE_SYMBOL_ACTION);
 
@@ -37,13 +48,13 @@ public class ActiveSymbolService {
     Set<String> previousSymbols = activeSymbolStore.findAll();
     ActiveSymbolChanges changes = resolveSymbolChanges(previousSymbols, currentSymbols);
 
-    activeSymbolStore.replaceAll(currentSymbols);
-    log.info(
-        REQUEST_SUCCESS + " activeSymbols={}", SYSTEM, ACTIVE_SYMBOL_ACTION, currentSymbols.size());
-
     if (!changes.addedSymbols().isEmpty() || !changes.removedSymbols().isEmpty()) {
       activeSymbolChangesEventPublisher.publish(changes);
     }
+
+    activeSymbolStore.replaceAll(currentSymbols);
+    log.info(
+        REQUEST_SUCCESS + " activeSymbols={}", SYSTEM, ACTIVE_SYMBOL_ACTION, currentSymbols.size());
   }
 
   private Set<String> resolveActiveSymbols(Set<Long> userIds) {
