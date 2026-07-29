@@ -117,7 +117,7 @@ public class AssetServiceImpl implements AssetService {
   }
 
   @Override
-  @Transactional(isolation = Isolation.SERIALIZABLE)
+  @Transactional()
   public AssetResponseDto update(
       Long userId, Long portfolioId, Long assetId, AssetUpdateRequestDto updateRequest) {
     commonValidationHelper.validateAuthenticatedUser(userId);

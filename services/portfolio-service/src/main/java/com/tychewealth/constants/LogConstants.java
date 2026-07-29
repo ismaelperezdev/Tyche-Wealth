@@ -17,6 +17,7 @@ public final class LogConstants {
   public static final String IMPORT_ASSETS_ACTION = "[import-assets]";
   public static final String ERROR_HANDLER_ACTION = "[error-handler]";
   public static final String ACCESS_TOKEN_ACTION = "[access-token]";
+  public static final String SEND_ACTION = "[send]";
   public static final String RATE_LIMIT_ACTION = "[rate-limit]";
 
   public static final String REQUEST_START = BASE_LOG + " Request started";
