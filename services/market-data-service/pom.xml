@@ -15,6 +15,11 @@
     <name>Tyche Wealth - Market Data Service</name>
     <description>Market data microservice for the Tyche Wealth platform</description>
 
+    <properties>
+        <jacoco.minimum.line.coverage>0.80</jacoco.minimum.line.coverage>
+        <jacoco.minimum.branch.coverage>0.70</jacoco.minimum.branch.coverage>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>

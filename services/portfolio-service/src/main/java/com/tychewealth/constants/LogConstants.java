@@ -28,6 +28,8 @@ public final class LogConstants {
   public static final String PORTFOLIO_NAME = " portfolioName={}";
   public static final String PORTFOLIO_ID = " portfolioId={}";
   public static final String USER_ID = " userId={}";
+  public static final String TOPIC = " topic={}";
+  public static final String ACTIVE_USERS_EVENT_SUCCESS_CONTEXT = TOPIC + " activeUsers={}";
   public static final String UNHANDLED_EXCEPTION_MESSAGE =
       "unhandled exception reached global error handler";
   public static final String MISSING_AUTHENTICATED_USER_MESSAGE = "missing authenticated user";
@@ -38,8 +40,6 @@ public final class LogConstants {
   public static final String ASSET_LIMIT_REACHED_MESSAGE = "asset limit reached for portfolio";
   public static final String ASSET_NAME_ALREADY_EXISTS_MESSAGE =
       "asset name already exists for portfolio";
-  public static final String ASSET_SYMBOL_ALREADY_EXISTS_MESSAGE =
-      "asset symbol already exists for portfolio";
   public static final String ASSET_NOT_FOUND_MESSAGE = "asset not found for portfolio";
   public static final String PORTFOLIO_PERSISTENCE_CONFLICT_MESSAGE =
       "portfolio conflict detected at persistence layer";
@@ -54,7 +54,6 @@ public final class LogConstants {
       " uri={} namespace={} rejectionMessage={}";
   public static final String RATE_LIMIT_STORE_UNAVAILABLE_MESSAGE = "rate limit store unavailable";
   public static final String IMPORT_QUEUE_STATUS = " fileName={} activeWorkers={} queuedTasks={}";
-  public static final String IMPORT_QUEUEING_MESSAGE = "asset import queued";
   public static final String IMPORT_INFLIGHT_ACQUIRED_AND_QUEUED_MESSAGE =
       "asset import inflight lock acquired and queued";
   public static final String IMPORT_COMPLETED_MESSAGE = "asset import completed";
@@ -71,8 +70,6 @@ public final class LogConstants {
       "asset import queue full, waiting for available slot";
   public static final String IMPORT_INFLIGHT_WAIT_MESSAGE =
       "asset import already in progress for same file, waiting for cached result";
-  public static final String IMPORT_INFLIGHT_ACQUIRED_MESSAGE =
-      "asset import inflight lock acquired";
   public static final String IMPORT_INFLIGHT_RELEASED_MESSAGE =
       "asset import inflight lock released";
   public static final String AI_QUEUE_STATUS = " modelType={} activeWorkers={} queuedTasks={}";
