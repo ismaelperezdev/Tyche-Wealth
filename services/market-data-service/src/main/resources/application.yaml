@@ -10,6 +10,23 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       timeout: ${REDIS_TIMEOUT:2s}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      auto-offset-reset: ${KAFKA_AUTO_OFFSET_RESET:earliest}
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:market-data-service-active-symbol-changes}
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: com.tychewealth.kafka.events
+    producer:
+      client-id: ${KAFKA_PRODUCER_CLIENT_ID:market-data-service}
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        delivery.timeout.ms: ${KAFKA_PRODUCER_DELIVERY_TIMEOUT_MS:30000}
 
 server:
   port: 8081
@@ -60,20 +77,16 @@ clients:
     max-retries: 2
     retry-backoff: 500ms
 
-vehicle:
-  polling:
-    enabled: true
-    fixed-delay: 90s
-    initial-delay: 0s
+kafka:
+  enabled: ${KAFKA_ENABLED:true}
 
-mock:
-  provider:
-    enabled: true
-    port: 8089
-    min-vehicles-per-response: 20
-    max-vehicles-per-response: 50
-    min-vehicles-changed-per-refresh: 0
-    max-vehicles-changed-per-refresh: 8
-    min-response-duration-seconds: 20
-    max-response-duration-seconds: 180
+app:
+  kafka:
+    listener:
+      retry-interval-ms: ${KAFKA_LISTENER_RETRY_INTERVAL_MS:1000}
+      retry-attempts: ${KAFKA_LISTENER_RETRY_ATTEMPTS:2}
+    dlt:
+      suffix: ${KAFKA_DLT_SUFFIX:-dlt}
+    topics:
+      active-symbol-changes: ${KAFKA_TOPIC_ACTIVE_SYMBOL_CHANGES:active-symbol-changes}
 

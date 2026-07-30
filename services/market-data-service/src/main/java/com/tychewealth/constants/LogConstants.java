@@ -9,6 +9,7 @@ public final class LogConstants {
   public static final String RESOURCES_CLIENT = "[resources-client]";
   public static final String TWELVE_DATA_CLIENT = "[twelve-data-client]";
   public static final String VEHICLE_POLLING_SCHEDULER = "[vehicle-polling-scheduler]";
+  public static final String ACTIVE_SYMBOL_CHANGES_EVENT = "[active-symbol-changes-event]";
   public static final String ERROR_HANDLER = "[error-handler]";
   public static final String FETCH_ACTION = "[fetch]";
   public static final String POLL_ACTION = "[poll]";
@@ -16,6 +17,7 @@ public final class LogConstants {
   public static final String PRICE_ACTION = "[price]";
   public static final String QUOTE_ACTION = "[quote]";
   public static final String TIME_SERIES_ACTION = "[time-series]";
+  public static final String SYNC_ACTION = "[sync]";
 
   public static final String REQUEST_START = BASE_LOG + " Request started";
   public static final String REQUEST_SUCCESS = BASE_LOG + " Request succeeded count={}";
