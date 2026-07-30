@@ -1,5 +1,6 @@
 package com.tychewealth.config;
 
+import java.time.Duration;
 import org.apache.kafka.common.TopicPartition;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -28,14 +29,21 @@ public class KafkaConfig {
   @Value("${app.kafka.listener.retry-attempts:2}")
   private long retryAttempts;
 
+  @Value("${spring.kafka.producer.properties.delivery.timeout.ms:30000}")
+  private long dltSendTimeoutMs;
+
   @Bean
   DeadLetterPublishingRecoverer deadLetterPublishingRecoverer(
       KafkaTemplate<Object, Object> kafkaTemplate) {
-    return new DeadLetterPublishingRecoverer(
-        kafkaTemplate,
-        (consumerRecord, exception) ->
-            new TopicPartition(
-                consumerRecord.topic() + deadLetterTopicSuffix, consumerRecord.partition()));
+    DeadLetterPublishingRecoverer recoverer =
+        new DeadLetterPublishingRecoverer(
+            kafkaTemplate,
+            (consumerRecord, exception) ->
+                new TopicPartition(
+                    consumerRecord.topic() + deadLetterTopicSuffix, consumerRecord.partition()));
+    recoverer.setFailIfSendResultIsError(true);
+    recoverer.setWaitForSendResultTimeout(Duration.ofMillis(dltSendTimeoutMs));
+    return recoverer;
   }
 
   @Bean

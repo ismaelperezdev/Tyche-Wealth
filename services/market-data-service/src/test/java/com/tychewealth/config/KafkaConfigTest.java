@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import java.time.Duration;
 import java.util.function.BiFunction;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
@@ -28,6 +29,7 @@ class KafkaConfigTest {
     ReflectionTestUtils.setField(kafkaConfig, "deadLetterTopicSuffix", "-dlt");
     ReflectionTestUtils.setField(kafkaConfig, "retryIntervalMs", 1000L);
     ReflectionTestUtils.setField(kafkaConfig, "retryAttempts", 2L);
+    ReflectionTestUtils.setField(kafkaConfig, "dltSendTimeoutMs", 30000L);
   }
 
   @Test
@@ -52,6 +54,10 @@ class KafkaConfigTest {
     assertNotNull(destinationResolver);
     assertEquals("active-symbol-changes-dlt", topicPartition.topic());
     assertEquals(3, topicPartition.partition());
+    assertEquals(true, ReflectionTestUtils.getField(recoverer, "failIfSendResultIsError"));
+    assertEquals(
+        Duration.ofMillis(30000L),
+        ReflectionTestUtils.getField(recoverer, "waitForSendResultTimeout"));
   }
 
   @Test
