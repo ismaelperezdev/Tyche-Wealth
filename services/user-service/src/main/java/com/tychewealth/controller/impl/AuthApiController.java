@@ -30,6 +30,14 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST adapter for the authentication endpoints declared by {@link AuthApi}.
+ *
+ * <p>Delegates authentication workflows to {@link AuthService}, translates their results into HTTP
+ * responses, and applies security-related response headers to token and verification flows. The
+ * controller also logs request boundaries using masked identity data where applicable, while
+ * leaving authentication and token lifecycle decisions to the application service.
+ */
 @Slf4j
 @RestController
 @AllArgsConstructor

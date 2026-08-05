@@ -21,6 +21,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Request payload for authenticating a user with email and password credentials.
+ *
+ * <p>Validates the email and login password policy, normalizes the email before lookup, and
+ * enforces BCrypt's maximum UTF-8 byte length to keep credential handling compatible with the
+ * configured password encoder.
+ */
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor

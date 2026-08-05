@@ -14,6 +14,13 @@ import lombok.AllArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+/**
+ * Builds and persists new user accounts during registration.
+ *
+ * <p>Maps the registration request to a {@link UserEntity}, encodes the password, creates the
+ * email-verification token and expiry, and returns both the public user representation and token
+ * required by the registration email workflow.
+ */
 @Component
 @AllArgsConstructor
 public class AuthRegisterHelper {

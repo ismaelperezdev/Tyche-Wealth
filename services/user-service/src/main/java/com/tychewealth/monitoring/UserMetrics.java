@@ -4,6 +4,7 @@ import com.tychewealth.enums.UserMetricEnum;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Component;
 
+/** Exposes Micrometer counters for user-account operations. */
 @Component
 public class UserMetrics extends BaseMetrics<UserMetricEnum> {
 

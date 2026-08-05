@@ -24,6 +24,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST adapter for the authenticated user-account endpoints declared by {@link UserApi}.
+ *
+ * <p>Delegates account operations to {@link UserService}, records request and success metrics, and
+ * produces the corresponding HTTP responses. Sensitive operations such as password changes and
+ * account deletion preserve no-store response headers and pass the authorization header to the
+ * service layer for token invalidation.
+ */
 @Slf4j
 @RestController
 @AllArgsConstructor

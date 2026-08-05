@@ -11,6 +11,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
+/**
+ * Completes login-device verification using a purpose-specific authentication token.
+ *
+ * <p>Validates the token through {@link AccessTokenCodec}, loads the active user, and delegates
+ * trusted-device cookie creation to {@link TrustedDeviceManager}. Invalid or missing credentials
+ * are translated into the service's authentication errors before any device state is created.
+ */
 @Component
 @AllArgsConstructor
 public class AuthVerifyLoginDeviceHelper {

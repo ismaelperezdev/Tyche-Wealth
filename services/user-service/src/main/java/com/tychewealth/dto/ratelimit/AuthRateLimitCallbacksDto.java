@@ -5,6 +5,13 @@ import com.tychewealth.monitoring.AuthMetrics;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+/**
+ * Holds optional callbacks invoked during rate-limit processing.
+ *
+ * <p>Callbacks receive the request URI and can record request, rejection, and backing-store failure
+ * metrics. Missing callbacks are replaced with no-op consumers so the interceptor can execute
+ * without conditional checks for every request.
+ */
 public record AuthRateLimitCallbacksDto(
     Consumer<String> requestMetricRecorder,
     Consumer<String> rateLimitedMetricRecorder,

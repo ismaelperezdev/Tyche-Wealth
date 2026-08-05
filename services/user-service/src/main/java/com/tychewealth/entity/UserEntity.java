@@ -22,6 +22,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * JPA entity representing a user account persisted in the {@code users} table.
+ *
+ * <p>Stores normalized identity data, the encoded password, account verification state, and
+ * lifecycle timestamps. Account deletion is represented by {@code deletedAt} so the service can
+ * retain the record while excluding it from active-user operations.
+ */
 @Entity
 @Getter
 @Setter

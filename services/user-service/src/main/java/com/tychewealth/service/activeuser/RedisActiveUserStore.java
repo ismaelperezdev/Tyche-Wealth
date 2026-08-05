@@ -13,6 +13,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+/**
+ * Redis-backed implementation of {@link ActiveUserStore}.
+ *
+ * <p>Stores active user identifiers in a Redis set and tracks the last refresh time separately.
+ * Full replacements use a temporary key followed by a rename so readers do not observe a partially
+ * populated snapshot; temporary data is removed when the replacement fails.
+ */
 @Component
 @RequiredArgsConstructor
 public class RedisActiveUserStore implements ActiveUserStore {

@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Request payload containing the refresh token used to obtain a new access-token pair. */
 @Getter
 @Setter
 @NoArgsConstructor

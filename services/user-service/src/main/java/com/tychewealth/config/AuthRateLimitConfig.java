@@ -14,6 +14,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+/**
+ * Registers request rate-limit interceptors for the authentication endpoints.
+ *
+ * <p>Builds the rules from {@link AuthRateLimitPropertiesDto}, installs the interceptors for
+ * registration, login, and related operations, and applies a dedicated rule to token refresh. It
+ * also exposes namespace cleanup for tests and service maintenance tasks.
+ */
 @Configuration
 @EnableConfigurationProperties(AuthRateLimitPropertiesDto.class)
 public class AuthRateLimitConfig implements WebMvcConfigurer {

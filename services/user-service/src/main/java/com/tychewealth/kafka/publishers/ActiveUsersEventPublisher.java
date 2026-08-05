@@ -23,6 +23,11 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
 
+/**
+ * Publishes active-user changes to Kafka for consumption by dependent services.
+ *
+ * <p>The event is sent to the configured active-users topic after a successful user snapshot.
+ */
 @Component
 @Slf4j
 @ConditionalOnProperty(name = "kafka.enabled", havingValue = "true", matchIfMissing = false)

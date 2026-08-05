@@ -16,6 +16,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
+/**
+ * Builds email messages for authentication-related user workflows.
+ *
+ * <p>Loads the configured HTML templates once, creates registration, trusted-device, and password
+ * recovery links, and combines them with localized subjects, expiration text, HTML content, and
+ * plain-text fallbacks returned as {@link EmailMessageDto} instances.
+ */
 @Component
 public class AuthEmailFactory {
 

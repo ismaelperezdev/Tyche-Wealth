@@ -18,6 +18,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+/**
+ * Validates access-token headers and refresh-token request payloads at the security boundary.
+ *
+ * <p>Delegates JWT parsing and purpose checks to {@link AccessTokenCodec}, consults {@link
+ * TokenStateStore} for access-token revocation, and records refresh-token validation failures
+ * through {@link AuthMetrics} before returning domain authentication errors.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor

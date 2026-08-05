@@ -18,6 +18,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Request payload for changing the authenticated user's password.
+ *
+ * <p>Validates the current password input, enforces the configured password policy and BCrypt's
+ * UTF-8 byte limit, and verifies that the new password is confirmed before the service layer
+ * updates the account.
+ */
 @Getter
 @Setter
 @NoArgsConstructor

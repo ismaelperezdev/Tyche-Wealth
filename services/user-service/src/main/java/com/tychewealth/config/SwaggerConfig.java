@@ -6,6 +6,12 @@ import io.swagger.v3.oas.models.info.Info;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Configures the OpenAPI documentation for the user-service.
+ *
+ * <p>Defines the general metadata displayed in Swagger UI, including the API name, version,
+ * functional description, and contact information.
+ */
 @Configuration
 public class SwaggerConfig {
 

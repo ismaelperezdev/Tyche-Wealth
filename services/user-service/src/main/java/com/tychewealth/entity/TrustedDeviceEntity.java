@@ -15,6 +15,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * JPA entity representing a trusted device associated with a {@link UserEntity}.
+ *
+ * <p>Persists the device token hash and its lifecycle timestamps so successful device verification
+ * can be reused for a limited period without storing the raw token in the database.
+ */
 @Entity
 @Getter
 @Setter

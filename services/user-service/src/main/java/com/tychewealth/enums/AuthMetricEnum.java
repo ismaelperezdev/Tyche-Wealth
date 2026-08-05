@@ -20,6 +20,13 @@ import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_REQ
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_REGISTER_SUCCESS;
 import static com.tychewealth.constants.MetricConstants.METRIC_AUTH_TOKEN_STATE_UNAVAILABLE;
 
+/**
+ * Defines the Micrometer counters emitted by authentication and token lifecycle operations.
+ *
+ * <p>Each value supplies the metric name and description registered by {@code AuthMetrics},
+ * covering registration, login, refresh-token rotation, rate limiting, credential failures, and
+ * token-state availability.
+ */
 public enum AuthMetricEnum {
   REGISTER_REQUESTS(
       METRIC_AUTH_REGISTER_REQUESTS, "Total register requests received by the auth flow."),

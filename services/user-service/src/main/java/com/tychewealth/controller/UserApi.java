@@ -19,6 +19,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+/**
+ * HTTP contract for authenticated user-account operations.
+ *
+ * <p>Defines the endpoints for retrieving, updating, and deleting the current user, as well as
+ * changing the account password. The authenticated principal and authorization header are declared
+ * at the contract boundary because they are required by the service layer for identity and
+ * token-revocation handling.
+ */
 @RequestMapping(value = USER_BASE_URL)
 @Tag(name = "User")
 public interface UserApi {

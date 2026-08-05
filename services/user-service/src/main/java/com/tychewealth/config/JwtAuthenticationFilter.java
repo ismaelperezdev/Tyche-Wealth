@@ -18,6 +18,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+/**
+ * Servlet filter that turns a valid Bearer token into a Spring authentication.
+ *
+ * <p>Runs once per request, delegates validation to {@code TokenValidator}, and stores the user
+ * identifier in the security context before continuing the chain. Missing credentials are passed
+ * through so the security chain can apply its rules, while invalid tokens are translated into an
+ * authentication failure response.
+ */
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 

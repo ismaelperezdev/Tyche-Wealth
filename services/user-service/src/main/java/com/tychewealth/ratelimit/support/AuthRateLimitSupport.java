@@ -18,6 +18,14 @@ import java.time.Duration;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
+/**
+ * Builds the rate-limit interceptors applied to authentication endpoints.
+ *
+ * <p>Converts the configured authentication policies into dedicated namespaces and interceptor
+ * registrations for login, registration, password recovery, verification, and token refresh. It
+ * also attaches authentication metrics to the flows that expose them and shares the configured
+ * {@link RateLimitStore} across all interceptors.
+ */
 @Component
 public class AuthRateLimitSupport {
   private static final String LOGIN_NAMESPACE = "rate-limit:auth:login";

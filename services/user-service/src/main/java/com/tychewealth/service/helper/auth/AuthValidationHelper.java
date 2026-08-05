@@ -25,6 +25,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+/**
+ * Centralizes authentication input, credential, and registration-conflict validation.
+ *
+ * <p>Combines repository lookups, password-policy checks, encoded-password comparison, account
+ * verification checks, and persistence-constraint translation. Validation failures update the
+ * relevant authentication metrics and are exposed as domain-specific {@link AuthException}s.
+ */
 @Slf4j
 @Component
 @AllArgsConstructor

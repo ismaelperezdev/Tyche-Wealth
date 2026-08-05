@@ -19,6 +19,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+/**
+ * Performs user-account lookups and persistence operations used by {@code UserService}.
+ *
+ * <p>Loads active users, applies partial updates through {@link UserMapper}, encodes new passwords,
+ * revokes refresh tokens after credential changes, and performs soft deletion while preserving the
+ * account record for historical consistency.
+ */
 @Slf4j
 @Component
 @AllArgsConstructor

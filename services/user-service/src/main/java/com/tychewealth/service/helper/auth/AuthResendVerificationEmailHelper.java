@@ -12,6 +12,13 @@ import java.time.Instant;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
+/**
+ * Coordinates the resend flow for registration verification emails.
+ *
+ * <p>Loads the active user with a write lock, prevents duplicate delivery while a previous token
+ * remains available, generates a replacement verification token, and delegates delivery and expiry
+ * handling to {@link VerificationEmailWorkflow}.
+ */
 @Component
 @AllArgsConstructor
 public class AuthResendVerificationEmailHelper {

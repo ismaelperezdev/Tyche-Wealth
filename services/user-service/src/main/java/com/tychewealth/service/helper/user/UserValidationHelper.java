@@ -15,6 +15,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+/**
+ * Centralizes validation rules for authenticated user-account changes.
+ *
+ * <p>Checks username availability, verifies the current password, and prevents password reuse
+ * before persistence is attempted. Validation failures are logged, recorded through {@link
+ * UserMetrics}, and exposed as domain-specific {@link UserException}s.
+ */
 @Slf4j
 @Component
 @AllArgsConstructor

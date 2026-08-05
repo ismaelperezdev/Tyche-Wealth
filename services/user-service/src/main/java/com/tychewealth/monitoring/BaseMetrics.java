@@ -5,6 +5,15 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.util.EnumMap;
 import java.util.function.Function;
 
+/**
+ * Provides the common Micrometer counter implementation for a metric enum.
+ *
+ * <p>Creates and registers one counter for every enum constant using the supplied name and
+ * description resolvers. Concrete metric components only need to provide their enum type and can
+ * then increment individual counters without managing registry lookups themselves.
+ *
+ * @param <E> metric enum type
+ */
 abstract class BaseMetrics<E extends Enum<E>> {
 
   private final EnumMap<E, Counter> counters;

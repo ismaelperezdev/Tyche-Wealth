@@ -36,6 +36,14 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Coordinates authentication use cases across validation, token, persistence, and email helpers.
+ *
+ * <p>Handles transactional account verification and registration, delegates credential checks and
+ * email workflows to focused collaborators, rotates refresh tokens atomically, and revokes access
+ * and refresh-token state during logout. The implementation also translates persistence conflicts
+ * encountered during registration into the service's domain-level validation errors.
+ */
 @Slf4j
 @Service
 @AllArgsConstructor

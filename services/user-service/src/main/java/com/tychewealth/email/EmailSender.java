@@ -28,6 +28,14 @@ import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+/**
+ * Sends transactional emails through the configured Resend API client.
+ *
+ * <p>Applies the service-wide daily delivery quota through {@link RateLimitStore}, maps the
+ * internal {@link EmailMessageDto} contract to Resend's request format, and translates delivery
+ * outcomes into {@link EmailSendResult} values. Transport failures are logged and exposed to the
+ * application as an {@link EmailException} so callers do not depend on the underlying HTTP client.
+ */
 @Slf4j
 @RequiredArgsConstructor
 public class EmailSender {

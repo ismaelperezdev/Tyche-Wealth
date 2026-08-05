@@ -25,6 +25,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+/**
+ * Provides low-level JWT signing, parsing, validation, and claim extraction operations.
+ *
+ * <p>Builds the signing key from the configured secret, validates signed claims, enforces token
+ * purposes for verification flows, and translates malformed or invalid credentials into
+ * unauthorized authentication errors.
+ */
 @Slf4j
 @Component
 public class AccessTokenSupport {

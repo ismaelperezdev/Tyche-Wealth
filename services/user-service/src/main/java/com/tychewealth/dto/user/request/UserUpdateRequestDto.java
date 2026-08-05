@@ -10,6 +10,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Request payload for updating the authenticated user's editable account information.
+ *
+ * <p>Currently contains the username and normalizes it through {@link Utils} before validation and
+ * persistence, ensuring identity comparisons use the same canonical representation.
+ */
 @Getter
 @Setter
 @NoArgsConstructor

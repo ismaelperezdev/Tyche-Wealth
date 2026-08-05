@@ -15,6 +15,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * JPA entity representing a refresh token issued to a {@link UserEntity}.
+ *
+ * <p>Tracks token ownership, expiration, revocation state, and creation time so refresh-token
+ * rotation and logout flows can validate and invalidate credentials independently of access-token
+ * validation.
+ */
 @Entity
 @Getter
 @Setter

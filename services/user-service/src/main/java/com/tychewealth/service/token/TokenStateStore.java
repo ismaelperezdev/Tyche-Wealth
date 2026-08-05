@@ -12,6 +12,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+/**
+ * Manages the Redis-backed state associated with otherwise stateless authentication tokens.
+ *
+ * <p>Stores access-token revocations and refresh-to-access-token links with expiration-based TTLs,
+ * supports lookup and cleanup during logout or rotation, and defers transactional cleanup until
+ * after commit when necessary. Redis failures are delegated to {@link TokenStateSupport} for the
+ * configured fail-closed validation behavior and metrics.
+ */
 @Component
 @RequiredArgsConstructor
 public class TokenStateStore {

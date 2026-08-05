@@ -16,6 +16,13 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 
+/**
+ * Coordinates verification-email delivery with the surrounding database transaction.
+ *
+ * <p>Builds the message before commit, sends it only after the account transaction succeeds, and
+ * restores the previous verification-token expiry in a new transaction when delivery fails. A
+ * successful delivery invokes the supplied callback so the caller can record completion metrics.
+ */
 @Slf4j
 @Component
 public class VerificationEmailWorkflow {

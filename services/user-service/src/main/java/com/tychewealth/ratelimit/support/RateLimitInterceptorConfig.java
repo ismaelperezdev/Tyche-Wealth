@@ -7,6 +7,14 @@ import java.util.Objects;
 import java.util.function.Function;
 import lombok.Getter;
 
+/**
+ * Immutable configuration used by {@link com.tychewealth.ratelimit.RateLimitInterceptor}.
+ *
+ * <p>Defines the counter namespace, request quota, time window, rejection message, metric
+ * callbacks, failure policy, and client-key resolver used to identify callers. Constructor
+ * validation prevents unusable limits, while missing optional callbacks and resolvers fall back to
+ * safe defaults.
+ */
 @Getter
 public class RateLimitInterceptorConfig {
   private static final Function<HttpServletRequest, String> REMOTE_ADDRESS_RESOLVER =

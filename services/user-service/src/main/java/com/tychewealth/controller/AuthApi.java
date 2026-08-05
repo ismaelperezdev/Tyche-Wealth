@@ -22,6 +22,14 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+/**
+ * HTTP contract for authentication and account-verification operations.
+ *
+ * <p>Exposes the versioned endpoints used to register users, authenticate credentials, refresh and
+ * revoke tokens, and complete email-based verification flows. Request validation and endpoint media
+ * types are declared here so that the contract is shared by the controller implementation and the
+ * generated OpenAPI documentation.
+ */
 @RequestMapping(value = URL_FOLDER_V1 + "/auth")
 @Tag(name = "Auth")
 public interface AuthApi {

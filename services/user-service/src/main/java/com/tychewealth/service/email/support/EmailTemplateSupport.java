@@ -11,6 +11,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
+/**
+ * Provides shared operations for rendering authentication email templates.
+ *
+ * <p>Builds tokenized verification links, replaces template placeholders with workflow values, and
+ * loads UTF-8 template resources. Template I/O failures are converted into an IllegalStateException
+ * so application startup or message construction fails explicitly.
+ */
 @Component
 public class EmailTemplateSupport {
 

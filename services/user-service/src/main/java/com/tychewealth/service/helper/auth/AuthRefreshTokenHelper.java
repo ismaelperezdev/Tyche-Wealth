@@ -28,6 +28,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+/**
+ * Manages refresh-token generation, persistence, validation, revocation, and access-token linking.
+ *
+ * <p>Generates cryptographically secure refresh tokens, stores only their HMAC representation,
+ * tracks expiration and revocation through the repository, and links refresh tokens to access token
+ * state in Redis. Failed state linking is retried and rolls back the persisted token when the
+ * backing state store remains unavailable.
+ */
 @Slf4j
 @Component
 public class AuthRefreshTokenHelper {
