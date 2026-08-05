@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Request payload for sending another email-verification message to a user. */
 @Getter
 @Setter
 @NoArgsConstructor

@@ -22,6 +22,13 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+/**
+ * Manages trusted-device credentials used to recognize previously verified login devices.
+ *
+ * <p>Stores only SHA-256 token hashes, refreshes existing device records, enforces the per-user
+ * device limit, and creates secure HTTP-only cookies with the configured security attributes.
+ * Expired devices are removed before limit checks so stale credentials do not consume capacity.
+ */
 @Component
 public class TrustedDeviceManager {
 

@@ -6,6 +6,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Response returned after successful user authentication.
+ *
+ * <p>Provides the access and refresh tokens, the access-token lifetime, and the public user
+ * representation needed by the client to establish the authenticated session.
+ */
 @Getter
 @Setter
 @NoArgsConstructor

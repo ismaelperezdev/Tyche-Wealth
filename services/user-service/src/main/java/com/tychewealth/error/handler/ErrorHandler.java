@@ -29,6 +29,14 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
+/**
+ * Centralizes the translation of application and validation exceptions into HTTP responses.
+ *
+ * <p>Maps known domain and framework exceptions to their configured {@link ErrorDefinition},
+ * preserves a consistent {@link ErrorResponse} structure, and applies no-store headers to error
+ * responses. Unexpected failures are logged for diagnostics while the response exposes only a
+ * generic description to avoid leaking internal implementation details.
+ */
 @Slf4j
 @RestControllerAdvice
 @AllArgsConstructor

@@ -22,6 +22,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+/**
+ * Initiates the password-recovery email flow for an active user account.
+ *
+ * <p>Generates a purpose-specific recovery token, stores it in Redis with its expiration, and sends
+ * the corresponding email through the authentication email factory and sender. Existing recovery
+ * tokens and unsuccessful deliveries are handled without leaving stale recovery state.
+ */
 @Slf4j
 @Component
 @AllArgsConstructor

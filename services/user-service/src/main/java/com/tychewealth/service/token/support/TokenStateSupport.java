@@ -17,6 +17,13 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+/**
+ * Provides shared key-building and parsing operations for token state management.
+ *
+ * <p>Hashes refresh-token values before constructing Redis keys, validates Bearer authorization
+ * headers, and checks access-token revocation state. Revocation-store failures fail closed so an
+ * unavailable Redis instance cannot transparently authorize a potentially revoked token.
+ */
 @Slf4j
 @Component
 public class TokenStateSupport {

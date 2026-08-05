@@ -15,6 +15,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+/**
+ * Enforces a configured request quota before a controller handler is executed.
+ *
+ * <p>Uses the configured client-key resolver and {@link RateLimitStore} to count requests within a
+ * time window. Depending on the configuration, an unavailable store either fails the request closed
+ * with {@code 503 Service Unavailable} or propagates the store failure. Requests exceeding the
+ * quota are rejected with {@code 429 Too Many Requests} and invoke the configured metric callbacks.
+ */
 @Slf4j
 public class RateLimitInterceptor implements HandlerInterceptor {
 

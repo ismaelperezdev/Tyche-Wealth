@@ -21,6 +21,13 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.util.StringUtils;
 
+/**
+ * Configures the security filter chain for the Prometheus metrics endpoint.
+ *
+ * <p>Protects the endpoint with HTTP Basic authentication, uses a stateless session, and creates an
+ * in-memory user from the credentials configured for the scraper. This flow remains isolated from
+ * the JWT authentication used by the application API.
+ */
 @Configuration
 public class PrometheusSecurityConfig {
 

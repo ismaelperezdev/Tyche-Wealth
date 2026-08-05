@@ -25,6 +25,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+/**
+ * Completes the authenticated login flow after credentials have been validated.
+ *
+ * <p>Checks trusted-device status, optionally triggers device verification by email, creates a new
+ * access token, revokes previous refresh tokens, persists the rotated refresh token, and returns
+ * the public user data with the newly issued credentials.
+ */
 @Slf4j
 @Component
 @AllArgsConstructor

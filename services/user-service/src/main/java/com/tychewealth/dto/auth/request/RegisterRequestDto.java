@@ -21,6 +21,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Request payload for creating a new user account.
+ *
+ * <p>Validates the email, username, and password policies required for registration. Email and
+ * username values are normalized through {@link Utils}, and the password is additionally checked
+ * against BCrypt's maximum UTF-8 byte length before the service creates the account.
+ */
 @Getter
 @NoArgsConstructor
 public class RegisterRequestDto {

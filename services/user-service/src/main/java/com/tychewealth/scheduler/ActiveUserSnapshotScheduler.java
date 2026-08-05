@@ -19,6 +19,14 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+/**
+ * Periodically refreshes the active-user snapshot and publishes it to Kafka.
+ *
+ * <p>Runs only when active-user snapshots and Kafka integration are enabled. The scheduler obtains
+ * the current active-user identifiers from {@link ActiveUserSnapshotService}, wraps them in an
+ * {@link ActiveUsersEvent}, and delegates publication to {@link ActiveUsersEventPublisher} so
+ * downstream services can refresh their own active-user state.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor

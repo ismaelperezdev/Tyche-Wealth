@@ -16,6 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+/**
+ * Implements authenticated user-account operations and coordinates their security side effects.
+ *
+ * <p>Uses dedicated helpers for active-user lookup, validation, mapping, and persistence. Password
+ * changes and soft deletion revoke the current access token after a successful transaction commit,
+ * preventing token-state changes from being applied when the account update itself is rolled back.
+ */
 @Slf4j
 @Service
 @AllArgsConstructor

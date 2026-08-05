@@ -13,6 +13,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.util.Assert;
 import org.springframework.web.client.RestClient;
 
+/**
+ * Configures the email delivery infrastructure used by the authentication flows.
+ *
+ * <p>Registers the service UTC clock, enables the Resend properties, and creates the {@link
+ * EmailSender} with its HTTP client, daily limit, and rate-limit store. It also validates that the
+ * registration verification, device verification, and password recovery URLs are absolute before
+ * publishing the corresponding beans.
+ */
 @Configuration
 @EnableConfigurationProperties(ResendEmailPropertiesDto.class)
 public class EmailConfig {

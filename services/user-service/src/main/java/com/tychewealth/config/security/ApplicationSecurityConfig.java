@@ -18,6 +18,13 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
+/**
+ * Configures the main security filter chain for the user-service API.
+ *
+ * <p>Allows public access to authentication, health, and CORS preflight endpoints while requiring
+ * authentication for all other operations. User identity is established by {@link
+ * JwtAuthenticationFilter}, and HTTP sessions remain stateless.
+ */
 @Configuration
 public class ApplicationSecurityConfig {
 

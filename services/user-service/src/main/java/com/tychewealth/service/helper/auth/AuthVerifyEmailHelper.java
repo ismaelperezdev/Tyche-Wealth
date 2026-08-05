@@ -13,6 +13,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
+/**
+ * Completes registration email verification for an active user account.
+ *
+ * <p>Validates the email-verification token, marks the user as verified, clears the persisted
+ * verification expiry, and creates the trusted-device cookie used by the authenticated flow.
+ * Repeated verification for an already verified user remains idempotent from the account-state
+ * perspective.
+ */
 @Slf4j
 @Component
 @AllArgsConstructor

@@ -14,6 +14,13 @@ import static com.tychewealth.constants.MetricConstants.METRIC_USER_UPDATE_REQUE
 import static com.tychewealth.constants.MetricConstants.METRIC_USER_UPDATE_SUCCESS;
 import static com.tychewealth.constants.MetricConstants.METRIC_USER_USERNAME_CONFLICT;
 
+/**
+ * Defines the Micrometer counters emitted by authenticated user-account operations.
+ *
+ * <p>Each value provides the metric name and description registered by {@code UserMetrics},
+ * covering successful requests, validation and authorization failures, conflicts, and password
+ * change outcomes.
+ */
 public enum UserMetricEnum {
   RETRIEVE_REQUESTS(
       METRIC_USER_RETRIEVE_REQUESTS, "Total authenticated user profile retrieval requests."),

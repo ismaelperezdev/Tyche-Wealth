@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Request payload identifying the account that should receive a password-recovery email. */
 @Getter
 @Setter
 @NoArgsConstructor

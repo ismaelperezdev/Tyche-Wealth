@@ -10,6 +10,13 @@ import com.tychewealth.dto.auth.request.ResendVerificationEmailRequestDto;
 import com.tychewealth.dto.user.UserResponseDto;
 import org.springframework.http.ResponseCookie;
 
+/**
+ * Application service contract for authentication and credential lifecycle operations.
+ *
+ * <p>Coordinates registration, login, email and device verification, password-recovery delivery,
+ * refresh-token rotation, and logout without exposing the underlying persistence or token-state
+ * implementation to API adapters.
+ */
 public interface AuthService {
 
   ResponseCookie verifyEmail(String token);

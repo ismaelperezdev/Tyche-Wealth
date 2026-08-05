@@ -30,6 +30,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+/**
+ * Encodes and decodes the JWT credentials used by the authentication workflows.
+ *
+ * <p>Issues access, email-verification, trusted-device-verification, and password-recovery tokens
+ * with purpose-specific lifetimes and claims. Delegates cryptographic parsing to {@link
+ * AccessTokenSupport} and rejects tokens whose purpose, identifier, subject, or signature does not
+ * match the expected access-token contract.
+ */
 @Slf4j
 @Component
 public class AccessTokenCodec {
