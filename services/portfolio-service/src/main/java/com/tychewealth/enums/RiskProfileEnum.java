@@ -3,6 +3,12 @@ package com.tychewealth.enums;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+/**
+ * Represents the target risk tolerance of a portfolio.
+ *
+ * <p>The profile is used to describe whether the portfolio is intended for low, medium, or high
+ * risk exposure.
+ */
 @Getter
 @AllArgsConstructor
 public enum RiskProfileEnum {

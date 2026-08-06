@@ -22,6 +22,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Implements authenticated portfolio operations and coordinates their validation and persistence.
+ *
+ * <p>Uses the portfolio repository, mapper, and validation helpers to enforce portfolio ownership,
+ * apply bounded pagination, and translate persistence conflicts while preserving the transaction
+ * boundaries required by portfolio creation and updates.
+ */
 @Service
 @AllArgsConstructor
 public class PortfolioServiceImpl implements PortfolioService {

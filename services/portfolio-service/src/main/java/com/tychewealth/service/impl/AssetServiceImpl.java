@@ -53,6 +53,13 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * Implements authenticated asset operations, including asset import processing.
+ *
+ * <p>Coordinates repositories, mappers, and validation helpers for asset CRUD and batch creation,
+ * while integrating AI parsing and Redis-backed temporary storage for imported asset candidates.
+ * Transaction boundaries protect portfolio updates and batch operations from partial persistence.
+ */
 @Service
 @AllArgsConstructor
 public class AssetServiceImpl implements AssetService {

@@ -37,10 +37,17 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * Defines the HTTP contract for portfolio asset management and asset imports.
+ *
+ * <p>Declares endpoints for creating, listing, retrieving, updating, and deleting assets, as well
+ * as starting and retrieving asset imports.
+ */
 @RequestMapping
 @Tag(name = "Asset")
 public interface AssetApi {
 
+  /** Creates an asset in the specified portfolio. */
   @PostMapping(
       value = PORTFOLIO_ASSET_BASE_URL,
       consumes = REQUEST_CONSUMES,
@@ -50,6 +57,7 @@ public interface AssetApi {
       @PathVariable(PORTFOLIO_ID_PATH) Long portfolioId,
       @Valid @RequestBody AssetCreateRequestDto createRequest);
 
+  /** Returns a paginated list of assets belonging to the specified portfolio. */
   @GetMapping(value = PORTFOLIO_ASSET_BASE_URL, produces = REQUEST_PRODUCES)
   ResponseEntity<List<AssetResponseDto>> listAssets(
       @AuthenticationPrincipal Long userId,
@@ -57,18 +65,21 @@ public interface AssetApi {
       @RequestParam(name = PAGE_PARAM, defaultValue = DEFAULT_PAGE) int page,
       @RequestParam(name = LIMIT_PARAM, defaultValue = DEFAULT_LIST_LIMIT) int limit);
 
+  /** Returns a single asset from the specified portfolio. */
   @GetMapping(value = PORTFOLIO_ASSET_BY_ID_URL, produces = REQUEST_PRODUCES)
   ResponseEntity<AssetResponseDto> retrieve(
       @AuthenticationPrincipal Long userId,
       @PathVariable(PORTFOLIO_ID_PATH) Long portfolioId,
       @PathVariable(ASSET_ID_PATH) Long assetId);
 
+  /** Deletes an asset from the specified portfolio. */
   @DeleteMapping(value = PORTFOLIO_ASSET_BY_ID_URL)
   ResponseEntity<Void> delete(
       @AuthenticationPrincipal Long userId,
       @PathVariable(PORTFOLIO_ID_PATH) Long portfolioId,
       @PathVariable(ASSET_ID_PATH) Long assetId);
 
+  /** Updates an existing asset in the specified portfolio. */
   @PatchMapping(
       value = PORTFOLIO_ASSET_BY_ID_URL,
       consumes = REQUEST_CONSUMES,
@@ -79,6 +90,7 @@ public interface AssetApi {
       @PathVariable(ASSET_ID_PATH) Long assetId,
       @Valid @RequestBody AssetUpdateRequestDto updateRequest);
 
+  /** Creates multiple assets in a portfolio from a completed asset import. */
   @PostMapping(
       value = PORTFOLIO_ASSET_BATCH_URL,
       consumes = REQUEST_CONSUMES,
@@ -88,6 +100,7 @@ public interface AssetApi {
       @PathVariable(PORTFOLIO_ID_PATH) Long portfolioId,
       @Valid @RequestBody AssetBatchCreateRequestDto request);
 
+  /** Starts importing assets from the supplied multipart file. */
   @PostMapping(
       value = ASSET_IMPORT_URL,
       consumes = MULTIPART_FORM_DATA,
@@ -95,6 +108,7 @@ public interface AssetApi {
   ResponseEntity<AssetImportResponseDto> importAssets(
       @AuthenticationPrincipal Long userId, @RequestPart("file") MultipartFile file);
 
+  /** Returns the current status and results of an asset import. */
   @GetMapping(value = ASSET_IMPORT_BY_ID_URL, produces = REQUEST_PRODUCES)
   ResponseEntity<AssetImportResponseDto> retrieveImportedAssets(
       @AuthenticationPrincipal Long userId, @PathVariable(IMPORT_ID_PATH) String importId);

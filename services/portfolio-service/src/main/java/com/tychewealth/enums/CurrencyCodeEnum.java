@@ -4,6 +4,11 @@ import com.fasterxml.jackson.annotation.JsonEnumDefaultValue;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+/**
+ * Enumerates the currencies supported for portfolio and asset amounts.
+ *
+ * <p>Each value contains a stable identifier, ISO-style abbreviation, and display name.
+ */
 @Getter
 @AllArgsConstructor
 public enum CurrencyCodeEnum {

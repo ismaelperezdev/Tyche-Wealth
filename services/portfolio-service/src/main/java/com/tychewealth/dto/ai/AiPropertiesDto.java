@@ -2,6 +2,12 @@ package com.tychewealth.dto.ai;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * Configuration properties for the AI provider used by portfolio asset import.
+ *
+ * <p>Normalizes the provider URL and model names, applies safe timeout defaults, and selects the
+ * configured fast or complex model for a requested {@link AiModelTypeEnum}.
+ */
 @ConfigurationProperties(prefix = "app.ai")
 public record AiPropertiesDto(
     String baseUrl,

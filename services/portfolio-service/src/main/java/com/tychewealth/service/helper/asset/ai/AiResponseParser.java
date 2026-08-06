@@ -26,6 +26,13 @@ import java.util.stream.IntStream;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+/**
+ * Converts AI-generated asset data into validated portfolio import candidates.
+ *
+ * <p>Sanitizes and deserializes loosely formatted JSON, filters unusable candidates, merges AI
+ * output with deterministic statement extraction when possible, and enforces import limits through
+ * {@link AssetAiValidationHelper}.
+ */
 @Component
 public final class AiResponseParser {
 

@@ -9,6 +9,14 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * Application service contract for authenticated portfolio-asset operations.
+ *
+ * <p>Defines the use cases for creating, listing, retrieving, updating, and deleting assets, as
+ * well as importing asset data and confirming or discarding imported candidates while keeping
+ * validation, persistence, AI processing, and temporary-result handling behind the service
+ * boundary.
+ */
 public interface AssetService {
 
   AssetResponseDto create(Long userId, Long portfolioId, AssetCreateRequestDto createRequest);

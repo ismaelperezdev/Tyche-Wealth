@@ -13,6 +13,12 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Configures the HTTP client and bounded executor used by asset-import AI operations.
+ *
+ * <p>Loads the AI properties and creates request timeouts and queue limits from the application
+ * configuration.
+ */
 @Configuration
 @EnableConfigurationProperties(AiPropertiesDto.class)
 public class AiConfig {

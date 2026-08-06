@@ -21,6 +21,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Contains the validated data used to update an existing portfolio. */
 @Getter
 @Setter
 @NoArgsConstructor

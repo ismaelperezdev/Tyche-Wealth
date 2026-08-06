@@ -19,6 +19,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Contains the optional validated fields used to update an existing asset. */
 @Getter
 @Setter
 @NoArgsConstructor

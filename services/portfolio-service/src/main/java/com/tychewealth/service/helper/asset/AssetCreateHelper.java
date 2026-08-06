@@ -10,6 +10,12 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
+/**
+ * Creates and persists assets associated with a portfolio.
+ *
+ * <p>Uses the asset mapper to build entities, assigns their portfolio relationship, flushes single
+ * or batch writes through the repository, and maps persisted entities back to response DTOs.
+ */
 @Component
 @AllArgsConstructor
 public class AssetCreateHelper {

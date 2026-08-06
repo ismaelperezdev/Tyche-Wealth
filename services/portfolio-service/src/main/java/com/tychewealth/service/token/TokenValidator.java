@@ -13,6 +13,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+/**
+ * Validates bearer access tokens at the portfolio-service security boundary.
+ *
+ * <p>Delegates token extraction and JWT claim parsing to the token support components, checks the
+ * token identifier against Redis revocation state, and returns the authenticated user identifier
+ * only for valid, non-revoked access tokens.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor

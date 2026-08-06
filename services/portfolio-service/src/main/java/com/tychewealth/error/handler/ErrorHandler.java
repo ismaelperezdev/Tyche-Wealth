@@ -30,6 +30,13 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
+/**
+ * Centralizes exception handling for the portfolio-service REST API.
+ *
+ * <p>Translates domain, validation, deserialization, persistence, HTTP status, and unexpected
+ * exceptions into consistent {@link ErrorResponse} payloads while preserving the corresponding HTTP
+ * status and preventing error responses from being cached.
+ */
 @Slf4j
 @RestControllerAdvice
 public class ErrorHandler {

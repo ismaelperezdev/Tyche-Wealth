@@ -19,6 +19,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+/**
+ * Provides low-level JWT validation and access-token claim extraction operations.
+ *
+ * <p>Builds the signing key from the configured secret, validates signed claims, extracts the user
+ * identifier and token ID, and rejects malformed, invalid, or purpose-specific tokens as
+ * unauthorized credentials.
+ */
 @Slf4j
 @Component
 public class AccessTokenSupport {

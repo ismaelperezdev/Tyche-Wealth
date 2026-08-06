@@ -21,6 +21,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Contains the validated data required to create an asset in a portfolio. */
 @Getter
 @Setter
 @NoArgsConstructor

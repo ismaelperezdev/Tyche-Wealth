@@ -9,6 +9,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+/**
+ * Registers the application-wide rate-limit interceptor.
+ *
+ * <p>Initializes rate-limit properties and storage, applies the interceptor to all MVC paths, and
+ * exposes a reset operation for all configured rate-limit namespaces.
+ */
 @Configuration
 @EnableConfigurationProperties(RateLimitPropertiesDto.class)
 public class RateLimitConfig implements WebMvcConfigurer {

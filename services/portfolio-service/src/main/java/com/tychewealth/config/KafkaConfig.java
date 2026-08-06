@@ -14,6 +14,12 @@ import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.util.backoff.FixedBackOff;
 
+/**
+ * Configures Kafka listener error handling when Kafka integration is enabled.
+ *
+ * <p>Publishes failed records to a dead-letter topic and applies the configured retry policy to
+ * Kafka listener containers.
+ */
 @Configuration
 @EnableKafka
 @ConditionalOnProperty(name = "kafka.enabled", havingValue = "true", matchIfMissing = false)

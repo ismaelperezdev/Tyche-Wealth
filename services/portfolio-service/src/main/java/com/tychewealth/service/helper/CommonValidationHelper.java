@@ -20,6 +20,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+/**
+ * Provides validation shared by portfolio and asset service operations.
+ *
+ * <p>Validates the presence of the authenticated user and resolves portfolios owned by that user,
+ * translating missing resources into the service's standard domain exception.
+ */
 @Slf4j
 @Component
 @AllArgsConstructor

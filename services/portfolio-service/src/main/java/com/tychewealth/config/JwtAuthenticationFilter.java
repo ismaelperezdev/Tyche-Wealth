@@ -18,6 +18,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+/**
+ * Authenticates requests carrying a bearer token before they reach the application endpoints.
+ *
+ * <p>Delegates token validation to {@link TokenValidator} and reports invalid credentials through
+ * the configured {@link AuthenticationEntryPoint}.
+ */
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 

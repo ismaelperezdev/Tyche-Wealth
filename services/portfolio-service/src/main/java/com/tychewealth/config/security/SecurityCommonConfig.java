@@ -26,6 +26,12 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+/**
+ * Provides security components shared by the portfolio-service filter chains.
+ *
+ * <p>Configures JWT authentication support, authentication and authorization error responses,
+ * password encoding, and the CORS policy used by the application API.
+ */
 @Slf4j
 @Configuration
 public class SecurityCommonConfig {

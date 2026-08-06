@@ -19,6 +19,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * Validates resource and processing limits for AI-assisted asset imports.
+ *
+ * <p>Checks uploaded files, PDF size and page limits, extraction inputs, persisted import state,
+ * processing time bounds, and the maximum number of detected assets before expensive AI work or
+ * downstream persistence is performed.
+ */
 @Component
 public class AssetAiValidationHelper {
 

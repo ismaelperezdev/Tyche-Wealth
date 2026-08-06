@@ -5,6 +5,13 @@ import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
 import org.springframework.data.domain.Page;
 
+/**
+ * Application service contract for authenticated portfolio operations.
+ *
+ * <p>Defines the use cases for listing, retrieving, creating, updating, and deleting portfolios
+ * owned by the current user while keeping validation, persistence, and mapping behind the service
+ * boundary.
+ */
 public interface PortfolioService {
 
   Page<PortfolioResponseDto> listPortfolios(Long userId, int page, int limit);

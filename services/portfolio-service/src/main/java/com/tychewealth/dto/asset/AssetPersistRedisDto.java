@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Stores an asset import request and its result in the temporary Redis persistence model. */
 @Getter
 @Setter
 @NoArgsConstructor
