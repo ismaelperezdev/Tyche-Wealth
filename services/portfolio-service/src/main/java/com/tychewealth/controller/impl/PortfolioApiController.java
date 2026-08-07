@@ -43,6 +43,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Exposes the REST operations for managing user portfolios.
+ *
+ * <p>Delegates business operations to {@link PortfolioService} and applies request logging, rate
+ * limiting, validation, and cache-control headers to the API responses.
+ */
 @Slf4j
 @RestController
 @AllArgsConstructor

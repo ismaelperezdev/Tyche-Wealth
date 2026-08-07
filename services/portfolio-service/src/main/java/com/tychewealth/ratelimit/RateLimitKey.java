@@ -1,5 +1,6 @@
 package com.tychewealth.ratelimit;
 
+/** Defines the rate-limit namespace and default quota for each portfolio API operation. */
 public enum RateLimitKey {
   PORTFOLIO_CREATE("rate-limit:portfolio:create", 20, 60),
   PORTFOLIO_UPDATE("rate-limit:portfolio:update", 20, 60),

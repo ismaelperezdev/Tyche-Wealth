@@ -3,6 +3,11 @@ package com.tychewealth.enums;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+/**
+ * Represents the intended time horizon for a portfolio's investments.
+ *
+ * <p>The available values distinguish short-, medium-, and long-term investment objectives.
+ */
 @Getter
 @AllArgsConstructor
 public enum InvestmentHorizonEnum {

@@ -12,6 +12,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+/**
+ * Provides shared access-token state and Bearer-header operations.
+ *
+ * <p>Validates authorization headers, builds access-token revocation keys, and checks Redis for
+ * revoked tokens. Redis failures fail closed so an unavailable state store cannot authorize a
+ * potentially revoked access token.
+ */
 @Slf4j
 @Component
 public class TokenStateSupport {

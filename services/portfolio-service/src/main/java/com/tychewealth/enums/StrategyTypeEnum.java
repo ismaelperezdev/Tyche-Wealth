@@ -3,6 +3,12 @@ package com.tychewealth.enums;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+/**
+ * Represents the investment strategy selected for a portfolio.
+ *
+ * <p>Each strategy exposes a stable identifier, a client-facing label, and a short description used
+ * to characterize the portfolio's intended approach.
+ */
 @Getter
 @AllArgsConstructor
 public enum StrategyTypeEnum {

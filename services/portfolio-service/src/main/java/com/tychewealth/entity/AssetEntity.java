@@ -35,6 +35,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * JPA entity representing an asset persisted in the {@code assets} table.
+ *
+ * <p>Stores the asset identity, classification, holding quantity, average price, currency, and
+ * lifecycle timestamps. Each asset belongs to one {@link PortfolioEntity}, which owns its
+ * persistence lifecycle.
+ */
 @Entity
 @Getter
 @Setter

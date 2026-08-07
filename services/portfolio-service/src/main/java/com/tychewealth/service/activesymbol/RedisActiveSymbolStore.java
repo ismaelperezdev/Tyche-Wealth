@@ -11,6 +11,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+/**
+ * Redis-backed implementation of {@link ActiveSymbolStore}.
+ *
+ * <p>Stores active symbols in a Redis set and replaces the complete snapshot through a temporary
+ * key and rename so readers do not observe a partially populated set. Temporary data expires and is
+ * removed when the replacement fails.
+ */
 @Component
 @RequiredArgsConstructor
 public class RedisActiveSymbolStore implements ActiveSymbolStore {

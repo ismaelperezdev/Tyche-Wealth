@@ -50,6 +50,12 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * Exposes the REST operations for managing portfolio assets and importing asset data.
+ *
+ * <p>Delegates business operations to {@link AssetService} and applies request logging, rate
+ * limiting, validation, and cache-control headers to the API responses.
+ */
 @Slf4j
 @RestController
 @AllArgsConstructor

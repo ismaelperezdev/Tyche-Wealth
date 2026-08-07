@@ -31,6 +31,12 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+/**
+ * Validates portfolio creation and update rules before persistence.
+ *
+ * <p>Enforces per-user portfolio limits and name uniqueness, validates ownership for updates, and
+ * translates known database constraint violations into portfolio domain exceptions.
+ */
 @Slf4j
 @Component
 @AllArgsConstructor

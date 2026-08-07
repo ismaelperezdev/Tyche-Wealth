@@ -15,6 +15,13 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import org.springframework.stereotype.Component;
 
+/**
+ * Loads and exposes the heuristics used to interpret AI asset-import responses.
+ *
+ * <p>Initializes section terminators, metadata prefixes, asset-type keywords, and currency context
+ * from classpath resources, normalizing them for case-insensitive matching. It also provides the
+ * shared fallback and merge operations used by {@code AiResponseParser}.
+ */
 @Getter
 @Component
 public class AiResponseParserSupport {

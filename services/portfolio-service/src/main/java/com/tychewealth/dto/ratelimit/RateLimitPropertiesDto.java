@@ -5,6 +5,12 @@ import java.util.EnumMap;
 import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * Binds and resolves the rate-limit rules configured for the application.
+ *
+ * <p>Provides defaults for every supported {@link RateLimitKey} and normalizes incomplete rules
+ * against those defaults.
+ */
 @ConfigurationProperties(prefix = "app.rate-limit")
 public class RateLimitPropertiesDto {
 
@@ -27,6 +33,7 @@ public class RateLimitPropertiesDto {
     return defaults;
   }
 
+  /** Describes the request quota and time window for one rate-limited operation. */
   public static class RateLimitDto {
     private int maxRequests;
     private int windowSeconds;

@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Describes a batch action for creating assets from imported or supplied data. */
 @Getter
 @Setter
 @NoArgsConstructor

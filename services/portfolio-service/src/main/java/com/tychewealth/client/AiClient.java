@@ -19,6 +19,15 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
+/**
+ * HTTP client for chat-completion providers used by portfolio asset import.
+ *
+ * <p>Builds and sends non-streaming chat requests using the model selected by {@link
+ * AiModelTypeEnum}, applies the configured request timeout and optional bearer credential, and
+ * extracts the first response message. Transport, serialization, protocol, and malformed response
+ * failures are converted into explicit application exceptions with response fingerprints instead of
+ * exposing full provider payloads.
+ */
 @Component
 @RequiredArgsConstructor
 public class AiClient {

@@ -22,6 +22,13 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+/**
+ * Enforces configured request quotas before a controller handler is executed.
+ *
+ * <p>Resolves the applicable {@link RateLimited} rule, identifies the authenticated user or remote
+ * client, and records the request through {@link RateLimitStore}. Exceeding a quota returns a rate
+ * limit response, while an unavailable store is reported as a service-unavailable error.
+ */
 @Slf4j
 public class RateLimitInterceptor implements HandlerInterceptor {
 

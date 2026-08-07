@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Represents the portfolio data returned by the portfolio API. */
 @Getter
 @Setter
 @NoArgsConstructor

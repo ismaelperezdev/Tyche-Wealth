@@ -38,6 +38,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * JPA entity representing an investment portfolio persisted in the {@code portfolios} table.
+ *
+ * <p>Stores the portfolio owner's identifier, investment preferences, risk limit, and lifecycle
+ * timestamps. Its {@link AssetEntity} collection is managed through the portfolio relationship,
+ * including cascading and orphan removal for associated assets.
+ */
 @Entity
 @Getter
 @Setter

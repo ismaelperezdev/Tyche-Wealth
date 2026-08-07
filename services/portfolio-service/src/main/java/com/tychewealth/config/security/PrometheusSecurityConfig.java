@@ -21,6 +21,12 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.util.StringUtils;
 
+/**
+ * Configures the dedicated security chain for the Prometheus actuator endpoint.
+ *
+ * <p>Protects metrics with stateless HTTP Basic authentication and provisions the in-memory
+ * Prometheus user from the application security properties.
+ */
 @Configuration
 public class PrometheusSecurityConfig {
 

@@ -15,6 +15,12 @@ import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
+/**
+ * Consumes active-user events and refreshes the symbols tracked by the portfolio service.
+ *
+ * <p>When Kafka integration is enabled, listens to the configured active-users topic and delegates
+ * the received user set to {@link ActiveSymbolService} for symbol synchronization.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor

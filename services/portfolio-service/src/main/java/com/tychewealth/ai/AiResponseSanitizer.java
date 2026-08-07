@@ -1,5 +1,12 @@
 package com.tychewealth.ai;
 
+/**
+ * Normalizes loosely formatted AI output before it is deserialized as JSON.
+ *
+ * <p>Removes Markdown fences and JSON comments, locates the first JSON object or array, and quotes
+ * bare string values while preserving valid JSON content. The utility is intentionally stateless so
+ * it can be reused by the asset-import response parser.
+ */
 public final class AiResponseSanitizer {
 
   private static final int NOT_FOUND = -1;

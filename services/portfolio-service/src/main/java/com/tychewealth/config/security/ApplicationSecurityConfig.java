@@ -18,6 +18,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
+/**
+ * Configures security for the portfolio-service application endpoints.
+ *
+ * <p>Applies the JWT filter, CORS and security headers, stateless sessions, public endpoint rules,
+ * and authentication and authorization handlers to the main API filter chain.
+ */
 @Configuration
 public class ApplicationSecurityConfig {
 

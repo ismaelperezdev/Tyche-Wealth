@@ -54,6 +54,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * Coordinates file extraction and temporary persistence for asset imports.
+ *
+ * <p>Uses a bounded executor to process files, Redis to cache extracted payloads and coordinate
+ * in-flight requests, and configurable timeouts and TTLs to control import resource usage and
+ * result availability.
+ */
 @Slf4j
 @Component
 public class ImportAssetsHelper {

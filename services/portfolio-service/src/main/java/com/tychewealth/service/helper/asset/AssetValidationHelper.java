@@ -31,6 +31,12 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+/**
+ * Validates asset limits, uniqueness, batch actions, and asset existence.
+ *
+ * <p>Checks portfolio capacity and name or symbol conflicts for individual and batch operations,
+ * then translates known persistence constraint violations into asset-related domain exceptions.
+ */
 @Slf4j
 @Component
 @AllArgsConstructor

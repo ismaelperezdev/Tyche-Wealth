@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Represents an asset candidate extracted from an imported file. */
 @Getter
 @Setter
 @NoArgsConstructor

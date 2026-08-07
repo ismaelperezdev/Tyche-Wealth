@@ -30,6 +30,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+/**
+ * Executes AI-assisted asset extraction with bounded concurrency and response caching.
+ *
+ * <p>Submits prompts to the configured AI client, selects the requested model, enforces request
+ * timeouts and queue limits, caches successful responses in Redis, and delegates response-specific
+ * validation to {@link AssetAiValidationHelper}.
+ */
 @Slf4j
 @Component
 public class ImportAssetsAiHelper {

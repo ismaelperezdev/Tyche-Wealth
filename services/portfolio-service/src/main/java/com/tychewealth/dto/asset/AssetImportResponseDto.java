@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Represents the identifier and parsed candidates produced by an asset import. */
 @Getter
 @Setter
 @NoArgsConstructor

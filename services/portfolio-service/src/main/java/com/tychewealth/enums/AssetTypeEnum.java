@@ -4,6 +4,11 @@ import com.fasterxml.jackson.annotation.JsonEnumDefaultValue;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+/**
+ * Classifies the type of financial asset held in a portfolio.
+ *
+ * <p>Each value exposes a stable identifier, API name, and human-readable description.
+ */
 @Getter
 @AllArgsConstructor
 public enum AssetTypeEnum {

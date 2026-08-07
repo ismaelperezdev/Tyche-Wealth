@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Carries the source file name and extracted text used during asset import processing. */
 @Getter
 @Setter
 @NoArgsConstructor

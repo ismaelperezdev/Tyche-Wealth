@@ -18,6 +18,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
+/**
+ * Synchronizes the symbols held by portfolios belonging to active users.
+ *
+ * <p>Resolves symbols in bounded user-ID batches, compares them with the previous Redis snapshot,
+ * publishes added and removed symbols, and replaces the stored snapshot when synchronization is
+ * complete.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor

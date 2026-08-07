@@ -12,6 +12,13 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Applies bounded backpressure when the asset-import AI executor cannot accept a new task.
+ *
+ * <p>Waits for the configured duration to enqueue the task, logs queue pressure, and rejects the
+ * submission when capacity is not released in time. Interrupted callers preserve the interrupt flag
+ * and receive a RejectedExecutionException.
+ */
 @Slf4j
 public final class AiQueueBlockingPolicy implements RejectedExecutionHandler {
 
