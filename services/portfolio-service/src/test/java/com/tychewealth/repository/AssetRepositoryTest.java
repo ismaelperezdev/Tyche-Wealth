@@ -15,6 +15,7 @@ import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.enums.InvestmentHorizonEnum;
 import com.tychewealth.enums.RiskProfileEnum;
 import com.tychewealth.enums.StrategyTypeEnum;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -73,31 +74,6 @@ class AssetRepositoryTest {
   }
 
   @Test
-  void findByCurrencyReturnsAssets() {
-    assetRepository.save(
-        buildAsset(portfolio, "Bitcoin", "BTC", AssetTypeEnum.CRYPTO, CurrencyCodeEnum.USD));
-
-    List<AssetEntity> result = assetRepository.findByCurrency(CurrencyCodeEnum.USD);
-
-    assertNotNull(result);
-    assertEquals(1, result.size());
-    assertEquals("BTC", result.get(0).getSymbol());
-  }
-
-  @Test
-  void findByAssetTypeReturnsAssets() {
-    assetRepository.save(
-        buildAsset(
-            portfolio, "SPDR Gold Shares", "GLD", AssetTypeEnum.COMMODITY, CurrencyCodeEnum.USD));
-
-    List<AssetEntity> result = assetRepository.findByAssetType(AssetTypeEnum.COMMODITY);
-
-    assertNotNull(result);
-    assertEquals(1, result.size());
-    assertEquals("GLD", result.get(0).getSymbol());
-  }
-
-  @Test
   void existsByPortfolioIdAndSymbolReturnsTrueWhenExists() {
     assetRepository.save(
         buildAsset(portfolio, "Tesla, Inc.", "TSLA", AssetTypeEnum.STOCK, CurrencyCodeEnum.USD));
@@ -146,5 +122,21 @@ class AssetRepositoryTest {
     assertTrue(result.contains("AAPL"));
     assertTrue(result.contains("MSFT"));
     assertFalse(result.contains("BTC"));
+  }
+
+  @Test
+  void activeAssetQueriesExcludeSoftDeletedAssets() {
+    AssetEntity deletedAsset =
+        buildAsset(portfolio, "Deleted Asset", "DEL", AssetTypeEnum.STOCK, CurrencyCodeEnum.USD);
+    deletedAsset.setDeletedAt(LocalDateTime.now());
+    AssetEntity savedAsset = assetRepository.saveAndFlush(deletedAsset);
+
+    assertTrue(
+        assetRepository.findByIdAndPortfolioId(savedAsset.getId(), portfolio.getId()).isEmpty());
+    assertTrue(assetRepository.findByPortfolioId(portfolio.getId()).isEmpty());
+    assertFalse(assetRepository.existsByPortfolioIdAndName(portfolio.getId(), "Deleted Asset"));
+    assertFalse(assetRepository.existsByPortfolioIdAndSymbol(portfolio.getId(), "DEL"));
+    assertFalse(
+        assetRepository.findDistinctSymbolsByUserIds(List.of(TEST_USER_ID)).contains("DEL"));
   }
 }

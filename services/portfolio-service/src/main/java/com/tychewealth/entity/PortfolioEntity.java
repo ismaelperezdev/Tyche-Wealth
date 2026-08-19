@@ -43,7 +43,7 @@ import lombok.Setter;
  *
  * <p>Stores the portfolio owner's identifier, investment preferences, risk limit, and lifecycle
  * timestamps. Its {@link AssetEntity} collection is managed through the portfolio relationship,
- * including cascading and orphan removal for associated assets.
+ * including cascading for associated assets.
  */
 @Entity
 @Getter
@@ -64,7 +64,7 @@ public class PortfolioEntity {
   @NotNull(message = MUST_NOT_BE_NULL)
   private Long userId;
 
-  @OneToMany(mappedBy = "portfolio", cascade = CascadeType.ALL, orphanRemoval = true)
+  @OneToMany(mappedBy = "portfolio", cascade = CascadeType.ALL)
   private List<AssetEntity> assets = new ArrayList<>();
 
   @Column(name = "name", nullable = false, length = 60)
@@ -103,6 +103,9 @@ public class PortfolioEntity {
 
   @Column(name = "updated_at")
   private LocalDateTime updatedAt;
+
+  @Column(name = "deleted_at")
+  private LocalDateTime deletedAt;
 
   @PrePersist
   void onCreate() {

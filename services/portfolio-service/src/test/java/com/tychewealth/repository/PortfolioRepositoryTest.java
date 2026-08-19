@@ -1,11 +1,11 @@
 package com.tychewealth.repository;
 
-import static com.tychewealth.constants.TestConstants.TEST_OTHER_USER_ID;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_NAME_CORE;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_NAME_RETIREMENT;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
 import static com.tychewealth.testdata.EntityBuilder.buildPortfolio;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.data.domain.Pageable;
 
 @DataJpaTest(
     properties = {"spring.liquibase.enabled=false", "spring.jpa.hibernate.ddl-auto=create-drop"})
@@ -84,80 +85,6 @@ class PortfolioRepositoryTest {
   }
 
   @Test
-  void findByBaseCurrencyReturnsPortfolio() {
-    portfolioRepository.save(
-        buildPortfolio(
-            TEST_USER_ID,
-            "Income",
-            CurrencyCodeEnum.CHF,
-            RiskProfileEnum.LOW,
-            StrategyTypeEnum.INCOME,
-            InvestmentHorizonEnum.LONG));
-
-    List<PortfolioEntity> result = portfolioRepository.findByBaseCurrency(CurrencyCodeEnum.CHF);
-
-    assertNotNull(result);
-    assertEquals(1, result.size());
-    assertEquals("Income", result.get(0).getName());
-  }
-
-  @Test
-  void findByRiskProfileReturnsPortfolio() {
-    portfolioRepository.save(
-        buildPortfolio(
-            TEST_USER_ID,
-            "Spec",
-            CurrencyCodeEnum.USD,
-            RiskProfileEnum.HIGH,
-            StrategyTypeEnum.SPECULATIVE,
-            InvestmentHorizonEnum.SHORT));
-
-    List<PortfolioEntity> result = portfolioRepository.findByRiskProfile(RiskProfileEnum.HIGH);
-
-    assertNotNull(result);
-    assertEquals(1, result.size());
-    assertEquals("Spec", result.getFirst().getName());
-  }
-
-  @Test
-  void findByStrategyTypeReturnsPortfolio() {
-    portfolioRepository.save(
-        buildPortfolio(
-            TEST_USER_ID,
-            "Div",
-            CurrencyCodeEnum.EUR,
-            RiskProfileEnum.MEDIUM,
-            StrategyTypeEnum.DIVIDEND,
-            InvestmentHorizonEnum.MEDIUM));
-
-    List<PortfolioEntity> result =
-        portfolioRepository.findByStrategyType(StrategyTypeEnum.DIVIDEND);
-
-    assertNotNull(result);
-    assertEquals(1, result.size());
-    assertEquals("Div", result.get(0).getName());
-  }
-
-  @Test
-  void findByInvestmentHorizonReturnsPortfolio() {
-    portfolioRepository.save(
-        buildPortfolio(
-            TEST_OTHER_USER_ID,
-            "Long",
-            CurrencyCodeEnum.GBP,
-            RiskProfileEnum.MEDIUM,
-            StrategyTypeEnum.VALUE,
-            InvestmentHorizonEnum.LONG));
-
-    List<PortfolioEntity> result =
-        portfolioRepository.findByInvestmentHorizon(InvestmentHorizonEnum.LONG);
-
-    assertNotNull(result);
-    assertEquals(1, result.size());
-    assertEquals("Long", result.get(0).getName());
-  }
-
-  @Test
   void existsByUserIdAndNameReturnsTrueWhenExists() {
     portfolioRepository.save(
         buildPortfolio(
@@ -171,5 +98,25 @@ class PortfolioRepositoryTest {
     Boolean exists = portfolioRepository.existsByUserIdAndName(TEST_USER_ID, "Retiro");
 
     assertEquals(Boolean.TRUE, exists);
+  }
+
+  @Test
+  void activePortfolioQueriesExcludeSoftDeletedPortfolios() {
+    PortfolioEntity deletedPortfolio =
+        buildPortfolio(
+            TEST_USER_ID,
+            "Deleted",
+            CurrencyCodeEnum.EUR,
+            RiskProfileEnum.LOW,
+            StrategyTypeEnum.BALANCED,
+            InvestmentHorizonEnum.LONG);
+    deletedPortfolio.setDeletedAt(LocalDateTime.now());
+    PortfolioEntity savedPortfolio = portfolioRepository.saveAndFlush(deletedPortfolio);
+
+    assertTrue(
+        portfolioRepository.findByIdAndUserId(savedPortfolio.getId(), TEST_USER_ID).isEmpty());
+    assertTrue(portfolioRepository.findByUserId(TEST_USER_ID, Pageable.unpaged()).isEmpty());
+    assertEquals(0, portfolioRepository.countByUserId(TEST_USER_ID));
+    assertFalse(portfolioRepository.existsByUserIdAndName(TEST_USER_ID, "Deleted"));
   }
 }

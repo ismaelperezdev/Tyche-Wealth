@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="add-assets-deleted-at-column" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <tableExists tableName="assets"/>
+            <not>
+                <columnExists tableName="assets" columnName="deleted_at"/>
+            </not>
+        </preConditions>
+
+        <addColumn tableName="assets">
+            <column name="deleted_at" type="TIMESTAMP"/>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="assets" columnName="deleted_at"/>
+        </rollback>
+
+    </changeSet>
+
+    <changeSet
+            id="drop-assets-portfolio-symbol-unique-constraint"
+            author="tyche-wealth"
+            dbms="postgresql">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <uniqueConstraintExists
+                    tableName="assets"
+                    constraintName="uq_asset_portfolio_id_symbol"/>
+        </preConditions>
+
+        <dropUniqueConstraint
+                tableName="assets"
+                constraintName="uq_asset_portfolio_id_symbol"/>
+
+        <rollback>
+            <addUniqueConstraint
+                    tableName="assets"
+                    columnNames="portfolio_id,symbol"
+                    constraintName="uq_asset_portfolio_id_symbol"/>
+        </rollback>
+
+    </changeSet>
+
+    <changeSet
+            id="add-active-assets-portfolio-symbol-unique-index"
+            author="tyche-wealth"
+            dbms="postgresql">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <indexExists
+                        tableName="assets"
+                        indexName="uq_asset_portfolio_id_symbol_active"/>
+            </not>
+        </preConditions>
+
+        <sql dbms="postgresql">
+            CREATE UNIQUE INDEX uq_asset_portfolio_id_symbol_active
+            ON assets (portfolio_id, symbol)
+            WHERE deleted_at IS NULL;
+        </sql>
+
+        <rollback>
+            <sql dbms="postgresql">
+                DROP INDEX uq_asset_portfolio_id_symbol_active;
+            </sql>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

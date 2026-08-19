@@ -38,6 +38,7 @@ import com.tychewealth.utils.Utils;
 import com.tychewealth.utils.prompts.AssetImportPromptUtils;
 import java.io.IOException;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -120,7 +121,9 @@ public class AssetServiceImpl implements AssetService {
   public void delete(Long userId, Long portfolioId, Long assetId) {
     commonValidationHelper.validateAuthenticatedUser(userId);
     commonValidationHelper.validateOwnedPortfolio(userId, portfolioId, DELETE_ACTION);
-    assetRepository.deleteByIdAndPortfolioId(assetId, portfolioId);
+    assetRepository
+        .findByIdAndPortfolioId(assetId, portfolioId)
+        .ifPresent(asset -> asset.setDeletedAt(LocalDateTime.now()));
   }
 
   @Override

@@ -24,6 +24,7 @@ import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_NAME_APPLE;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_SYMBOL_AAPL;
 import static com.tychewealth.testdata.AssetTestData.validImportedAssetCandidate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
@@ -57,6 +58,7 @@ import com.tychewealth.service.helper.asset.ai.AssetAiValidationHelper;
 import com.tychewealth.service.helper.asset.ai.ImportAssetsAiHelper;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -233,16 +235,20 @@ class AssetServiceImplTest {
 
   @Test
   void deleteValidatesOwnershipAndDelegatesToRepository() {
+    AssetEntity asset = new AssetEntity();
     when(commonValidationHelper.validateOwnedPortfolio(
             TEST_USER_ID, TEST_PORTFOLIO_ID, DELETE_ACTION))
         .thenReturn(portfolio);
+    when(assetRepository.findByIdAndPortfolioId(TEST_ASSET_ID, TEST_PORTFOLIO_ID))
+        .thenReturn(Optional.of(asset));
 
     assetService.delete(TEST_USER_ID, TEST_PORTFOLIO_ID, TEST_ASSET_ID);
 
     verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
     verify(commonValidationHelper)
         .validateOwnedPortfolio(TEST_USER_ID, TEST_PORTFOLIO_ID, DELETE_ACTION);
-    verify(assetRepository).deleteByIdAndPortfolioId(TEST_ASSET_ID, TEST_PORTFOLIO_ID);
+    verify(assetRepository).findByIdAndPortfolioId(TEST_ASSET_ID, TEST_PORTFOLIO_ID);
+    assertNotNull(asset.getDeletedAt());
   }
 
   @Test

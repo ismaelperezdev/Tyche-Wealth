@@ -36,6 +36,9 @@ services/user-service/application-local.properties
 .classpath
 .project
 .settings/
+.opencode/
+AGENTS.md
+graphify-out/
 
 # OS files
 .DS_Store
