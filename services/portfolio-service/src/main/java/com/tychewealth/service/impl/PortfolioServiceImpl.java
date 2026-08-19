@@ -10,11 +10,14 @@ import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
 import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.mapper.portfolio.PortfolioMapper;
+import com.tychewealth.repository.AssetRepository;
 import com.tychewealth.repository.PortfolioRepository;
 import com.tychewealth.service.PortfolioService;
+import com.tychewealth.service.assetvariation.AssetVariationService;
 import com.tychewealth.service.helper.CommonValidationHelper;
 import com.tychewealth.service.helper.portfolio.PortfolioValidationHelper;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -36,9 +39,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class PortfolioServiceImpl implements PortfolioService {
 
   private final PortfolioRepository portfolioRepository;
+  private final AssetRepository assetRepository;
   private final PortfolioMapper portfolioMapper;
   private final CommonValidationHelper commonValidationHelper;
   private final PortfolioValidationHelper portfolioValidationHelper;
+  private final AssetVariationService assetVariationService;
 
   @Override
   @Transactional(readOnly = true)
@@ -102,8 +107,10 @@ public class PortfolioServiceImpl implements PortfolioService {
             portfolio -> {
               LocalDateTime deletedAt = LocalDateTime.now();
               portfolio.setDeletedAt(deletedAt);
-              for (AssetEntity asset : portfolio.getAssets()) {
-                if (asset.getDeletedAt() == null) {
+              List<AssetEntity> activeAssets = assetRepository.findByPortfolioId(portfolioId);
+              if (!activeAssets.isEmpty()) {
+                assetVariationService.deleteAll(activeAssets, deletedAt);
+                for (AssetEntity asset : activeAssets) {
                   asset.setDeletedAt(deletedAt);
                 }
               }

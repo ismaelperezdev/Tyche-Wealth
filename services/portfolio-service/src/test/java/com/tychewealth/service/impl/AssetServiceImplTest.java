@@ -49,6 +49,7 @@ import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.mapper.asset.AssetMapper;
 import com.tychewealth.repository.AssetRepository;
+import com.tychewealth.service.assetvariation.AssetVariationService;
 import com.tychewealth.service.helper.CommonValidationHelper;
 import com.tychewealth.service.helper.asset.AssetCreateHelper;
 import com.tychewealth.service.helper.asset.AssetValidationHelper;
@@ -79,6 +80,7 @@ import org.springframework.mock.web.MockMultipartFile;
 class AssetServiceImplTest {
 
   @Mock private AssetRepository assetRepository;
+  @Mock private AssetVariationService assetVariationService;
   @Mock private AssetCreateHelper assetCreateHelper;
   @Mock private AssetMapper assetMapper;
   @Mock private AssetValidationHelper assetValidationHelper;
@@ -236,6 +238,8 @@ class AssetServiceImplTest {
   @Test
   void deleteValidatesOwnershipAndDelegatesToRepository() {
     AssetEntity asset = new AssetEntity();
+    asset.setQuantity(new BigDecimal("10"));
+    asset.setAveragePrice(new BigDecimal("150.00"));
     when(commonValidationHelper.validateOwnedPortfolio(
             TEST_USER_ID, TEST_PORTFOLIO_ID, DELETE_ACTION))
         .thenReturn(portfolio);
@@ -248,6 +252,7 @@ class AssetServiceImplTest {
     verify(commonValidationHelper)
         .validateOwnedPortfolio(TEST_USER_ID, TEST_PORTFOLIO_ID, DELETE_ACTION);
     verify(assetRepository).findByIdAndPortfolioId(TEST_ASSET_ID, TEST_PORTFOLIO_ID);
+    verify(assetVariationService).delete(eq(asset), any());
     assertNotNull(asset.getDeletedAt());
   }
 
@@ -280,6 +285,8 @@ class AssetServiceImplTest {
     asset.setId(assetId);
     asset.setName(TEST_ASSET_NAME_APPLE);
     asset.setSymbol(TEST_ASSET_SYMBOL_AAPL);
+    asset.setQuantity(new BigDecimal("1.00000000"));
+    asset.setAveragePrice(new BigDecimal("100.0000"));
     AssetUpdateRequestDto request =
         new AssetUpdateRequestDto(
             TEST_ASSET_NAME_MICROSOFT,
@@ -296,6 +303,14 @@ class AssetServiceImplTest {
         .thenReturn(portfolio);
     when(assetValidationHelper.validateRetrievedAssetExists(TEST_PORTFOLIO_ID, assetId))
         .thenReturn(asset);
+    doAnswer(
+            invocation -> {
+              asset.setQuantity(request.getQuantity());
+              asset.setAveragePrice(request.getAveragePrice());
+              return null;
+            })
+        .when(assetMapper)
+        .update(request, asset);
     when(assetRepository.saveAndFlush(asset)).thenReturn(asset);
     when(assetMapper.toDto(asset)).thenReturn(response);
 
@@ -313,6 +328,8 @@ class AssetServiceImplTest {
         .validateCreateSymbolConflict(TEST_PORTFOLIO_ID, TEST_ASSET_SYMBOL_MSFT);
     verify(assetMapper).update(request, asset);
     verify(assetRepository).saveAndFlush(asset);
+    verify(assetVariationService)
+        .update(eq(asset), eq(new BigDecimal("1.00000000")), eq(new BigDecimal("100.0000")), any());
     verify(assetMapper).toDto(asset);
   }
 
@@ -348,6 +365,7 @@ class AssetServiceImplTest {
     verify(assetValidationHelper, never()).validateCreateSymbolConflict(anyLong(), anyString());
     verify(assetMapper).update(request, asset);
     verify(assetRepository).saveAndFlush(asset);
+    verify(assetVariationService, never()).update(any(), any(), any(), any());
   }
 
   @Test

@@ -29,7 +29,9 @@ import com.tychewealth.enums.StrategyTypeEnum;
 import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.mapper.portfolio.PortfolioMapper;
+import com.tychewealth.repository.AssetRepository;
 import com.tychewealth.repository.PortfolioRepository;
+import com.tychewealth.service.assetvariation.AssetVariationService;
 import com.tychewealth.service.helper.CommonValidationHelper;
 import com.tychewealth.service.helper.portfolio.PortfolioValidationHelper;
 import java.time.LocalDateTime;
@@ -55,9 +57,11 @@ class PortfolioServiceImplTest {
   private static final String TEST_UPDATED_PORTFOLIO_NAME_RETIREMENT = "Updated retirement";
 
   @Mock private PortfolioRepository portfolioRepository;
+  @Mock private AssetRepository assetRepository;
   @Mock private PortfolioMapper portfolioMapper;
   @Mock private CommonValidationHelper commonValidationHelper;
   @Mock private PortfolioValidationHelper portfolioValidationHelper;
+  @Mock private AssetVariationService assetVariationService;
 
   @InjectMocks private PortfolioServiceImpl portfolioService;
 
@@ -279,11 +283,13 @@ class PortfolioServiceImplTest {
 
     when(portfolioRepository.findByIdAndUserId(TEST_PORTFOLIO_ID, TEST_USER_ID))
         .thenReturn(Optional.of(portfolio));
+    when(assetRepository.findByPortfolioId(TEST_PORTFOLIO_ID)).thenReturn(List.of(asset));
 
     portfolioService.delete(TEST_USER_ID, TEST_PORTFOLIO_ID);
 
     verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
     verify(portfolioRepository, never()).delete(org.mockito.ArgumentMatchers.any());
+    verify(assetVariationService).deleteAll(List.of(asset), portfolio.getDeletedAt());
     assertNotNull(portfolio.getDeletedAt());
     assertNotNull(asset.getDeletedAt());
     assertEquals(portfolio.getDeletedAt(), asset.getDeletedAt());
@@ -301,10 +307,13 @@ class PortfolioServiceImplTest {
 
     when(portfolioRepository.findByIdAndUserId(TEST_PORTFOLIO_ID, TEST_USER_ID))
         .thenReturn(Optional.of(portfolio));
+    when(assetRepository.findByPortfolioId(TEST_PORTFOLIO_ID)).thenReturn(List.of());
 
     portfolioService.delete(TEST_USER_ID, TEST_PORTFOLIO_ID);
 
     assertNotNull(portfolio.getDeletedAt());
+    verify(assetVariationService, never())
+        .deleteAll(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     assertEquals(originalDeletedAt, asset.getDeletedAt());
   }
 

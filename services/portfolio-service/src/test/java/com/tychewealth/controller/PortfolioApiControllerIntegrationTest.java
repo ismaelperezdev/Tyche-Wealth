@@ -69,6 +69,7 @@ import com.tychewealth.enums.StrategyTypeEnum;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.AssetRepository;
 import com.tychewealth.repository.PortfolioRepository;
+import com.tychewealth.service.assetvariation.AssetVariationService;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -79,6 +80,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
@@ -88,9 +90,10 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 class PortfolioApiControllerIntegrationTest {
 
   @Autowired private MockMvc mockMvc;
-  @Autowired private ObjectMapper objectMapper;
   @Autowired private PortfolioRepository portfolioRepository;
   @Autowired private AssetRepository assetRepository;
+
+  @MockitoBean private AssetVariationService assetVariationService;
 
   @BeforeEach
   void setUp() {

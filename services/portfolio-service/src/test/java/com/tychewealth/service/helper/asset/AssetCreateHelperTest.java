@@ -9,6 +9,8 @@ import static com.tychewealth.testdata.AssetTestData.createRequestWithNameAndSym
 import static com.tychewealth.testdata.AssetTestData.defaultPortfolioEntity;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -18,6 +20,7 @@ import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.mapper.asset.AssetMapper;
 import com.tychewealth.repository.AssetRepository;
+import com.tychewealth.service.assetvariation.AssetVariationService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,10 +32,12 @@ class AssetCreateHelperTest {
 
   @Mock private AssetRepository assetRepository;
   @Mock private AssetMapper assetMapper;
+  @Mock private AssetVariationService assetVariationService;
 
   @Test
   void createMapsAssignsPortfolioPersistsAndReturnsMappedResponse() {
-    AssetCreateHelper helper = new AssetCreateHelper(assetRepository, assetMapper);
+    AssetCreateHelper helper =
+        new AssetCreateHelper(assetRepository, assetMapper, assetVariationService);
     PortfolioEntity portfolio = defaultPortfolioEntity();
     portfolio.setId(TEST_PORTFOLIO_ID);
     AssetCreateRequestDto request =
@@ -51,12 +56,14 @@ class AssetCreateHelperTest {
     assertSame(portfolio, mappedAsset.getPortfolio());
     verify(assetMapper).create(request);
     verify(assetRepository).saveAndFlush(mappedAsset);
+    verify(assetVariationService).create(eq(persistedAsset), any());
     verify(assetMapper).toDto(persistedAsset);
   }
 
   @Test
   void createBatchMapsAssignsPortfolioPersistsAndReturnsMappedResponses() {
-    AssetCreateHelper helper = new AssetCreateHelper(assetRepository, assetMapper);
+    AssetCreateHelper helper =
+        new AssetCreateHelper(assetRepository, assetMapper, assetVariationService);
     PortfolioEntity portfolio = defaultPortfolioEntity();
     portfolio.setId(TEST_PORTFOLIO_ID);
 
@@ -90,6 +97,7 @@ class AssetCreateHelperTest {
     verify(assetMapper).create(firstRequest);
     verify(assetMapper).create(secondRequest);
     verify(assetRepository).saveAllAndFlush(List.of(firstMapped, secondMapped));
+    verify(assetVariationService).createAll(eq(List.of(firstPersisted, secondPersisted)), any());
     verify(assetMapper).toDto(firstPersisted);
     verify(assetMapper).toDto(secondPersisted);
   }
