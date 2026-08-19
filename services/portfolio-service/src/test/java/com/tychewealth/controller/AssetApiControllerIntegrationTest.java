@@ -482,7 +482,9 @@ class AssetApiControllerIntegrationTest {
         .andExpect(header().string(PRAGMA, PRAGMA_NO_CACHE_HEADER_VALUE));
 
     org.junit.jupiter.api.Assertions.assertFalse(
-        assetRepository.findById(existingAsset.getId()).isPresent());
+        assetRepository
+            .findByIdAndPortfolioId(existingAsset.getId(), existingAsset.getPortfolio().getId())
+            .isPresent());
   }
 
   @Test

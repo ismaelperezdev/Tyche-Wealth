@@ -10,6 +10,7 @@ import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_NAME_RETIRE
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
 import static com.tychewealth.testdata.EntityBuilder.buildPortfolio;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -19,6 +20,7 @@ import static org.mockito.Mockito.when;
 import com.tychewealth.dto.portfolio.PortfolioResponseDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
+import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.enums.InvestmentHorizonEnum;
@@ -267,10 +269,12 @@ class PortfolioServiceImplTest {
   }
 
   @Test
-  void deleteRemovesOwnedPortfolio() {
+  void deleteSoftDeletesOwnedPortfolio() {
     PortfolioEntity portfolio = new PortfolioEntity();
     portfolio.setId(TEST_PORTFOLIO_ID);
     portfolio.setUserId(TEST_USER_ID);
+    AssetEntity asset = new AssetEntity();
+    portfolio.getAssets().add(asset);
 
     when(portfolioRepository.findByIdAndUserId(TEST_PORTFOLIO_ID, TEST_USER_ID))
         .thenReturn(Optional.of(portfolio));
@@ -278,7 +282,10 @@ class PortfolioServiceImplTest {
     portfolioService.delete(TEST_USER_ID, TEST_PORTFOLIO_ID);
 
     verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
-    verify(portfolioRepository).delete(portfolio);
+    verify(portfolioRepository, never()).delete(org.mockito.ArgumentMatchers.any());
+    assertNotNull(portfolio.getDeletedAt());
+    assertNotNull(asset.getDeletedAt());
+    assertEquals(portfolio.getDeletedAt(), asset.getDeletedAt());
   }
 
   @Test

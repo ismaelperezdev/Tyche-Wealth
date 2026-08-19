@@ -7,12 +7,14 @@ import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import com.tychewealth.dto.portfolio.PortfolioResponseDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
+import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.mapper.portfolio.PortfolioMapper;
 import com.tychewealth.repository.PortfolioRepository;
 import com.tychewealth.service.PortfolioService;
 import com.tychewealth.service.helper.CommonValidationHelper;
 import com.tychewealth.service.helper.portfolio.PortfolioValidationHelper;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -96,6 +98,13 @@ public class PortfolioServiceImpl implements PortfolioService {
     commonValidationHelper.validateAuthenticatedUser(userId);
     portfolioRepository
         .findByIdAndUserId(portfolioId, userId)
-        .ifPresent(portfolioRepository::delete);
+        .ifPresent(
+            portfolio -> {
+              LocalDateTime deletedAt = LocalDateTime.now();
+              portfolio.setDeletedAt(deletedAt);
+              for (AssetEntity asset : portfolio.getAssets()) {
+                asset.setDeletedAt(deletedAt);
+              }
+            });
   }
 }

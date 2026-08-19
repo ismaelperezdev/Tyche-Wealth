@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="add-portfolios-deleted-at-column" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <tableExists tableName="portfolios"/>
+            <not>
+                <columnExists tableName="portfolios" columnName="deleted_at"/>
+            </not>
+        </preConditions>
+
+        <addColumn tableName="portfolios">
+            <column name="deleted_at" type="TIMESTAMP"/>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="portfolios" columnName="deleted_at"/>
+        </rollback>
+
+    </changeSet>
+
+    <changeSet
+            id="drop-portfolios-user-name-unique-constraint"
+            author="tyche-wealth"
+            dbms="postgresql">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <uniqueConstraintExists
+                    tableName="portfolios"
+                    constraintName="uq_portfolio_user_id_name"/>
+        </preConditions>
+
+        <dropUniqueConstraint
+                tableName="portfolios"
+                constraintName="uq_portfolio_user_id_name"/>
+
+        <rollback>
+            <addUniqueConstraint
+                    tableName="portfolios"
+                    columnNames="user_id,name"
+                    constraintName="uq_portfolio_user_id_name"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet
+            id="add-active-portfolios-user-name-unique-index"
+            author="tyche-wealth"
+            dbms="postgresql">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <indexExists
+                        tableName="portfolios"
+                        indexName="uq_portfolio_user_id_name_active"/>
+            </not>
+        </preConditions>
+
+        <sql dbms="postgresql">
+            CREATE UNIQUE INDEX uq_portfolio_user_id_name_active
+            ON portfolios (user_id, name)
+            WHERE deleted_at IS NULL;
+        </sql>
+
+        <rollback>
+            <sql dbms="postgresql">
+                DROP INDEX uq_portfolio_user_id_name_active;
+            </sql>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>
