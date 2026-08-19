@@ -32,6 +32,7 @@ import com.tychewealth.mapper.portfolio.PortfolioMapper;
 import com.tychewealth.repository.PortfolioRepository;
 import com.tychewealth.service.helper.CommonValidationHelper;
 import com.tychewealth.service.helper.portfolio.PortfolioValidationHelper;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -286,6 +287,25 @@ class PortfolioServiceImplTest {
     assertNotNull(portfolio.getDeletedAt());
     assertNotNull(asset.getDeletedAt());
     assertEquals(portfolio.getDeletedAt(), asset.getDeletedAt());
+  }
+
+  @Test
+  void deletePreservesDeletedAtForAlreadyDeletedAsset() {
+    PortfolioEntity portfolio = new PortfolioEntity();
+    portfolio.setId(TEST_PORTFOLIO_ID);
+    portfolio.setUserId(TEST_USER_ID);
+    LocalDateTime originalDeletedAt = LocalDateTime.now().minusDays(1);
+    AssetEntity asset = new AssetEntity();
+    asset.setDeletedAt(originalDeletedAt);
+    portfolio.getAssets().add(asset);
+
+    when(portfolioRepository.findByIdAndUserId(TEST_PORTFOLIO_ID, TEST_USER_ID))
+        .thenReturn(Optional.of(portfolio));
+
+    portfolioService.delete(TEST_USER_ID, TEST_PORTFOLIO_ID);
+
+    assertNotNull(portfolio.getDeletedAt());
+    assertEquals(originalDeletedAt, asset.getDeletedAt());
   }
 
   @Test

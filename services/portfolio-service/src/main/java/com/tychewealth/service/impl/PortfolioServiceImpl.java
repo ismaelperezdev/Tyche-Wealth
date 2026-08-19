@@ -103,7 +103,9 @@ public class PortfolioServiceImpl implements PortfolioService {
               LocalDateTime deletedAt = LocalDateTime.now();
               portfolio.setDeletedAt(deletedAt);
               for (AssetEntity asset : portfolio.getAssets()) {
-                asset.setDeletedAt(deletedAt);
+                if (asset.getDeletedAt() == null) {
+                  asset.setDeletedAt(deletedAt);
+                }
               }
             });
   }
