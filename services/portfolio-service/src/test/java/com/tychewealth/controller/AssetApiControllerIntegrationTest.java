@@ -75,6 +75,7 @@ import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.repository.AssetRepository;
 import com.tychewealth.repository.PortfolioRepository;
+import com.tychewealth.service.assetvariation.AssetVariationService;
 import com.tychewealth.service.helper.asset.ai.AiResponseParser;
 import com.tychewealth.service.helper.asset.ai.ImportAssetsAiHelper;
 import com.tychewealth.testhelper.TestRedisSupport.InMemoryRedisState;
@@ -108,6 +109,7 @@ class AssetApiControllerIntegrationTest {
 
   @MockitoBean private ImportAssetsAiHelper importAssetsAiHelper;
   @MockitoBean private AiResponseParser aiResponseParser;
+  @MockitoBean private AssetVariationService assetVariationService;
 
   @BeforeEach
   void setUp() {

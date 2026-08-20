@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="create-asset-variations-sequence" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <sequenceExists sequenceName="asset_variations_seq"/>
+            </not>
+        </preConditions>
+
+        <createSequence sequenceName="asset_variations_seq" startValue="1" incrementBy="1"/>
+
+        <rollback>
+            <dropSequence sequenceName="asset_variations_seq"/>
+        </rollback>
+
+    </changeSet>
+
+    <changeSet id="create-asset-variations-table" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <tableExists tableName="asset_variations"/>
+            </not>
+        </preConditions>
+
+        <createTable tableName="asset_variations">
+            <column name="id" type="BIGINT" defaultValueSequenceNext="asset_variations_seq">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="asset_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="change_type" type="VARCHAR(30)">
+                <constraints
+                        nullable="false"
+                        checkConstraint="change_type IN ('CREATED', 'MANUAL_UPDATE', 'DELETED')"/>
+            </column>
+            <column name="previous_quantity" type="DECIMAL(19,8)"/>
+            <column name="new_quantity" type="DECIMAL(19,8)"/>
+            <column name="previous_average_price" type="DECIMAL(19,4)"/>
+            <column name="new_average_price" type="DECIMAL(19,4)"/>
+            <column name="occurred_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="asset_variations"
+                baseColumnNames="asset_id"
+                constraintName="fk_asset_variations_assets"
+                referencedTableName="assets"
+                referencedColumnNames="id"/>
+
+        <rollback>
+            <dropTable tableName="asset_variations"/>
+        </rollback>
+
+    </changeSet>
+
+    <changeSet id="create-asset-variations-asset-id-index" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <indexExists indexName="idx_asset_variations_asset_id" tableName="asset_variations"/>
+            </not>
+        </preConditions>
+
+        <createIndex indexName="idx_asset_variations_asset_id" tableName="asset_variations">
+            <column name="asset_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex indexName="idx_asset_variations_asset_id" tableName="asset_variations"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

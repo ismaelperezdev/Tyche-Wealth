@@ -27,6 +27,7 @@ import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.mapper.asset.AssetMapper;
 import com.tychewealth.repository.AssetRepository;
 import com.tychewealth.service.AssetService;
+import com.tychewealth.service.assetvariation.AssetVariationService;
 import com.tychewealth.service.helper.CommonValidationHelper;
 import com.tychewealth.service.helper.asset.AssetCreateHelper;
 import com.tychewealth.service.helper.asset.AssetValidationHelper;
@@ -37,6 +38,7 @@ import com.tychewealth.service.helper.asset.ai.ImportAssetsAiHelper;
 import com.tychewealth.utils.Utils;
 import com.tychewealth.utils.prompts.AssetImportPromptUtils;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -66,6 +68,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class AssetServiceImpl implements AssetService {
 
   private final AssetRepository assetRepository;
+  private final AssetVariationService assetVariationService;
   private final AssetCreateHelper assetCreateHelper;
   private final AssetMapper assetMapper;
   private final AssetValidationHelper assetValidationHelper;
@@ -123,7 +126,12 @@ public class AssetServiceImpl implements AssetService {
     commonValidationHelper.validateOwnedPortfolio(userId, portfolioId, DELETE_ACTION);
     assetRepository
         .findByIdAndPortfolioId(assetId, portfolioId)
-        .ifPresent(asset -> asset.setDeletedAt(LocalDateTime.now()));
+        .ifPresent(
+            asset -> {
+              LocalDateTime deletedAt = LocalDateTime.now();
+              assetVariationService.delete(asset, deletedAt);
+              asset.setDeletedAt(deletedAt);
+            });
   }
 
   @Override
@@ -133,6 +141,8 @@ public class AssetServiceImpl implements AssetService {
     commonValidationHelper.validateAuthenticatedUser(userId);
     commonValidationHelper.validateOwnedPortfolio(userId, portfolioId, UPDATE_ACTION);
     AssetEntity asset = assetValidationHelper.validateRetrievedAssetExists(portfolioId, assetId);
+    BigDecimal previousQuantity = asset.getQuantity();
+    BigDecimal previousAveragePrice = asset.getAveragePrice();
 
     if (updateRequest.getName() != null && !updateRequest.getName().equals(asset.getName())) {
       assetValidationHelper.validateCreateNameConflict(portfolioId, updateRequest.getName());
@@ -142,7 +152,13 @@ public class AssetServiceImpl implements AssetService {
     }
 
     assetMapper.update(updateRequest, asset);
-    return assetMapper.toDto(assetRepository.saveAndFlush(asset));
+    AssetEntity persistedAsset = assetRepository.saveAndFlush(asset);
+    if (hasChanged(previousQuantity, persistedAsset.getQuantity())
+        || hasChanged(previousAveragePrice, persistedAsset.getAveragePrice())) {
+      assetVariationService.update(
+          persistedAsset, previousQuantity, previousAveragePrice, LocalDateTime.now());
+    }
+    return assetMapper.toDto(persistedAsset);
   }
 
   @Override
@@ -232,5 +248,12 @@ public class AssetServiceImpl implements AssetService {
       return;
     }
     redisTemplate.delete(ASSET_IMPORT_RESULT_KEY_PREFIX + userId + ":" + sanitizedImportId);
+  }
+
+  private boolean hasChanged(BigDecimal previousValue, BigDecimal currentValue) {
+    if (previousValue == null) {
+      return currentValue != null;
+    }
+    return currentValue == null || previousValue.compareTo(currentValue) != 0;
   }
 }

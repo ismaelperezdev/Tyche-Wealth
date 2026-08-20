@@ -6,6 +6,8 @@ import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.mapper.asset.AssetMapper;
 import com.tychewealth.repository.AssetRepository;
+import com.tychewealth.service.assetvariation.AssetVariationService;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -22,12 +24,14 @@ public class AssetCreateHelper {
 
   private final AssetRepository assetRepository;
   private final AssetMapper assetMapper;
+  private final AssetVariationService assetVariationService;
 
   public AssetResponseDto create(PortfolioEntity portfolio, AssetCreateRequestDto createRequest) {
     AssetEntity asset = assetMapper.create(createRequest);
     asset.setPortfolio(portfolio);
 
     AssetEntity persistedAsset = assetRepository.saveAndFlush(asset);
+    assetVariationService.create(persistedAsset, LocalDateTime.now());
     return assetMapper.toDto(persistedAsset);
   }
 
@@ -44,6 +48,7 @@ public class AssetCreateHelper {
             .toList();
 
     List<AssetEntity> persistedAssets = assetRepository.saveAllAndFlush(assets);
+    assetVariationService.createAll(persistedAssets, LocalDateTime.now());
     return persistedAssets.stream().map(assetMapper::toDto).toList();
   }
 }
