@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -35,16 +36,16 @@ class AssetVariationServiceTest {
   @Test
   void createMapsAndSavesCreatedVariation() {
     AssetEntity asset = asset(1L, "10.00000000", "150.0000");
-    AssetVariationEntity variation = new AssetVariationEntity();
+    AssetVariationEntity variation = mock(AssetVariationEntity.class);
     AssetVariationDto variationDto =
         variationDto(1L, AssetVariationTypeEnum.CREATED, null, "10.00000000", null, "150.0000");
-    when(assetVariationMapper.create(any(AssetVariationDto.class), eq(asset)))
+    when(assetVariationMapper.toEntityForCreation(any(AssetVariationDto.class), eq(asset)))
         .thenReturn(variation);
 
     assetVariationService.create(asset, OCCURRED_AT);
 
     ArgumentCaptor<AssetVariationDto> captor = ArgumentCaptor.forClass(AssetVariationDto.class);
-    verify(assetVariationMapper).create(captor.capture(), eq(asset));
+    verify(assetVariationMapper).toEntityForCreation(captor.capture(), eq(asset));
     assertVariationEquals(variationDto, captor.getValue());
     verify(assetVariationRepository).save(variation);
   }
@@ -52,7 +53,7 @@ class AssetVariationServiceTest {
   @Test
   void updateMapsPreviousAndNewValues() {
     AssetEntity asset = asset(1L, "12.00000000", "175.0000");
-    AssetVariationEntity variation = new AssetVariationEntity();
+    AssetVariationEntity variation = mock(AssetVariationEntity.class);
     AssetVariationDto variationDto =
         variationDto(
             1L,
@@ -61,14 +62,14 @@ class AssetVariationServiceTest {
             "12.00000000",
             "150.0000",
             "175.0000");
-    when(assetVariationMapper.create(any(AssetVariationDto.class), eq(asset)))
+    when(assetVariationMapper.toEntityForCreation(any(AssetVariationDto.class), eq(asset)))
         .thenReturn(variation);
 
     assetVariationService.update(
         asset, new BigDecimal("10.00000000"), new BigDecimal("150.0000"), OCCURRED_AT);
 
     ArgumentCaptor<AssetVariationDto> captor = ArgumentCaptor.forClass(AssetVariationDto.class);
-    verify(assetVariationMapper).create(captor.capture(), eq(asset));
+    verify(assetVariationMapper).toEntityForCreation(captor.capture(), eq(asset));
     assertVariationEquals(variationDto, captor.getValue());
     verify(assetVariationRepository).save(variation);
   }
@@ -76,16 +77,16 @@ class AssetVariationServiceTest {
   @Test
   void deleteMapsCurrentValuesAsPreviousValues() {
     AssetEntity asset = asset(1L, "10.00000000", "150.0000");
-    AssetVariationEntity variation = new AssetVariationEntity();
+    AssetVariationEntity variation = mock(AssetVariationEntity.class);
     AssetVariationDto variationDto =
         variationDto(1L, AssetVariationTypeEnum.DELETED, "10.00000000", null, "150.0000", null);
-    when(assetVariationMapper.create(any(AssetVariationDto.class), eq(asset)))
+    when(assetVariationMapper.toEntityForCreation(any(AssetVariationDto.class), eq(asset)))
         .thenReturn(variation);
 
     assetVariationService.delete(asset, OCCURRED_AT);
 
     ArgumentCaptor<AssetVariationDto> captor = ArgumentCaptor.forClass(AssetVariationDto.class);
-    verify(assetVariationMapper).create(captor.capture(), eq(asset));
+    verify(assetVariationMapper).toEntityForCreation(captor.capture(), eq(asset));
     assertVariationEquals(variationDto, captor.getValue());
     verify(assetVariationRepository).save(variation);
   }
@@ -94,11 +95,11 @@ class AssetVariationServiceTest {
   void createAllMapsAndSavesAllVariations() {
     AssetEntity firstAsset = asset(1L, "10.00000000", "150.0000");
     AssetEntity secondAsset = asset(2L, "5.00000000", "200.0000");
-    AssetVariationEntity firstVariation = new AssetVariationEntity();
-    AssetVariationEntity secondVariation = new AssetVariationEntity();
-    when(assetVariationMapper.create(any(AssetVariationDto.class), eq(firstAsset)))
+    AssetVariationEntity firstVariation = mock(AssetVariationEntity.class);
+    AssetVariationEntity secondVariation = mock(AssetVariationEntity.class);
+    when(assetVariationMapper.toEntityForCreation(any(AssetVariationDto.class), eq(firstAsset)))
         .thenReturn(firstVariation);
-    when(assetVariationMapper.create(any(AssetVariationDto.class), eq(secondAsset)))
+    when(assetVariationMapper.toEntityForCreation(any(AssetVariationDto.class), eq(secondAsset)))
         .thenReturn(secondVariation);
 
     assetVariationService.createAll(List.of(firstAsset, secondAsset), OCCURRED_AT);
@@ -110,11 +111,11 @@ class AssetVariationServiceTest {
   void deleteAllMapsAndSavesAllVariations() {
     AssetEntity firstAsset = asset(1L, "10.00000000", "150.0000");
     AssetEntity secondAsset = asset(2L, "5.00000000", "200.0000");
-    AssetVariationEntity firstVariation = new AssetVariationEntity();
-    AssetVariationEntity secondVariation = new AssetVariationEntity();
-    when(assetVariationMapper.create(any(AssetVariationDto.class), eq(firstAsset)))
+    AssetVariationEntity firstVariation = mock(AssetVariationEntity.class);
+    AssetVariationEntity secondVariation = mock(AssetVariationEntity.class);
+    when(assetVariationMapper.toEntityForCreation(any(AssetVariationDto.class), eq(firstAsset)))
         .thenReturn(firstVariation);
-    when(assetVariationMapper.create(any(AssetVariationDto.class), eq(secondAsset)))
+    when(assetVariationMapper.toEntityForCreation(any(AssetVariationDto.class), eq(secondAsset)))
         .thenReturn(secondVariation);
 
     assetVariationService.deleteAll(List.of(firstAsset, secondAsset), OCCURRED_AT);
@@ -129,7 +130,7 @@ class AssetVariationServiceTest {
     assetVariationService.deleteAll(null, OCCURRED_AT);
     assetVariationService.deleteAll(List.of(), OCCURRED_AT);
 
-    verify(assetVariationMapper, never()).create(any(), any());
+    verify(assetVariationMapper, never()).toEntityForCreation(any(), any());
     verify(assetVariationRepository, never()).save(any(AssetVariationEntity.class));
     verify(assetVariationRepository, never()).saveAll(any());
   }

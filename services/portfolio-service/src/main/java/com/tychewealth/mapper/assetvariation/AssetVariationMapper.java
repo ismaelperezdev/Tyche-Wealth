@@ -15,5 +15,5 @@ public interface AssetVariationMapper {
   AssetVariationDto toDto(AssetVariationEntity entity);
 
   @Mapping(target = "id", ignore = true)
-  AssetVariationEntity create(AssetVariationDto dto, AssetEntity asset);
+  AssetVariationEntity toEntityForCreation(AssetVariationDto dto, AssetEntity asset);
 }

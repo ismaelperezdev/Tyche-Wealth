@@ -15,15 +15,16 @@ import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
+import org.hibernate.annotations.Immutable;
 
 /** JPA entity representing an immutable asset variation in the {@code asset_variations} table. */
 @Entity
 @Getter
-@Setter
-@NoArgsConstructor
+@Immutable
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "asset_variations")
 public class AssetVariationEntity {
 
@@ -57,4 +58,21 @@ public class AssetVariationEntity {
 
   @Column(name = "occurred_at", nullable = false)
   private LocalDateTime occurredAt;
+
+  public AssetVariationEntity(
+      AssetEntity asset,
+      AssetVariationTypeEnum changeType,
+      BigDecimal previousQuantity,
+      BigDecimal newQuantity,
+      BigDecimal previousAveragePrice,
+      BigDecimal newAveragePrice,
+      LocalDateTime occurredAt) {
+    this.asset = asset;
+    this.changeType = changeType;
+    this.previousQuantity = previousQuantity;
+    this.newQuantity = newQuantity;
+    this.previousAveragePrice = previousAveragePrice;
+    this.newAveragePrice = newAveragePrice;
+    this.occurredAt = occurredAt;
+  }
 }

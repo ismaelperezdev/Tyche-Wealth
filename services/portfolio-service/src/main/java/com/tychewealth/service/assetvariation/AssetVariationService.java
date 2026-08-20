@@ -50,7 +50,7 @@ public class AssetVariationService {
               null,
               asset.getAveragePrice(),
               occurredAt);
-      variations.add(assetVariationMapper.create(variationDto, asset));
+      variations.add(assetVariationMapper.toEntityForCreation(variationDto, asset));
     }
 
     assetVariationRepository.saveAll(variations);
@@ -99,7 +99,7 @@ public class AssetVariationService {
               asset.getAveragePrice(),
               null,
               occurredAt);
-      variations.add(assetVariationMapper.create(variationDto, asset));
+      variations.add(assetVariationMapper.toEntityForCreation(variationDto, asset));
     }
 
     assetVariationRepository.saveAll(variations);
@@ -123,7 +123,7 @@ public class AssetVariationService {
             previousAveragePrice,
             newAveragePrice,
             occurredAt);
-    AssetVariationEntity variation = assetVariationMapper.create(variationDto, asset);
+    AssetVariationEntity variation = assetVariationMapper.toEntityForCreation(variationDto, asset);
     assetVariationRepository.save(variation);
   }
 }
