@@ -10,7 +10,9 @@ import static org.mockito.Mockito.when;
 
 import com.tychewealth.error.exception.EventPublishingException;
 import com.tychewealth.kafka.events.ActiveSymbolChanges;
+import java.time.Instant;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,7 +43,11 @@ class ActiveSymbolChangesEventPublisherTest {
   @Test
   void publishLogsSuccessOnlyAfterBrokerAcknowledgement() {
     ActiveSymbolChanges event =
-        new ActiveSymbolChanges(Set.of(TEST_ASSET_SYMBOL_AAPL), Set.of(TEST_ASSET_SYMBOL_MSFT));
+        new ActiveSymbolChanges(
+            UUID.randomUUID(),
+            Instant.now(),
+            Set.of(TEST_ASSET_SYMBOL_AAPL),
+            Set.of(TEST_ASSET_SYMBOL_MSFT));
     CompletableFuture<SendResult<String, ActiveSymbolChanges>> sendFuture =
         CompletableFuture.completedFuture(null);
     when(kafkaTemplate.send(ACTIVE_SYMBOL_CHANGES_TOPIC, event)).thenReturn(sendFuture);
@@ -54,7 +60,11 @@ class ActiveSymbolChangesEventPublisherTest {
   @Test
   void publishWrapsDeliveryFailuresWithEventContext() {
     ActiveSymbolChanges event =
-        new ActiveSymbolChanges(Set.of(TEST_ASSET_SYMBOL_AAPL), Set.of(TEST_ASSET_SYMBOL_MSFT));
+        new ActiveSymbolChanges(
+            UUID.randomUUID(),
+            Instant.now(),
+            Set.of(TEST_ASSET_SYMBOL_AAPL),
+            Set.of(TEST_ASSET_SYMBOL_MSFT));
     CompletableFuture<SendResult<String, ActiveSymbolChanges>> sendFuture =
         new CompletableFuture<>();
     sendFuture.completeExceptionally(new IllegalStateException("broker unavailable"));

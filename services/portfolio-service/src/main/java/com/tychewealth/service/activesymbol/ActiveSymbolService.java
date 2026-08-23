@@ -8,10 +8,12 @@ import com.tychewealth.kafka.events.ActiveSymbolChanges;
 import com.tychewealth.kafka.publishers.ActiveSymbolChangesEventPublisher;
 import com.tychewealth.repository.AssetRepository;
 import jakarta.annotation.PostConstruct;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -92,6 +94,7 @@ public class ActiveSymbolService {
     Set<String> removedSymbols = new LinkedHashSet<>(safePreviousSymbols);
     removedSymbols.removeAll(safeCurrentSymbols);
 
-    return new ActiveSymbolChanges(Set.copyOf(addedSymbols), Set.copyOf(removedSymbols));
+    return new ActiveSymbolChanges(
+        UUID.randomUUID(), Instant.now(), Set.copyOf(addedSymbols), Set.copyOf(removedSymbols));
   }
 }
