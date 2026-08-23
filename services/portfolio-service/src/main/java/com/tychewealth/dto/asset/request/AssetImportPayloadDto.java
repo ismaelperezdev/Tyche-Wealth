@@ -12,6 +12,11 @@ import lombok.Setter;
 @AllArgsConstructor
 public class AssetImportPayloadDto {
 
+  private String importId;
   private String fileName;
   private String extractedText;
+
+  public AssetImportPayloadDto(String fileName, String extractedText) {
+    this(null, fileName, extractedText);
+  }
 }

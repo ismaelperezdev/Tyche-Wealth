@@ -508,10 +508,11 @@ class AssetServiceImplTest {
             TEST_ASSET_CONTENT_TYPE_CSV,
             TEST_ASSET_EXTRACTED_TEXT.getBytes());
     AssetImportPayloadDto payload =
-        new AssetImportPayloadDto(TEST_ASSET_FILE_NAME, TEST_ASSET_EXTRACTED_TEXT);
+        new AssetImportPayloadDto(
+            TEST_ASSET_IMPORT_ID, TEST_ASSET_FILE_NAME, TEST_ASSET_EXTRACTED_TEXT);
     List<AssetImportCandidateDto> parsedAssets = List.of(validImportedAssetCandidate());
 
-    when(importAssetsHelper.buildImportPayload(file)).thenReturn(payload);
+    when(importAssetsHelper.prepareImport(file)).thenReturn(payload);
     when(importAssetsAiHelper.prompt(
             org.mockito.ArgumentMatchers.contains(TEST_ASSET_EXTRACTED_TEXT),
             eq(AiModelTypeEnum.FAST)))
@@ -531,7 +532,7 @@ class AssetServiceImplTest {
     assertEquals(result, persistedImportCaptor.getValue().getResult());
     verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
     verify(assetAiValidationHelper).validateImportRequest(file);
-    verify(importAssetsHelper).buildImportPayload(file);
+    verify(importAssetsHelper).prepareImport(file);
     verify(importAssetsAiHelper)
         .prompt(
             org.mockito.ArgumentMatchers.contains(TEST_ASSET_EXTRACTED_TEXT),
@@ -559,7 +560,7 @@ class AssetServiceImplTest {
     assertSame(validationException, thrown);
     verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
     verify(assetAiValidationHelper).validateImportRequest(file);
-    verify(importAssetsHelper, never()).buildImportPayload(file);
+    verify(importAssetsHelper, never()).prepareImport(file);
     verify(importAssetsAiHelper, never())
         .prompt(org.mockito.ArgumentMatchers.anyString(), any(AiModelTypeEnum.class));
     verify(aiResponseParser, never())

@@ -13,7 +13,6 @@ import com.tychewealth.service.helper.asset.ai.AssetAiValidationHelper;
 import com.tychewealth.testhelper.TestRedisSupport;
 import com.tychewealth.testhelper.TestRedisSupport.InMemoryRedisState;
 import com.tychewealth.utils.Utils;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
@@ -34,23 +33,23 @@ class ImportAssetsHelperTest {
       "ticker,quantity\nAAPL,10".getBytes(StandardCharsets.UTF_8);
 
   @Test
-  void buildImportPayloadDeduplicatesConcurrentRequestsForSameFile()
+  void prepareImportDeduplicatesConcurrentRequestsForSameFile()
       throws InterruptedException, ExecutionException, IOException {
     ImportAssetsTestContext context = createImportAssetsTestContext(1, 1);
 
     ExecutorService executorService = Executors.newFixedThreadPool(2);
     try {
       Future<AssetImportPayloadDto> first =
-          executorService.submit(() -> context.helper().buildImportPayload(context.file()));
+          executorService.submit(() -> context.helper().prepareImport(context.file()));
 
       assertTrue(
-          context.firstStreamOpened().await(1, TimeUnit.SECONDS),
-          "Timed out waiting for the first stream to open");
+          context.firstBytesRead().await(1, TimeUnit.SECONDS),
+          "Timed out waiting for the first byte read");
 
       Future<AssetImportPayloadDto> second =
-          executorService.submit(() -> context.helper().buildImportPayload(context.file()));
+          executorService.submit(() -> context.helper().prepareImport(context.file()));
 
-      context.releaseFirstStream().countDown();
+      context.releaseFirstBytes().countDown();
 
       AssetImportPayloadDto firstResponse = first.get();
       AssetImportPayloadDto secondResponse = second.get();
@@ -59,9 +58,10 @@ class ImportAssetsHelperTest {
       assertNotNull(secondResponse);
       assertEquals("positions.csv", firstResponse.getFileName());
       assertEquals("positions.csv", secondResponse.getFileName());
+      assertEquals(firstResponse.getImportId(), secondResponse.getImportId());
       assertEquals("ticker,quantity\nAAPL,10", firstResponse.getExtractedText());
       assertEquals("ticker,quantity\nAAPL,10", secondResponse.getExtractedText());
-      assertEquals(1, context.inputStreamCalls().get());
+      assertEquals(1, context.fileBytesCalls().get());
     } finally {
       executorService.shutdownNow();
       context.helper().shutdown();
@@ -69,7 +69,7 @@ class ImportAssetsHelperTest {
   }
 
   @Test
-  void buildImportPayloadReleasesInflightLockWhenTaskSubmissionFails() throws IOException {
+  void prepareImportReleasesInflightLockWhenTaskSubmissionFails() throws IOException {
     ImportAssetsTestContext context = createImportAssetsTestContext(0, 0);
     String cacheKey =
         "asset-import:payload:"
@@ -81,7 +81,7 @@ class ImportAssetsHelperTest {
 
     IllegalStateException exception =
         assertThrows(
-            IllegalStateException.class, () -> context.helper().buildImportPayload(context.file()));
+            IllegalStateException.class, () -> context.helper().prepareImport(context.file()));
 
     assertEquals("Asset import queue is unavailable", exception.getMessage());
     assertFalse(context.redisState().hasKey(inflightKey));
@@ -93,10 +93,10 @@ class ImportAssetsHelperTest {
         new AssetAiValidationHelper(1024L, 10, 5000, 5, 5, 10);
     InMemoryRedisState redisState = new InMemoryRedisState();
     RedisTemplate<String, String> redisTemplate = TestRedisSupport.redisTemplate(redisState);
-    AtomicInteger inputStreamCalls = new AtomicInteger();
-    CountDownLatch firstStreamOpened = new CountDownLatch(firstStreamOpenedCount);
-    CountDownLatch releaseFirstStream = new CountDownLatch(releaseFirstStreamCount);
-    MultipartFile file = buildFile(inputStreamCalls, firstStreamOpened, releaseFirstStream);
+    AtomicInteger fileBytesCalls = new AtomicInteger();
+    CountDownLatch firstBytesRead = new CountDownLatch(firstStreamOpenedCount);
+    CountDownLatch releaseFirstBytes = new CountDownLatch(releaseFirstStreamCount);
+    MultipartFile file = buildFile(fileBytesCalls, firstBytesRead, releaseFirstBytes);
     ImportAssetsHelper helper =
         new ImportAssetsHelper(
             assetAiValidationHelper, redisTemplate, new ObjectMapper(), 1, 10, 10, 2, 25);
@@ -104,17 +104,15 @@ class ImportAssetsHelperTest {
         assetAiValidationHelper,
         redisState,
         redisTemplate,
-        inputStreamCalls,
-        firstStreamOpened,
-        releaseFirstStream,
+        fileBytesCalls,
+        firstBytesRead,
+        releaseFirstBytes,
         file,
         helper);
   }
 
   private MultipartFile buildFile(
-      AtomicInteger inputStreamCalls,
-      CountDownLatch firstStreamOpened,
-      CountDownLatch releaseFirstStream)
+      AtomicInteger fileBytesCalls, CountDownLatch firstBytesRead, CountDownLatch releaseFirstBytes)
       throws IOException {
     MultipartFile file = Mockito.mock(MultipartFile.class);
 
@@ -122,17 +120,17 @@ class ImportAssetsHelperTest {
     when(file.getBytes()).thenReturn(FILE_BYTES);
     when(file.getSize()).thenReturn((long) FILE_BYTES.length);
     when(file.isEmpty()).thenReturn(false);
-    when(file.getInputStream())
+    when(file.getBytes())
         .thenAnswer(
             invocation -> {
-              int currentCall = inputStreamCalls.incrementAndGet();
+              int currentCall = fileBytesCalls.incrementAndGet();
               if (currentCall == 1) {
-                firstStreamOpened.countDown();
-                if (!releaseFirstStream.await(1, TimeUnit.SECONDS)) {
-                  throw new IllegalStateException("Timed out waiting to release first stream");
+                firstBytesRead.countDown();
+                if (!releaseFirstBytes.await(1, TimeUnit.SECONDS)) {
+                  throw new IllegalStateException("Timed out waiting to release first byte read");
                 }
               }
-              return new ByteArrayInputStream(FILE_BYTES);
+              return FILE_BYTES;
             });
 
     return file;
@@ -142,9 +140,9 @@ class ImportAssetsHelperTest {
       AssetAiValidationHelper assetAiValidationHelper,
       InMemoryRedisState redisState,
       RedisTemplate<String, String> redisTemplate,
-      AtomicInteger inputStreamCalls,
-      CountDownLatch firstStreamOpened,
-      CountDownLatch releaseFirstStream,
+      AtomicInteger fileBytesCalls,
+      CountDownLatch firstBytesRead,
+      CountDownLatch releaseFirstBytes,
       MultipartFile file,
       ImportAssetsHelper helper) {}
 }

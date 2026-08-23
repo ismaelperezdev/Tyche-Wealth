@@ -22,8 +22,6 @@ import com.tychewealth.dto.asset.request.AssetUpdateRequestDto;
 import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.enums.AssetBatchActionEnum;
-import com.tychewealth.error.exception.AssetImportException;
-import com.tychewealth.error.handler.ErrorDefinition;
 import com.tychewealth.mapper.asset.AssetMapper;
 import com.tychewealth.repository.AssetRepository;
 import com.tychewealth.service.AssetService;
@@ -37,20 +35,16 @@ import com.tychewealth.service.helper.asset.ai.AssetAiValidationHelper;
 import com.tychewealth.service.helper.asset.ai.ImportAssetsAiHelper;
 import com.tychewealth.utils.Utils;
 import com.tychewealth.utils.prompts.AssetImportPromptUtils;
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import lombok.AllArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -197,26 +191,17 @@ public class AssetServiceImpl implements AssetService {
   public AssetImportResponseDto importAssets(Long userId, MultipartFile file) {
     commonValidationHelper.validateAuthenticatedUser(userId);
     assetAiValidationHelper.validateImportRequest(file);
-    AssetImportPayloadDto payload = importAssetsHelper.buildImportPayload(file);
+    AssetImportPayloadDto payload = importAssetsHelper.prepareImport(file);
     String prompt = AssetImportPromptUtils.buildAssetImportPrompt(payload.getExtractedText());
     String aiResponse = importAssetsAiHelper.prompt(prompt, AiModelTypeEnum.FAST);
-    String importId;
-    try {
-      importId =
-          Utils.sha256Hex(
-              payload.getFileName().toLowerCase(Locale.ROOT)
-                  + ":"
-                  + Utils.sha256Hex(file.getBytes()));
-    } catch (IOException ex) {
-      throw new AssetImportException(
-          ErrorDefinition.ASSET_IMPORT_EXTRACTION_FAILED, Map.of(), HttpStatus.BAD_REQUEST);
-    }
     AssetImportResponseDto response =
         new AssetImportResponseDto(
-            importId, aiResponseParser.parseAiAssets(payload.getExtractedText(), aiResponse));
+            payload.getImportId(),
+            aiResponseParser.parseAiAssets(payload.getExtractedText(), aiResponse));
 
     importAssetsHelper.savePersistedImportResult(
-        new AssetPersistRedisDto(importId, userId, payload.getFileName(), Instant.now(), response));
+        new AssetPersistRedisDto(
+            payload.getImportId(), userId, payload.getFileName(), Instant.now(), response));
 
     return response;
   }
