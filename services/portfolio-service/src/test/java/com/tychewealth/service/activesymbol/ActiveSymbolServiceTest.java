@@ -5,6 +5,7 @@ import static com.tychewealth.constants.TestConstants.TEST_OTHER_USER_ID;
 import static com.tychewealth.constants.TestConstants.TEST_USER_ID;
 import static com.tychewealth.testdata.AssetTestData.TEST_ASSET_SYMBOL_AAPL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
@@ -71,6 +72,8 @@ class ActiveSymbolServiceTest {
     verify(activeSymbolChangesEventPublisher).publish(changesCaptor.capture());
     assertEquals(Set.of(TEST_ASSET_SYMBOL_AAPL), changesCaptor.getValue().addedSymbols());
     assertEquals(Set.of("GOOG"), changesCaptor.getValue().removedSymbols());
+    assertNotNull(changesCaptor.getValue().eventId());
+    assertNotNull(changesCaptor.getValue().occurredAt());
 
     InOrder inOrder = inOrder(activeSymbolChangesEventPublisher, activeSymbolStore);
     inOrder.verify(activeSymbolChangesEventPublisher).publish(changesCaptor.getValue());
@@ -107,8 +110,12 @@ class ActiveSymbolServiceTest {
 
     verify(activeSymbolChangesEventPublisher)
         .publish(
-            new ActiveSymbolChanges(
-                Set.of(TEST_ASSET_SYMBOL_AAPL), Set.of(TEST_ASSET_SYMBOL_MSFT)));
+            org.mockito.ArgumentMatchers.argThat(
+                event ->
+                    event.eventId() != null
+                        && event.occurredAt() != null
+                        && event.addedSymbols().equals(Set.of(TEST_ASSET_SYMBOL_AAPL))
+                        && event.removedSymbols().equals(Set.of(TEST_ASSET_SYMBOL_MSFT))));
     verify(activeSymbolStore, never()).replaceAll(org.mockito.ArgumentMatchers.anySet());
   }
 
