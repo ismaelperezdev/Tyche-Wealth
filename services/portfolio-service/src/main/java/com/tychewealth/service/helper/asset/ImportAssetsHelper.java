@@ -34,12 +34,15 @@ import com.tychewealth.service.helper.asset.ai.AssetAiValidationHelper;
 import com.tychewealth.utils.FileDataExtractor;
 import com.tychewealth.utils.Utils;
 import jakarta.annotation.PreDestroy;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
@@ -75,6 +78,8 @@ public class ImportAssetsHelper {
   private final RedisTemplate<String, String> redisTemplate;
   private final ObjectMapper objectMapper;
   private final ThreadPoolExecutor importExecutor;
+  private final ConcurrentHashMap<MultipartFile, CompletableFuture<AssetImportPayloadDto>>
+      localImports = new ConcurrentHashMap<>();
   private final Duration inflightLockTtl;
   private final Duration inflightWaitTimeout;
   private final Duration inflightPollInterval;
@@ -105,40 +110,79 @@ public class ImportAssetsHelper {
             new ArrayBlockingQueue<>(Math.max(1, queueCapacity)));
   }
 
-  public AssetImportPayloadDto buildImportPayload(MultipartFile file) {
-    String fileName = Utils.resolveFileName(file);
-    String cacheKey;
+  public AssetImportPayloadDto prepareImport(MultipartFile file) {
+    CompletableFuture<AssetImportPayloadDto> localImport = new CompletableFuture<>();
+    CompletableFuture<AssetImportPayloadDto> existingImport =
+        localImports.putIfAbsent(file, localImport);
+    if (existingImport != null) {
+      return awaitLocalImport(existingImport);
+    }
 
     try {
-      cacheKey =
-          ASSET_IMPORT_PAYLOAD_CACHE_KEY_PREFIX
-              + Utils.sha256Hex(
-                  fileName.toLowerCase(Locale.ROOT) + ":" + Utils.sha256Hex(file.getBytes()));
+      AssetImportPayloadDto response = prepareImportInternal(file);
+      localImport.complete(response);
+      return response;
+    } catch (RuntimeException ex) {
+      localImport.completeExceptionally(ex);
+      throw ex;
+    } finally {
+      localImports.remove(file, localImport);
+    }
+  }
+
+  private AssetImportPayloadDto prepareImportInternal(MultipartFile file) {
+    String fileName = Utils.resolveFileName(file);
+    byte[] fileBytes;
+
+    try {
+      fileBytes = file.getBytes();
     } catch (IOException ex) {
       throw new AssetImportException(
           ErrorDefinition.ASSET_IMPORT_EXTRACTION_FAILED, Map.of(), HttpStatus.BAD_REQUEST);
     }
 
-    String inflightKey =
-        ASSET_IMPORT_INFLIGHT_KEY_PREFIX
-            + cacheKey.substring(ASSET_IMPORT_PAYLOAD_CACHE_KEY_PREFIX.length());
+    String importId =
+        Utils.sha256Hex(fileName.toLowerCase(Locale.ROOT) + ":" + Utils.sha256Hex(fileBytes));
+    String cacheKey = ASSET_IMPORT_PAYLOAD_CACHE_KEY_PREFIX + importId;
+    String inflightKey = ASSET_IMPORT_INFLIGHT_KEY_PREFIX + importId;
     while (true) {
-      AssetImportPayloadDto cachedResponse = readCachedResponse(cacheKey);
+      AssetImportPayloadDto cachedResponse = readCachedResponse(cacheKey, importId);
       if (cachedResponse != null) {
         return cachedResponse;
       }
 
       Boolean acquired = redisTemplate.opsForValue().setIfAbsent(inflightKey, "1", inflightLockTtl);
       if (Boolean.TRUE.equals(acquired)) {
-        return processImport(file, fileName, cacheKey, inflightKey);
+        return processImport(file, fileName, fileBytes, importId, cacheKey, inflightKey);
       }
 
-      waitForInflightResult(cacheKey, inflightKey);
+      waitForInflightResult(cacheKey, inflightKey, importId);
+    }
+  }
+
+  private AssetImportPayloadDto awaitLocalImport(
+      CompletableFuture<AssetImportPayloadDto> existingImport) {
+    try {
+      return existingImport.get();
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Interrupted while waiting for asset import", ex);
+    } catch (ExecutionException ex) {
+      Throwable cause = ex.getCause();
+      if (cause instanceof RuntimeException runtimeException) {
+        throw runtimeException;
+      }
+      throw new IllegalStateException("Asset import processing failed", cause);
     }
   }
 
   private AssetImportPayloadDto processImport(
-      MultipartFile file, String fileName, String cacheKey, String inflightKey) {
+      MultipartFile file,
+      String fileName,
+      byte[] fileBytes,
+      String importId,
+      String cacheKey,
+      String inflightKey) {
     log.info(
         REQUEST_START + IMPORT_QUEUE_STATUS,
         ASSET,
@@ -150,7 +194,7 @@ public class ImportAssetsHelper {
 
     Future<AssetImportPayloadDto> future = null;
     try {
-      future = submitImportTask(file, fileName);
+      future = submitImportTask(file, fileBytes, fileName, importId);
       AssetImportPayloadDto response =
           future.get(assetAiValidationHelper.extractionTimeoutSeconds(), TimeUnit.SECONDS);
       log.info(
@@ -216,12 +260,12 @@ public class ImportAssetsHelper {
         fileName);
   }
 
-  private void waitForInflightResult(String cacheKey, String inflightKey) {
+  private void waitForInflightResult(String cacheKey, String inflightKey, String importId) {
     long deadline = System.nanoTime() + inflightWaitTimeout.toNanos();
     log.info(REQUEST_START, ASSET, IMPORT_ASSETS_ACTION, IMPORT_INFLIGHT_WAIT_MESSAGE);
 
     while (System.nanoTime() < deadline) {
-      AssetImportPayloadDto cachedResponse = readCachedResponse(cacheKey);
+      AssetImportPayloadDto cachedResponse = readCachedResponse(cacheKey, importId);
       if (cachedResponse != null) {
         return;
       }
@@ -242,14 +286,19 @@ public class ImportAssetsHelper {
     throw assetAiValidationHelper.extractionTimeoutExceeded(inflightWaitTimeout.toSeconds());
   }
 
-  private AssetImportPayloadDto readCachedResponse(String cacheKey) {
+  private AssetImportPayloadDto readCachedResponse(String cacheKey, String importId) {
     try {
       String cachedJson = redisTemplate.opsForValue().get(cacheKey);
       if (cachedJson == null || cachedJson.isBlank()) {
         return null;
       }
 
-      return objectMapper.readValue(cachedJson, AssetImportPayloadDto.class);
+      AssetImportPayloadDto response =
+          objectMapper.readValue(cachedJson, AssetImportPayloadDto.class);
+      if (response.getImportId() == null) {
+        response.setImportId(importId);
+      }
+      return response;
     } catch (JsonProcessingException ex) {
       try {
         redisTemplate.delete(cacheKey);
@@ -317,7 +366,8 @@ public class ImportAssetsHelper {
     }
   }
 
-  private AssetImportPayloadDto extractCommonPayload(MultipartFile file, String fileName) {
+  private AssetImportPayloadDto extractCommonPayload(
+      MultipartFile file, byte[] fileBytes, String fileName, String importId) {
     long startTime = System.nanoTime();
     log.info(
         REQUEST_START + IMPORT_QUEUE_STATUS,
@@ -327,7 +377,7 @@ public class ImportAssetsHelper {
         fileName,
         importExecutor.getActiveCount(),
         importExecutor.getQueue().size());
-    try (InputStream inputStream = file.getInputStream()) {
+    try (InputStream inputStream = inputStream(file, fileBytes)) {
       assetAiValidationHelper.validateExtractionRequest(fileName, inputStream);
       String extractedText = FileDataExtractor.extractText(fileName, inputStream);
       assetAiValidationHelper.validateExtractedText(extractedText);
@@ -340,7 +390,7 @@ public class ImportAssetsHelper {
           fileName,
           elapsedMillis,
           extractedText.length());
-      return new AssetImportPayloadDto(fileName, extractedText);
+      return new AssetImportPayloadDto(importId, fileName, extractedText);
     } catch (IOException ex) {
       log.warn(
           REQUEST_CONFLICT + FILE_NAME_CONTEXT,
@@ -356,9 +406,10 @@ public class ImportAssetsHelper {
     }
   }
 
-  private Future<AssetImportPayloadDto> submitImportTask(MultipartFile file, String fileName) {
+  private Future<AssetImportPayloadDto> submitImportTask(
+      MultipartFile file, byte[] fileBytes, String fileName, String importId) {
     FutureTask<AssetImportPayloadDto> task =
-        new FutureTask<>(() -> extractCommonPayload(file, fileName));
+        new FutureTask<>(() -> extractCommonPayload(file, fileBytes, fileName, importId));
 
     if (importExecutor.isShutdown()) {
       throw new IllegalStateException("Asset import queue is unavailable");
@@ -370,6 +421,11 @@ public class ImportAssetsHelper {
     }
 
     return submitDirectOrReject(task);
+  }
+
+  private InputStream inputStream(MultipartFile file, byte[] fileBytes) throws IOException {
+    InputStream inputStream = file.getInputStream();
+    return inputStream == null ? new ByteArrayInputStream(fileBytes) : inputStream;
   }
 
   private Future<AssetImportPayloadDto> submitDirectOrReject(
