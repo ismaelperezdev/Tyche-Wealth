@@ -5,9 +5,6 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <include file="market-symbol-changelog/market-symbol-changelog-master.xml"
-             relativeToChangelogFile="true"/>
-    <include file="market-price-checkpoint-changelog/market-price-checkpoint-changelog-master.xml"
-             relativeToChangelogFile="true"/>
+    <include file="market-price-checkpoint-changelog-dll.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

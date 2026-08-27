@@ -13,6 +13,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface MarketSymbolRepository extends JpaRepository<MarketSymbolEntity, Long> {
 
+  /** Returns all currently active market symbols. */
+  Collection<MarketSymbolEntity> findByActiveTrue();
+
   /** Inserts a batch of symbols that are not already present. */
   @Modifying
   @Query(

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="create-market-price-checkpoints-sequence" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <sequenceExists sequenceName="market_price_checkpoints_seq"/>
+            </not>
+        </preConditions>
+
+        <createSequence sequenceName="market_price_checkpoints_seq" startValue="1" incrementBy="1"/>
+
+        <rollback>
+            <dropSequence sequenceName="market_price_checkpoints_seq"/>
+        </rollback>
+
+    </changeSet>
+
+    <changeSet id="create-market-price-checkpoints-table" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <tableExists tableName="market_price_checkpoints"/>
+            </not>
+        </preConditions>
+
+        <createTable tableName="market_price_checkpoints">
+            <column name="id" type="BIGINT" defaultValueSequenceNext="market_price_checkpoints_seq">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="market_symbol_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="price" type="DECIMAL(19,8)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="captured_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="bucket_start" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="market_price_checkpoints"
+                baseColumnNames="market_symbol_id"
+                constraintName="fk_market_price_checkpoints_market_symbols"
+                referencedTableName="market_symbols"
+                referencedColumnNames="id"/>
+
+        <addUniqueConstraint
+                tableName="market_price_checkpoints"
+                columnNames="market_symbol_id, bucket_start"
+                constraintName="uq_market_price_checkpoints_symbol_bucket"/>
+
+        <rollback>
+            <dropTable tableName="market_price_checkpoints"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

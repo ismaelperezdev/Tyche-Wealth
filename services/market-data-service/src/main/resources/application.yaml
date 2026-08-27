@@ -13,6 +13,9 @@ spring:
     hibernate:
       ddl-auto: none
     open-in-view: false
+    properties:
+      hibernate.jdbc.batch_size: 50
+      hibernate.order_inserts: true
   config:
     import:
       - optional:file:./application-local.properties
@@ -95,6 +98,13 @@ kafka:
 app:
   market-symbol:
     batch-size: ${MARKET_SYMBOL_BATCH_SIZE:500}
+  market-price:
+    bucket-hours: ${MARKET_PRICE_BUCKET_HOURS:6}
+    checkpoint-batch-size: ${MARKET_PRICE_CHECKPOINT_BATCH_SIZE:500}
+    scheduler:
+      enabled: ${MARKET_PRICE_SCHEDULER_ENABLED:true}
+      fixed-delay: ${MARKET_PRICE_SCHEDULER_FIXED_DELAY:5m}
+      initial-delay: ${MARKET_PRICE_SCHEDULER_INITIAL_DELAY:30s}
   kafka:
     listener:
       retry-interval-ms: ${KAFKA_LISTENER_RETRY_INTERVAL_MS:1000}
