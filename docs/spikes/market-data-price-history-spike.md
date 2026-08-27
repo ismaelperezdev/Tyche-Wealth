@@ -192,7 +192,7 @@ Adopt the Redis cache plus MDS historical store option, with a dedicated market 
 
 The MDS scheduler will run every five minutes. For each active symbol, it obtains a provider quote, stores it as JSON in Redis under a per-symbol key with a ten-minute TTL, and persists it if the current six-hour UTC bucket has no checkpoint. The bucket boundary is derived from time, not a counter. If Redis does not contain a quote, the scheduler must request it itself.
 
-The interim `active-symbol-changes` contract will add `eventId` and `occurredAt`. MDS will consume idempotently. While the contract remains delta-only, the topic will initially operate with one partition. This limits, but does not conceptually eliminate, the need for evolution: when volume or ordering requirements scale, the contract must include a snapshot version. An isolated `eventId` is not an ordering guarantee.
+The interim `active-symbol-changes` contract will add `eventId` and `occurredAt`. MDS will consume idempotently. The topic will retain three partitions. While the contract remains delta-only, the ordering strategy must be evolved so that partitioning cannot leave MDS with an obsolete state. An isolated `eventId` is not an ordering guarantee.
 
 ### Detailed Design
 
@@ -227,7 +227,7 @@ Final route, DTO, and orchestration-class names will be decided in implementatio
 ### Component Interaction and Flow
 
 1. User service publishes active users; Portfolio consumes them, and `ActiveSymbolService.synchronizeSymbols` compares the Redis snapshot with active symbols from non-deleted portfolios.
-2. Portfolio publishes the `addedSymbols`/`removedSymbols` delta with `eventId` and `occurredAt` to `active-symbol-changes`, initially on a one-partition topic.
+2. Portfolio publishes the `addedSymbols`/`removedSymbols` delta with `eventId` and `occurredAt` to `active-symbol-changes`, which retains three partitions.
 3. MDS consumes the event idempotently and activates or deactivates `market_symbols` records. Failures follow the existing retry and DLT policy.
 4. Every five minutes, the scheduler queries the mock for each active symbol, updates the JSON Redis cache with a ten-minute TTL, and persists a checkpoint only if the six-hour UTC bucket is new.
 5. The frontend requests the price view from Portfolio. Portfolio determines symbols from the user's active assets, deduplicates them, and requests the latest price and/or history from MDS.
@@ -245,7 +245,7 @@ This decision does not include implementing a transaction microservice, complete
 - What authentication and authorization mechanism will Portfolio and MDS use before enabling the internal call in a shared environment?
 - What symbol normalization policy and market/currency will the mock initially represent?
 - How will rate limits, errors, and gradual replacement of the mock by Twelve Data be managed?
-- What version and form will the snapshot contract take when one partition and deltas no longer satisfy ordering or recovery requirements?
+- What version and form will the snapshot contract take while three partitions and deltas must satisfy ordering and recovery requirements?
 - What granularity, presentation time zone, and maximum range should the history query support while retaining the UTC bucket as the persistence key?
 - Which asset changes, beyond quantity and average cost, will be relevant to reconstruct future valuation?
 - How will existing queries be migrated to ensure every read, count, and conflict check excludes only entities with non-null `deleted_at`?
@@ -254,13 +254,13 @@ This decision does not include implementing a transaction microservice, complete
 
 ### Evolve the Active Symbol Kafka Contract
 
-**Objective:** evolve `ActiveSymbolChanges` to carry `eventId` and `occurredAt`, retaining added and removed symbol sets, and initially operate `active-symbol-changes` with one partition.
+**Objective:** evolve `ActiveSymbolChanges` to carry `eventId` and `occurredAt`, retaining added and removed symbol sets, while operating `active-symbol-changes` with three partitions.
 
 **Acceptance Criteria:**
 
 - The Portfolio producer publishes every delta with non-null `eventId` and `occurredAt`.
 - The contract documents that messages are deltas and that `eventId` does not by itself guarantee ordering.
-- Topic operational configuration uses one partition while the consumer relies on ordered deltas.
+- Topic operational configuration retains three partitions and the consumer uses the ordering strategy defined for the delta contract.
 - The existing MDS retry and DLT policy is retained for the evolved contract.
 - The future need for a versioned snapshot contract is documented if scale or recovery/ordering requirements increase.
 
@@ -330,3 +330,26 @@ This decision does not include implementing a transaction microservice, complete
 - Repositories, validations, listings, retrievals, counts, and conflict checks explicitly filter non-deleted entities.
 - `AssetRepository.findDistinctSymbolsByUserIds` excludes deleted assets and portfolios so inactive symbols are not published.
 - The implementation does not assume an automatic global filter: it follows the explicit-filter precedent used by user soft deletion.
+
+## Future Story: Preserve Active-Symbol Delta Ordering with Three Kafka Partitions
+
+The current delta-only `active-symbol-changes` contract depends on message ordering, while the
+topic is intended to use Kafka's default of three partitions. The existing publisher sends events
+without a key, so consecutive deltas can be distributed across partitions and consumed out of
+order. This must be resolved in a separate story rather than by changing the MDS persistence
+implementation.
+
+The future story must define an ordering strategy compatible with three partitions, such as a
+stable routing key or a versioned snapshot/delta contract. A stable key would preserve ordering
+but may concentrate traffic; versioning would allow the three partitions to be used while allowing
+MDS to reject stale events. Existing topics and records must be considered when
+migrating the strategy.
+
+### Candidate Acceptance Criteria
+
+- `active-symbol-changes` retains three partitions.
+- The chosen strategy guarantees that stale deltas cannot leave MDS with an obsolete active-symbol
+  state.
+- Portfolio and MDS use the same ordering/versioning contract.
+- Out-of-order, duplicated, retried, and migrated events are covered by tests.
+- The migration procedure for an already existing topic is documented.

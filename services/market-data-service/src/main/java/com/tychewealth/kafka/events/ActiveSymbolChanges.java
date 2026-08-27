@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
 
+/** Carries the symbols added to and removed from the active market-symbol set. */
 public record ActiveSymbolChanges(
     UUID eventId, Instant occurredAt, Set<String> addedSymbols, Set<String> removedSymbols) {
 
