@@ -13,6 +13,11 @@ public final class TestConstants {
   public static final String TEST_QUOTE_PATH = "/quote";
   public static final String TEST_SYMBOL_FIELD = "symbol";
   public static final String TEST_SYMBOL = "AAPL";
+  public static final String SECOND_TEST_SYMBOL = "MSFT";
+  public static final String ACTIVE_SYMBOL_CHANGES_TOPIC = "active-symbol-changes";
+  public static final String PADDED_TEST_SYMBOL = " aapl ";
+  public static final String OVERSIZED_TEST_SYMBOL = "ABCDEFGHIJKLMNOPQRSTU";
+  public static final String BLANK_TEST_SYMBOL = "   ";
   public static final String TEST_TIME_SERIES_PATH = "/time_series";
   public static final String TEST_PRICE_PATH = "/price";
   public static final int SINGLE_RESULT_SIZE = 1;

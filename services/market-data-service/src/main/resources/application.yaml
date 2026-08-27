@@ -1,6 +1,18 @@
 spring:
   application:
     name: market-data-service
+  liquibase:
+    enabled: true
+    change-log: classpath:db.changelog/changelog-master.xml
+  datasource:
+    url: ${DB_URL_MARKET_DATA}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
   config:
     import:
       - optional:file:./application-local.properties
@@ -81,6 +93,8 @@ kafka:
   enabled: ${KAFKA_ENABLED:true}
 
 app:
+  market-symbol:
+    batch-size: ${MARKET_SYMBOL_BATCH_SIZE:500}
   kafka:
     listener:
       retry-interval-ms: ${KAFKA_LISTENER_RETRY_INTERVAL_MS:1000}

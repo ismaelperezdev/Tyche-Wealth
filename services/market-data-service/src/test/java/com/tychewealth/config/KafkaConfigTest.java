@@ -1,5 +1,6 @@
 package com.tychewealth.config;
 
+import static com.tychewealth.constants.TestConstants.ACTIVE_SYMBOL_CHANGES_TOPIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
@@ -47,12 +48,12 @@ class KafkaConfigTest {
 
     TopicPartition topicPartition =
         destinationResolver.apply(
-            new ConsumerRecord<>("active-symbol-changes", 3, 0L, "key", "value"),
+            new ConsumerRecord<>(ACTIVE_SYMBOL_CHANGES_TOPIC, 3, 0L, "key", "value"),
             new IllegalStateException("boom"));
 
     assertNotNull(recoverer);
     assertNotNull(destinationResolver);
-    assertEquals("active-symbol-changes-dlt", topicPartition.topic());
+    assertEquals(ACTIVE_SYMBOL_CHANGES_TOPIC + "-dlt", topicPartition.topic());
     assertEquals(3, topicPartition.partition());
     assertEquals(true, ReflectionTestUtils.getField(recoverer, "failIfSendResultIsError"));
     assertEquals(

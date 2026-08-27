@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="create-market-symbols-sequence" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <sequenceExists sequenceName="market_symbols_seq"/>
+            </not>
+        </preConditions>
+
+        <createSequence sequenceName="market_symbols_seq" startValue="1" incrementBy="1"/>
+
+        <rollback>
+            <dropSequence sequenceName="market_symbols_seq"/>
+        </rollback>
+
+    </changeSet>
+
+    <changeSet id="create-market-symbols-table" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <tableExists tableName="market_symbols"/>
+            </not>
+        </preConditions>
+
+        <createTable tableName="market_symbols">
+            <column name="id" type="BIGINT" defaultValueSequenceNext="market_symbols_seq">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="symbol" type="VARCHAR(20)">
+                <constraints nullable="false" unique="true"
+                             uniqueConstraintName="uq_market_symbols_symbol"/>
+            </column>
+            <column name="active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deactivated_at" type="TIMESTAMP"/>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="market_symbols"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

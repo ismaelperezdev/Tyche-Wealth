@@ -52,6 +52,33 @@ services:
     networks:
       - tyche-network
 
+  market-data-service:
+    build:
+      context: .
+      dockerfile: services/market-data-service/Dockerfile
+    container_name: tyche-market-data-service
+    env_file:
+      - ./application-local.properties
+    ports:
+      - "127.0.0.1:${MARKET_DATA_SERVICE_PORT:-8081}:8081"
+    volumes:
+      - ./application-local.properties:/app/application-local.properties:ro
+    environment:
+      DB_URL_MARKET_DATA: ${DB_URL_MARKET_DATA:-jdbc:postgresql://postgres:5432/tyche_wealth_market_data}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-true}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:29092}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - tyche-network
+
   postgres:
     image: postgres:17
     container_name: tyche-postgres
@@ -63,6 +90,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      DB_URL_MARKET_DATA: ${DB_URL_MARKET_DATA:-jdbc:postgresql://postgres:5432/tyche_wealth_market_data}
     healthcheck:
       test:
         [
@@ -165,6 +193,7 @@ services:
     depends_on:
       - user-service
       - portfolio-service
+      - market-data-service
     networks:
       - tyche-network
 

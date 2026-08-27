@@ -19,3 +19,12 @@ scrape_configs:
     static_configs:
       - targets:
           - portfolio-service:8081
+
+  - job_name: market-data-service
+    metrics_path: /actuator/prometheus
+    basic_auth:
+      username: prometheus-scraper
+      password: __PROMETHEUS_PASSWORD__
+    static_configs:
+      - targets:
+          - market-data-service:8081
