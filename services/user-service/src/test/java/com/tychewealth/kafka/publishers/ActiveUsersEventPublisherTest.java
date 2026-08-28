@@ -40,11 +40,11 @@ class ActiveUsersEventPublisherTest {
     ActiveUsersEvent event = new ActiveUsersEvent(Instant.now(), Set.of(TEST_USER_ID));
     CompletableFuture<SendResult<String, ActiveUsersEvent>> sendFuture =
         CompletableFuture.completedFuture(null);
-    when(kafkaTemplate.send("active-users", event)).thenReturn(sendFuture);
+    when(kafkaTemplate.send("active-users", "active-users", event)).thenReturn(sendFuture);
 
     assertDoesNotThrow(() -> activeUsersEventPublisher.publish(event));
 
-    verify(kafkaTemplate).send("active-users", event);
+    verify(kafkaTemplate).send("active-users", "active-users", event);
   }
 
   @Test
@@ -52,7 +52,7 @@ class ActiveUsersEventPublisherTest {
     ActiveUsersEvent event = new ActiveUsersEvent(Instant.now(), Set.of(TEST_USER_ID));
     CompletableFuture<SendResult<String, ActiveUsersEvent>> sendFuture = new CompletableFuture<>();
     sendFuture.completeExceptionally(new IllegalStateException("broker unavailable"));
-    when(kafkaTemplate.send("active-users", event)).thenReturn(sendFuture);
+    when(kafkaTemplate.send("active-users", "active-users", event)).thenReturn(sendFuture);
 
     EventPublishingException exception =
         assertThrows(
@@ -60,6 +60,6 @@ class ActiveUsersEventPublisherTest {
 
     assertEquals("active-users", exception.getMetadata().get("topic"));
     assertEquals("1", exception.getMetadata().get("activeUsers"));
-    verify(kafkaTemplate).send("active-users", event);
+    verify(kafkaTemplate).send("active-users", "active-users", event);
   }
 }

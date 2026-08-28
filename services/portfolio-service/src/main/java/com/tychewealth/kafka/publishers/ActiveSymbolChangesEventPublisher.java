@@ -32,6 +32,8 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "kafka.enabled", havingValue = "true", matchIfMissing = false)
 public class ActiveSymbolChangesEventPublisher {
 
+  private static final String ACTIVE_SYMBOL_CHANGES_TOPIC_KEY = "active-symbol-changes";
+
   private final KafkaTemplate<String, ActiveSymbolChanges> kafkaTemplate;
 
   @Value("${app.kafka.topics.active-symbol-changes}")
@@ -48,7 +50,7 @@ public class ActiveSymbolChangesEventPublisher {
   public void publish(ActiveSymbolChanges event) {
     try {
       CompletableFuture<SendResult<String, ActiveSymbolChanges>> sendFuture =
-          kafkaTemplate.send(activeSymbolChangesTopic, event);
+          kafkaTemplate.send(activeSymbolChangesTopic, ACTIVE_SYMBOL_CHANGES_TOPIC_KEY, event);
       sendFuture.get(publishTimeoutMs, TimeUnit.MILLISECONDS);
       log.info(
           REQUEST_SUCCESS + " topic={} addedSymbols={} removedSymbols={}",

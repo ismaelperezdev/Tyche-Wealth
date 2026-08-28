@@ -33,6 +33,8 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "kafka.enabled", havingValue = "true", matchIfMissing = false)
 public class ActiveUsersEventPublisher {
 
+  private static final String ACTIVE_USERS_TOPIC_KEY = "active-users";
+
   private final KafkaTemplate<String, ActiveUsersEvent> kafkaTemplate;
 
   @Value("${app.kafka.topics.active-users}")
@@ -48,7 +50,7 @@ public class ActiveUsersEventPublisher {
   public void publish(ActiveUsersEvent event) {
     try {
       CompletableFuture<SendResult<String, ActiveUsersEvent>> sendFuture =
-          kafkaTemplate.send(activeUsersTopic, event);
+          kafkaTemplate.send(activeUsersTopic, ACTIVE_USERS_TOPIC_KEY, event);
       sendFuture.get(publishTimeoutMs, TimeUnit.MILLISECONDS);
       log.info(
           REQUEST_SUCCESS + ACTIVE_USERS_EVENT_SUCCESS_CONTEXT,

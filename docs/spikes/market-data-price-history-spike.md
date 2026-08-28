@@ -339,6 +339,10 @@ without a key, so consecutive deltas can be distributed across partitions and co
 order. This must be resolved in a separate story rather than by changing the MDS persistence
 implementation.
 
+The same ordering constraint applies to the `active-users` snapshot consumed by Portfolio. Both
+topics therefore use three partitions with a stable flow-level routing key, keeping each stream in
+one ordered partition without changing the event payloads.
+
 The future story must define an ordering strategy compatible with three partitions, such as a
 stable routing key or a versioned snapshot/delta contract. A stable key would preserve ordering
 but may concentrate traffic; versioning would allow the three partitions to be used while allowing
@@ -348,8 +352,18 @@ migrating the strategy.
 ### Candidate Acceptance Criteria
 
 - `active-symbol-changes` retains three partitions.
+- `active-users` retains three partitions.
 - The chosen strategy guarantees that stale deltas cannot leave MDS with an obsolete active-symbol
   state.
-- Portfolio and MDS use the same ordering/versioning contract.
+- User service, Portfolio, and MDS use the same ordering contract for their respective topics.
+- Producers publish each flow with a stable, non-null routing key.
 - Out-of-order, duplicated, retried, and migrated events are covered by tests.
 - The migration procedure for an already existing topic is documented.
+
+### Migration Procedure
+
+For an existing topic, stop the corresponding producer before changing the partition count and
+drain the consumer group until the current backlog is empty. Start the service that declares the
+`NewTopic` bean to expand the topic to three partitions, then deploy the producer using the stable
+routing key and resume normal consumption. This avoids interleaving old unkeyed records with new
+keyed records during the cutover; adding partitions does not redistribute records already stored.

@@ -27,6 +27,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 class ActiveSymbolChangesEventPublisherTest {
 
   private static final String ACTIVE_SYMBOL_CHANGES_TOPIC = "active-symbol-changes";
+  private static final String ACTIVE_SYMBOL_CHANGES_TOPIC_KEY = "active-symbol-changes";
 
   @Mock private KafkaTemplate<String, ActiveSymbolChanges> kafkaTemplate;
 
@@ -50,11 +51,12 @@ class ActiveSymbolChangesEventPublisherTest {
             Set.of(TEST_ASSET_SYMBOL_MSFT));
     CompletableFuture<SendResult<String, ActiveSymbolChanges>> sendFuture =
         CompletableFuture.completedFuture(null);
-    when(kafkaTemplate.send(ACTIVE_SYMBOL_CHANGES_TOPIC, event)).thenReturn(sendFuture);
+    when(kafkaTemplate.send(ACTIVE_SYMBOL_CHANGES_TOPIC, ACTIVE_SYMBOL_CHANGES_TOPIC_KEY, event))
+        .thenReturn(sendFuture);
 
     assertDoesNotThrow(() -> activeSymbolChangesEventPublisher.publish(event));
 
-    verify(kafkaTemplate).send(ACTIVE_SYMBOL_CHANGES_TOPIC, event);
+    verify(kafkaTemplate).send(ACTIVE_SYMBOL_CHANGES_TOPIC, ACTIVE_SYMBOL_CHANGES_TOPIC_KEY, event);
   }
 
   @Test
@@ -68,7 +70,8 @@ class ActiveSymbolChangesEventPublisherTest {
     CompletableFuture<SendResult<String, ActiveSymbolChanges>> sendFuture =
         new CompletableFuture<>();
     sendFuture.completeExceptionally(new IllegalStateException("broker unavailable"));
-    when(kafkaTemplate.send(ACTIVE_SYMBOL_CHANGES_TOPIC, event)).thenReturn(sendFuture);
+    when(kafkaTemplate.send(ACTIVE_SYMBOL_CHANGES_TOPIC, ACTIVE_SYMBOL_CHANGES_TOPIC_KEY, event))
+        .thenReturn(sendFuture);
 
     EventPublishingException exception =
         assertThrows(
@@ -77,6 +80,6 @@ class ActiveSymbolChangesEventPublisherTest {
     assertEquals(ACTIVE_SYMBOL_CHANGES_TOPIC, exception.getMetadata().get("topic"));
     assertEquals("1", exception.getMetadata().get("addedSymbols"));
     assertEquals("1", exception.getMetadata().get("removedSymbols"));
-    verify(kafkaTemplate).send(ACTIVE_SYMBOL_CHANGES_TOPIC, event);
+    verify(kafkaTemplate).send(ACTIVE_SYMBOL_CHANGES_TOPIC, ACTIVE_SYMBOL_CHANGES_TOPIC_KEY, event);
   }
 }
