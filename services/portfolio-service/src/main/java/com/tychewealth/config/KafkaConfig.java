@@ -39,8 +39,9 @@ public class KafkaConfig {
   @Bean
   NewTopic activeSymbolChangesTopic(
       @Value("${app.kafka.topics.active-symbol-changes}") String topicName,
-      @Value("${app.kafka.topic-partitions:3}") int partitions) {
-    return TopicBuilder.name(topicName).partitions(partitions).replicas(1).build();
+      @Value("${app.kafka.topic-partitions:3}") int partitions,
+      @Value("${app.kafka.topic-replication-factor:1}") int replicationFactor) {
+    return TopicBuilder.name(topicName).partitions(partitions).replicas(replicationFactor).build();
   }
 
   @Bean

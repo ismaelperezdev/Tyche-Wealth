@@ -45,10 +45,11 @@ class KafkaConfigTest {
 
   @Test
   void shouldCreateActiveSymbolChangesTopicWithConfiguredPartitions() {
-    NewTopic topic = kafkaConfig.activeSymbolChangesTopic("active-symbol-changes", 3);
+    NewTopic topic = kafkaConfig.activeSymbolChangesTopic("active-symbol-changes", 3, 2);
 
     assertEquals("active-symbol-changes", topic.name());
     assertEquals(3, topic.numPartitions());
+    assertEquals(2, topic.replicationFactor());
   }
 
   @Test
