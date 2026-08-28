@@ -111,6 +111,7 @@ app:
       retry-attempts: ${KAFKA_LISTENER_RETRY_ATTEMPTS:2}
     dlt:
       suffix: ${KAFKA_DLT_SUFFIX:-dlt}
+    topic-partitions: ${KAFKA_TOPIC_PARTITIONS:3}
     topics:
       active-symbol-changes: ${KAFKA_TOPIC_ACTIVE_SYMBOL_CHANGES:active-symbol-changes}
 

@@ -1,9 +1,11 @@
 package com.tychewealth.config;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.doAnswer;
 
+import org.apache.kafka.clients.admin.NewTopic;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -39,6 +41,15 @@ class KafkaConfigTest {
 
     assertNotNull(recoverer);
     assertNotNull(errorHandler);
+  }
+
+  @Test
+  void shouldCreateActiveSymbolChangesTopicWithConfiguredPartitions() {
+    NewTopic topic = kafkaConfig.activeSymbolChangesTopic("active-symbol-changes", 3, 2);
+
+    assertEquals("active-symbol-changes", topic.name());
+    assertEquals(3, topic.numPartitions());
+    assertEquals(2, topic.replicationFactor());
   }
 
   @Test
