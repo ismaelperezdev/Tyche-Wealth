@@ -45,6 +45,12 @@ jobs:
       - name: Check format
         run: ./mvnw spotless:check
 
+      - name: Build listing-support
+        run: ./mvnw -pl libraries/listing-support -am -DskipTests package
+
+      - name: Test listing-support
+        run: ./mvnw -pl libraries/listing-support -am test
+
   security:
     if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest

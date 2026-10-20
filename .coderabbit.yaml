@@ -13,6 +13,7 @@ reviews:
     - "services/portfolio-service/**"
     - "services/market-data-service/**"
     - "libraries/redis-support/**"
+    - "libraries/listing-support/**"
     - ".github/workflows/**"
     - "docker/**"
     - "observability/**"
@@ -22,6 +23,7 @@ reviews:
     - "!services/portfolio-service/target/**"
     - "!services/market-data-service/target/**"
     - "!libraries/redis-support/target/**"
+    - "!libraries/listing-support/target/**"
     - "!**/.idea/**"
     - "!**/*.iml"
   auto_review:
