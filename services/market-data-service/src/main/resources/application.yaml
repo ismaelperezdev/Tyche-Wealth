@@ -78,20 +78,6 @@ clients:
     max-retries: ${TWELVE_DATA_MAX_RETRIES:2}
     retry-backoff: ${TWELVE_DATA_RETRY_BACKOFF:500ms}
     default-interval: ${TWELVE_DATA_DEFAULT_INTERVAL:4min}
-  resources:
-    base-url: ${VEHICLE_RESOURCES_BASE_URL:http://localhost:${mock.provider.port}}
-    resources-path: ${VEHICLE_RESOURCES_PATH:/external-api/resources}
-    lower-left-lat-lon: ${VEHICLE_RESOURCES_LOWER_LEFT_LAT_LON:40.4168,-3.7038}
-    upper-right-lat-lon: ${VEHICLE_RESOURCES_UPPER_RIGHT_LAT_LON:40.4268,-3.6938}
-    company-zone-ids:
-      - 100
-      - 101
-      - 102
-    user-agent: ${VEHICLE_RESOURCES_USER_AGENT:vehicle-availability-service/1.0}
-    request-timeout: 5s
-    max-retries: 2
-    retry-backoff: 500ms
-
 kafka:
   enabled: ${KAFKA_ENABLED:true}
 
