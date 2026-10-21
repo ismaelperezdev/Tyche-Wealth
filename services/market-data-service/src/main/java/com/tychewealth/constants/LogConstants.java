@@ -6,14 +6,11 @@ public final class LogConstants {
 
   public static final String BASE_LOG = "{} {}";
 
-  public static final String RESOURCES_CLIENT = "[resources-client]";
   public static final String TWELVE_DATA_CLIENT = "[twelve-data-client]";
-  public static final String VEHICLE_POLLING_SCHEDULER = "[vehicle-polling-scheduler]";
   public static final String MARKET_QUOTE_SCHEDULER = "[market-quote-scheduler]";
   public static final String ACTIVE_SYMBOL_CHANGES_EVENT = "[active-symbol-changes-event]";
   public static final String ERROR_HANDLER = "[error-handler]";
   public static final String FETCH_ACTION = "[fetch]";
-  public static final String POLL_ACTION = "[poll]";
   public static final String QUOTE_CAPTURE_ACTION = "[quote-capture]";
   public static final String HANDLE_ACTION = "[handle]";
   public static final String PRICE_ACTION = "[price]";
@@ -25,9 +22,6 @@ public final class LogConstants {
   public static final String REQUEST_SUCCESS = BASE_LOG + " Request succeeded count={}";
   public static final String REQUEST_FAILURE = BASE_LOG + " Request failed";
   public static final String POLLING_SUCCESS = BASE_LOG + " Polling completed added={} removed={}";
-  public static final String POLLING_FAILURE = BASE_LOG + " Polling failed";
-  public static final String POLLING_NO_CHANGES = BASE_LOG + " No vehicle changes detected";
-  public static final String POLLING_DURATION = BASE_LOG + " Polling finished durationMs={}";
   public static final String QUOTE_CAPTURE_SUCCESS =
       BASE_LOG + " Quote capture completed durationMs={}";
   public static final String QUOTE_CAPTURE_FAILURE = BASE_LOG + " Quote capture failed";
