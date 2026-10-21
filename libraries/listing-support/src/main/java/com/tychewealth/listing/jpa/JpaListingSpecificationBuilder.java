@@ -16,6 +16,7 @@ import java.util.Locale;
 import org.springframework.core.convert.ConversionException;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.format.datetime.standard.DateTimeFormatterRegistrar;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -31,8 +32,16 @@ import org.springframework.util.ClassUtils;
 @Component
 public class JpaListingSpecificationBuilder {
 
-  private static final ConversionService CONVERSION_SERVICE =
-      new DefaultFormattingConversionService();
+  private static final ConversionService CONVERSION_SERVICE = createConversionService();
+
+  private static ConversionService createConversionService() {
+    DefaultFormattingConversionService conversionService =
+        new DefaultFormattingConversionService(false);
+    DateTimeFormatterRegistrar registrar = new DateTimeFormatterRegistrar();
+    registrar.setUseIsoFormat(true);
+    registrar.registerFormatters(conversionService);
+    return conversionService;
+  }
 
   public <T> Specification<T> fromFilters(
       List<ApiFilter> filters, FilterFieldMapping fieldMapping) {
@@ -125,8 +134,14 @@ public class JpaListingSpecificationBuilder {
             .map(
                 value ->
                     criteriaBuilder.like(
-                        expression, "%" + value.toString().toLowerCase(Locale.ROOT) + "%"))
+                        expression,
+                        "%" + escapeLike(value.toString().toLowerCase(Locale.ROOT)) + "%",
+                        '\\'))
             .toArray(Predicate[]::new));
+  }
+
+  private String escapeLike(String value) {
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
   }
 
   private List<Object> convertValues(

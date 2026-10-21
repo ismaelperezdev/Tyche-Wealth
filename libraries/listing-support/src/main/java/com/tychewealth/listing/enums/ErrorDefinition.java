@@ -36,6 +36,11 @@ public enum ErrorDefinition {
   FILTER_MAX_EXCEEDED(
       "TYCHE-9104",
       "FILTER_MAX_EXCEEDED",
+      "The maximum number of filters ({0}) has been exceeded: {1} filters provided"),
+
+  SORT_MAX_EXCEEDED(
+      "TYCHE-9109",
+      "SORT_MAX_EXCEEDED",
       "The maximum number of sorts ({0}) has been exceeded: {1} sorts provided"),
 
   FILTER_PARSE_ERROR(

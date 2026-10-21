@@ -11,6 +11,7 @@ import com.tychewealth.listing.exception.FilterException;
 import com.tychewealth.listing.properties.FilterProperties;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
@@ -51,8 +52,7 @@ public class FilterParser {
         }
       };
 
-  private static final Map<Class<?>, Map<String, Filterable>> FILTERABLE_CACHE =
-      new ConcurrentHashMap<>();
+  private final Map<Class<?>, Map<String, Filterable>> filterableCache = new ConcurrentHashMap<>();
 
   private final FilterProperties filterProperties;
 
@@ -66,6 +66,7 @@ public class FilterParser {
 
   public ListQuery parse(
       Map<String, String> allRequestParams, String requestRange, Class<?> responseDtoClass) {
+    Objects.requireNonNull(responseDtoClass, "responseDtoClass must not be null");
 
     String offsetStr = allRequestParams.get(OFFSET_PARAM);
     String limitStr = allRequestParams.get(LIMIT_PARAM);
@@ -84,6 +85,9 @@ public class FilterParser {
 
     int offset = parseOffset(offsetStr);
     int limit = parseLimit(limitStr);
+    if (range != null) {
+      range = new Range(range.name(), offset, limit);
+    }
     String sortRaw = allRequestParams.get(SORT_PARAM);
 
     List<SortCriteria> sorts = SortBuilder.parse(sortRaw, filterProperties.getMaxSorts());
@@ -228,29 +232,23 @@ public class FilterParser {
     return filters;
   }
 
-  private Map<String, Filterable> getFilterableFields(Class<?> dtoClass, int currentDepth) {
-    Map<String, Filterable> cached = FILTERABLE_CACHE.get(dtoClass);
-    if (cached != null) {
-      return cached;
-    }
-
+  private Map<String, Filterable> computeFilterableFields(Class<?> dtoClass, int currentDepth) {
     Map<String, Filterable> result = new HashMap<>();
     Class<?> current = dtoClass;
     while (current != null && current != Object.class) {
       addFilterableFields(current, currentDepth, result);
       current = current.getSuperclass();
     }
-
-    Map<String, Filterable> immutable = Collections.unmodifiableMap(result);
-    Map<String, Filterable> raced = FILTERABLE_CACHE.putIfAbsent(dtoClass, immutable);
-    return raced != null ? raced : immutable;
+    return Collections.unmodifiableMap(result);
   }
 
   private void addFilterableFields(
       Class<?> dtoClass, int currentDepth, Map<String, Filterable> result) {
     boolean classLevel = hasClassLevelFilterable(dtoClass);
     for (Field field : dtoClass.getDeclaredFields()) {
-      if (field.isAnnotationPresent(ExcludeFilter.class)) {
+      if (field.isSynthetic()
+          || Modifier.isStatic(field.getModifiers())
+          || field.isAnnotationPresent(ExcludeFilter.class)) {
         continue;
       }
       addDirectFilterableField(field, classLevel, result);
@@ -281,7 +279,8 @@ public class FilterParser {
     }
 
     try {
-      Map<String, Filterable> nestedFields = getFilterableFields(nestedDtoClass, currentDepth + 1);
+      Map<String, Filterable> nestedFields =
+          computeFilterableFields(nestedDtoClass, currentDepth + 1);
       String prefix = field.getName() + ".";
       nestedFields.forEach((name, annotation) -> result.put(prefix + name, annotation));
     } catch (StackOverflowError exception) {
@@ -291,7 +290,7 @@ public class FilterParser {
   }
 
   private Map<String, Filterable> getFilterableFields(Class<?> dtoClass) {
-    return getFilterableFields(dtoClass, 0);
+    return filterableCache.computeIfAbsent(dtoClass, type -> computeFilterableFields(type, 0));
   }
 
   private boolean hasClassLevelFilterable(Class<?> clazz) {

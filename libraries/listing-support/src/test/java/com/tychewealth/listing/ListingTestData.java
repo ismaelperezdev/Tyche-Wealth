@@ -1,10 +1,37 @@
 package com.tychewealth.listing;
 
+import static com.tychewealth.listing.ListingTestConstants.ACQUIRED_ON_FIELD;
+import static com.tychewealth.listing.ListingTestConstants.ASSET_AAPL;
+import static com.tychewealth.listing.ListingTestConstants.ASSET_BABA;
+import static com.tychewealth.listing.ListingTestConstants.ASSET_ENDPOINT;
+import static com.tychewealth.listing.ListingTestConstants.ASSET_ENTITY_NAME;
+import static com.tychewealth.listing.ListingTestConstants.ASSET_MSFT;
+import static com.tychewealth.listing.ListingTestConstants.ASSET_XOM;
+import static com.tychewealth.listing.ListingTestConstants.CATEGORY_ENERGY;
+import static com.tychewealth.listing.ListingTestConstants.CATEGORY_FIELD;
+import static com.tychewealth.listing.ListingTestConstants.CATEGORY_TECHNOLOGY;
+import static com.tychewealth.listing.ListingTestConstants.CONTENT_RANGE_HEADER;
+import static com.tychewealth.listing.ListingTestConstants.DATE_AAPL_ACQUIRED;
+import static com.tychewealth.listing.ListingTestConstants.DETAILS_CATEGORY_FIELD;
+import static com.tychewealth.listing.ListingTestConstants.NAME_ALIBABA;
+import static com.tychewealth.listing.ListingTestConstants.NAME_APPLE;
+import static com.tychewealth.listing.ListingTestConstants.NAME_EXXON;
+import static com.tychewealth.listing.ListingTestConstants.NAME_FIELD;
+import static com.tychewealth.listing.ListingTestConstants.NAME_MICROSOFT;
+import static com.tychewealth.listing.ListingTestConstants.NULL_TOKEN;
+import static com.tychewealth.listing.ListingTestConstants.QUANTITY_FIELD;
+import static com.tychewealth.listing.ListingTestConstants.STATUS_FIELD;
+import static com.tychewealth.listing.ListingTestConstants.SYMBOL_FIELD;
+import static com.tychewealth.listing.ListingTestConstants.TICKER_FIELD;
+
 import com.tychewealth.listing.dto.Filterable;
 import com.tychewealth.listing.exception.FilterException;
+import com.tychewealth.listing.filter.FieldFilterAdvice;
+import com.tychewealth.listing.filter.FieldFiltered;
 import com.tychewealth.listing.filter.FilterParser;
 import com.tychewealth.listing.filter.ListQuery;
 import com.tychewealth.listing.filter.ListQueryArgumentResolver;
+import com.tychewealth.listing.filter.PaginationHttpHeaders;
 import com.tychewealth.listing.jpa.JpaListingSpecificationBuilder;
 import com.tychewealth.listing.shared.FilterFieldMapping;
 import jakarta.persistence.Entity;
@@ -14,6 +41,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -35,22 +63,32 @@ public final class ListingTestData {
   private ListingTestData() {}
 
   public static void insertSampleAssets(EntityManager entityManager) {
-    entityManager.createQuery("delete from ListingAsset").executeUpdate();
+    entityManager.createQuery("delete from " + ASSET_ENTITY_NAME).executeUpdate();
     entityManager.persist(
         new ListingAsset(
-            "AAPL", "Apple", "Technology", 3, LocalDate.parse("2023-01-10"), AssetStatus.ACTIVE));
+            ASSET_AAPL,
+            NAME_APPLE,
+            CATEGORY_TECHNOLOGY,
+            3,
+            LocalDate.parse(DATE_AAPL_ACQUIRED),
+            AssetStatus.ACTIVE));
     entityManager.persist(
         new ListingAsset(
-            "MSFT",
-            "Microsoft",
-            "Technology",
+            ASSET_MSFT,
+            NAME_MICROSOFT,
+            CATEGORY_TECHNOLOGY,
             8,
             LocalDate.parse("2022-05-03"),
             AssetStatus.ACTIVE));
     entityManager.persist(
         new ListingAsset(
-            "XOM", "Exxon", "Energy", 1, LocalDate.parse("2021-08-20"), AssetStatus.INACTIVE));
-    entityManager.persist(new ListingAsset("BABA", "Alibaba", "Other", 2, null, null));
+            ASSET_XOM,
+            NAME_EXXON,
+            CATEGORY_ENERGY,
+            1,
+            LocalDate.parse("2021-08-20"),
+            AssetStatus.INACTIVE));
+    entityManager.persist(new ListingAsset(ASSET_BABA, NAME_ALIBABA, "Other", 2, null, null));
     entityManager.flush();
   }
 
@@ -61,6 +99,7 @@ public final class ListingTestData {
     ListingSupportConfiguration.class,
     ListQueryArgumentResolver.class,
     FilterParser.class,
+    FieldFilterAdvice.class,
     JpaListingSpecificationBuilder.class,
     ListingAssetsController.class,
     ListingTestExceptionHandler.class
@@ -80,8 +119,9 @@ public final class ListingTestData {
     }
 
     @Listable(mapping = AssetFilterMapping.class)
-    @GetMapping("/integration/assets")
-    List<AssetResponse> listAssets(ListQuery listQuery) {
+    @GetMapping(ASSET_ENDPOINT)
+    ResponseEntity<List<AssetResponse>> listAssets(
+        ListQuery listQuery, HttpServletRequest request) {
       CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
       CriteriaQuery<ListingAsset> query = criteriaBuilder.createQuery(ListingAsset.class);
       Root<ListingAsset> root = query.from(ListingAsset.class);
@@ -99,21 +139,41 @@ public final class ListingTestData {
                               : criteriaBuilder.asc(root.get(sort.field())))
                   .toList());
 
-      return entityManager
-          .createQuery(query)
-          .setFirstResult(listQuery.pageCriteria().offset())
-          .setMaxResults(listQuery.pageCriteria().limit())
-          .getResultList()
-          .stream()
-          .map(
-              asset ->
-                  new AssetResponse(
-                      asset.symbol,
-                      asset.name,
-                      new AssetDetails(asset.category),
-                      asset.acquiredOn,
-                      asset.status))
-          .toList();
+      CriteriaQuery<Long> countQuery = criteriaBuilder.createQuery(Long.class);
+      Root<ListingAsset> countRoot = countQuery.from(ListingAsset.class);
+      countQuery
+          .select(criteriaBuilder.count(countRoot))
+          .where(specification.toPredicate(countRoot, countQuery, criteriaBuilder));
+      long total = entityManager.createQuery(countQuery).getSingleResult();
+      var headers =
+          PaginationHttpHeaders.build(
+              request.getRequestURI(),
+              listQuery.pageCriteria().offset(),
+              listQuery.pageCriteria().limit(),
+              total,
+              request.getQueryString());
+      if (listQuery.range() != null) {
+        headers.set(
+            CONTENT_RANGE_HEADER,
+            listQuery.range().withTotalElements(total).toContentRangeHeader());
+      }
+      List<AssetResponse> body =
+          entityManager
+              .createQuery(query)
+              .setFirstResult(listQuery.pageCriteria().offset())
+              .setMaxResults(listQuery.pageCriteria().limit())
+              .getResultList()
+              .stream()
+              .map(
+                  asset ->
+                      new AssetResponse(
+                          asset.symbol,
+                          asset.name,
+                          new AssetDetails(asset.category),
+                          asset.acquiredOn,
+                          asset.status))
+              .toList();
+      return ResponseEntity.ok().headers(headers).body(body);
     }
   }
 
@@ -131,23 +191,24 @@ public final class ListingTestData {
     @Override
     protected Map<String, String> fieldNameMap() {
       return Map.of(
-          "symbol", "symbol",
-          "ticker", "symbol",
-          "name", "name",
-          "category", "category",
-          "details.category", "category",
-          "quantity", "quantity",
-          "acquiredOn", "acquiredOn",
-          "status", "status");
+          SYMBOL_FIELD, SYMBOL_FIELD,
+          TICKER_FIELD, SYMBOL_FIELD,
+          NAME_FIELD, NAME_FIELD,
+          CATEGORY_FIELD, CATEGORY_FIELD,
+          DETAILS_CATEGORY_FIELD, CATEGORY_FIELD,
+          QUANTITY_FIELD, QUANTITY_FIELD,
+          ACQUIRED_ON_FIELD, ACQUIRED_ON_FIELD,
+          STATUS_FIELD, STATUS_FIELD);
     }
 
     @Override
     protected Map<String, Function<String, Object>> valueTransformers() {
-      return Map.of("status", value -> "null".equalsIgnoreCase(value) ? null : value);
+      return Map.of(STATUS_FIELD, value -> NULL_TOKEN.equalsIgnoreCase(value) ? null : value);
     }
   }
 
   @Filterable
+  @FieldFiltered
   record AssetResponse(
       String symbol, String name, AssetDetails details, LocalDate acquiredOn, AssetStatus status) {}
 
@@ -159,7 +220,7 @@ public final class ListingTestData {
     INACTIVE
   }
 
-  @Entity(name = "ListingAsset")
+  @Entity(name = ASSET_ENTITY_NAME)
   public static class ListingAsset {
 
     @Id @GeneratedValue private Long id;

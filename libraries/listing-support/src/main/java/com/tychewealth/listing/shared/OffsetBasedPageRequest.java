@@ -19,17 +19,17 @@ import org.springframework.http.HttpStatus;
  * Constructors reject negative offsets and limits below one; an optional field mapping translates
  * API sort keys to persistence property names.
  */
-public class OffsetBassedPageRequest implements Pageable {
+public class OffsetBasedPageRequest implements Pageable {
 
   private final int limit;
   private final long offset;
   private final Sort sort;
 
-  public OffsetBassedPageRequest(long offset, int limit) {
+  public OffsetBasedPageRequest(long offset, int limit) {
     this(offset, limit, Sort.unsorted());
   }
 
-  private OffsetBassedPageRequest(long offset, int limit, Sort sort) {
+  private OffsetBasedPageRequest(long offset, int limit, Sort sort) {
     if (offset < 0) {
       throw new FilterException(ErrorDefinition.PAGINATION_INVALID_OFFSET, HttpStatus.BAD_REQUEST);
     }
@@ -43,11 +43,11 @@ public class OffsetBassedPageRequest implements Pageable {
     this.sort = sort;
   }
 
-  public OffsetBassedPageRequest(PageCriteria criteria) {
+  public OffsetBasedPageRequest(PageCriteria criteria) {
     this(criteria.offset(), criteria.limit(), toSort(criteria));
   }
 
-  public OffsetBassedPageRequest(PageCriteria criteria, FilterFieldMapping fieldMapping) {
+  public OffsetBasedPageRequest(PageCriteria criteria, FilterFieldMapping fieldMapping) {
     this(criteria.offset(), criteria.limit(), toSort(criteria, fieldMapping));
   }
 
@@ -128,19 +128,19 @@ public class OffsetBassedPageRequest implements Pageable {
 
   @Override
   public Pageable next() {
-    return new OffsetBassedPageRequest(Math.addExact(offset, limit), limit, sort);
+    return new OffsetBasedPageRequest(Math.addExact(offset, limit), limit, sort);
   }
 
   @Override
   public Pageable previousOrFirst() {
     return hasPrevious()
-        ? new OffsetBassedPageRequest(Math.max(0, offset - limit), limit, sort)
+        ? new OffsetBasedPageRequest(Math.max(0, offset - limit), limit, sort)
         : first();
   }
 
   @Override
   public Pageable first() {
-    return new OffsetBassedPageRequest(0, limit, sort);
+    return new OffsetBasedPageRequest(0, limit, sort);
   }
 
   @Override
@@ -148,7 +148,7 @@ public class OffsetBassedPageRequest implements Pageable {
     if (pageNumber < 0) {
       throw new IllegalArgumentException("Page index must not be less than zero");
     }
-    return new OffsetBassedPageRequest(Math.multiplyExact((long) pageNumber, limit), limit, sort);
+    return new OffsetBasedPageRequest(Math.multiplyExact((long) pageNumber, limit), limit, sort);
   }
 
   @Override

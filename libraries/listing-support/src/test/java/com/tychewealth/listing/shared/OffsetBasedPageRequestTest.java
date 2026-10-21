@@ -14,12 +14,12 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Sort;
 
-class OffsetBassedPageRequestTest {
+class OffsetBasedPageRequestTest {
 
   @Test
   void exposesOffsetLimitAndSortFromCriteria() {
-    OffsetBassedPageRequest request =
-        new OffsetBassedPageRequest(
+    OffsetBasedPageRequest request =
+        new OffsetBasedPageRequest(
             new PageCriteria(25, 10, List.of(new SortCriteria("createdAt", SortDirection.DESC))));
 
     assertEquals(2, request.getPageNumber());
@@ -30,7 +30,7 @@ class OffsetBassedPageRequestTest {
 
   @Test
   void navigatesUsingOffsetRatherThanPageNumber() {
-    OffsetBassedPageRequest request = new OffsetBassedPageRequest(15, 10);
+    OffsetBasedPageRequest request = new OffsetBasedPageRequest(15, 10);
 
     assertTrue(request.hasPrevious());
     assertEquals(25, request.next().getOffset());
@@ -41,15 +41,15 @@ class OffsetBassedPageRequestTest {
 
   @Test
   void rejectsInvalidPaginationValues() {
-    assertThrows(FilterException.class, () -> new OffsetBassedPageRequest(-1, 10));
-    assertThrows(FilterException.class, () -> new OffsetBassedPageRequest(0, 0));
-    OffsetBassedPageRequest request = new OffsetBassedPageRequest(0, 10);
+    assertThrows(FilterException.class, () -> new OffsetBasedPageRequest(-1, 10));
+    assertThrows(FilterException.class, () -> new OffsetBasedPageRequest(0, 0));
+    OffsetBasedPageRequest request = new OffsetBasedPageRequest(0, 10);
     assertThrows(IllegalArgumentException.class, () -> request.withPage(-1));
   }
 
   @Test
   void firstPageHasNoPreviousPage() {
-    OffsetBassedPageRequest request = new OffsetBassedPageRequest(0, 10);
+    OffsetBasedPageRequest request = new OffsetBasedPageRequest(0, 10);
 
     assertFalse(request.hasPrevious());
     assertEquals(0, request.previousOrFirst().getOffset());
@@ -64,15 +64,14 @@ class OffsetBassedPageRequestTest {
             return Map.of("displayName", "name");
           }
         };
-    OffsetBassedPageRequest request =
-        new OffsetBassedPageRequest(
+    OffsetBasedPageRequest request =
+        new OffsetBasedPageRequest(
             new PageCriteria(0, 10, List.of(new SortCriteria("displayName", SortDirection.ASC))),
             mapping);
 
     assertTrue(request.getSort().getOrderFor("name").isAscending());
     PageCriteria invalidCriteria =
         new PageCriteria(0, 10, List.of(new SortCriteria("unknown", SortDirection.ASC)));
-    assertThrows(
-        FilterException.class, () -> new OffsetBassedPageRequest(invalidCriteria, mapping));
+    assertThrows(FilterException.class, () -> new OffsetBasedPageRequest(invalidCriteria, mapping));
   }
 }

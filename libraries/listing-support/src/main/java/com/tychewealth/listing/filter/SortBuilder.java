@@ -35,7 +35,7 @@ public class SortBuilder {
     List<SortCriteria> result = parse(sort);
     if (result.size() > maxSorts) {
       throw new FilterException(
-          ErrorDefinition.FILTER_MAX_EXCEEDED,
+          ErrorDefinition.SORT_MAX_EXCEEDED,
           new Object[] {maxSorts, result.size()},
           HttpStatus.BAD_REQUEST);
     }
