@@ -1,5 +1,9 @@
 package com.tychewealth.mapper;
 
+import static com.tychewealth.constants.MarketPriceFieldConstants.BUCKET_START;
+import static com.tychewealth.constants.MarketPriceFieldConstants.CAPTURED_AT;
+import static com.tychewealth.constants.MarketPriceFieldConstants.PRICE;
+
 import com.tychewealth.entity.MarketPriceCheckpointEntity;
 import com.tychewealth.model.MarketPriceCheckpointBatch;
 import com.tychewealth.model.MarketPriceCheckpointRow;
@@ -14,9 +18,9 @@ import org.mapstruct.Named;
 public interface MarketPriceCheckpointMapper {
 
   @Mapping(target = "marketSymbolId", source = "marketSymbol.id", qualifiedByName = "toStringValue")
-  @Mapping(target = "price", source = "price", qualifiedByName = "toPlainString")
-  @Mapping(target = "capturedAt", source = "capturedAt", qualifiedByName = "toSqlTimestamp")
-  @Mapping(target = "bucketStart", source = "bucketStart", qualifiedByName = "toSqlTimestamp")
+  @Mapping(target = PRICE, source = PRICE, qualifiedByName = "toPlainString")
+  @Mapping(target = CAPTURED_AT, source = CAPTURED_AT, qualifiedByName = "toSqlTimestamp")
+  @Mapping(target = BUCKET_START, source = BUCKET_START, qualifiedByName = "toSqlTimestamp")
   MarketPriceCheckpointRow toRow(MarketPriceCheckpointEntity checkpoint);
 
   List<MarketPriceCheckpointRow> toRows(List<MarketPriceCheckpointEntity> checkpoints);
