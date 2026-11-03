@@ -84,6 +84,35 @@ class MarketQuoteStoreTest {
   }
 
   @Test
+  void shouldReadQuotesForMultipleSymbolsWithOneMultiGetAndSkipMissingValues() throws Exception {
+    MarketQuote firstQuote = quote();
+    MarketQuote secondQuote =
+        new MarketQuote(
+            "MSFT", new BigDecimal("234.56000000"), LocalDateTime.of(2026, 8, 27, 12, 5));
+    when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+    when(valueOperations.multiGet(
+            List.of("market:quote:AAPL", "market:quote:GOOG", "market:quote:MSFT")))
+        .thenReturn(
+            Arrays.asList(
+                objectMapper.writeValueAsString(firstQuote),
+                null,
+                objectMapper.writeValueAsString(secondQuote)));
+
+    List<MarketQuote> result = marketQuoteStore.findBySymbols(List.of("AAPL", "GOOG", "MSFT"));
+
+    assertThat(result).containsExactly(firstQuote, secondQuote);
+    verify(valueOperations)
+        .multiGet(List.of("market:quote:AAPL", "market:quote:GOOG", "market:quote:MSFT"));
+  }
+
+  @Test
+  void shouldNotCallRedisForEmptySymbolCollection() {
+    assertThat(marketQuoteStore.findBySymbols(List.of())).isEmpty();
+
+    verify(redisTemplate, never()).opsForValue();
+  }
+
+  @Test
   void shouldSaveAllQuotesThroughPipelineWithIndividualTtl() throws Exception {
     MarketQuote firstQuote = quote();
     MarketQuote secondQuote =

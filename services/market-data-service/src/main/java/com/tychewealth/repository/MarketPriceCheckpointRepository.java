@@ -2,7 +2,12 @@ package com.tychewealth.repository;
 
 import com.tychewealth.entity.MarketPriceCheckpointEntity;
 import com.tychewealth.model.MarketPriceCheckpointBatch;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,7 +16,13 @@ import org.springframework.stereotype.Repository;
 /** Provides persistence operations for immutable market-price checkpoints. */
 @Repository
 public interface MarketPriceCheckpointRepository
-    extends JpaRepository<MarketPriceCheckpointEntity, Long> {
+    extends JpaRepository<MarketPriceCheckpointEntity, Long>,
+        JpaSpecificationExecutor<MarketPriceCheckpointEntity> {
+
+  @Override
+  @EntityGraph(attributePaths = "marketSymbol")
+  Page<MarketPriceCheckpointEntity> findAll(
+      Specification<MarketPriceCheckpointEntity> specification, Pageable pageable);
 
   default void insertIfAbsentBatch(MarketPriceCheckpointBatch batch) {
     insertIfAbsentBatchNative(
