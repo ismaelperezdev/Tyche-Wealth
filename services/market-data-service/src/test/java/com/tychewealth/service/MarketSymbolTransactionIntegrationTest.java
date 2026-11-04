@@ -1,5 +1,6 @@
 package com.tychewealth.service;
 
+import static com.tychewealth.constants.TestConstants.SECOND_TEST_SYMBOL;
 import static com.tychewealth.constants.TestConstants.TEST_SYMBOL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -53,7 +54,7 @@ class MarketSymbolTransactionIntegrationTest {
               firstSymbol.setSymbol(TEST_SYMBOL);
               firstSymbol.setActive(true);
               MarketSymbolEntity secondSymbol = new MarketSymbolEntity();
-              secondSymbol.setSymbol("MSFT");
+              secondSymbol.setSymbol(SECOND_TEST_SYMBOL);
               secondSymbol.setActive(true);
               marketSymbolRepository.saveAll(Set.of(firstSymbol, secondSymbol));
               throw new IllegalStateException("Simulated processing failure");
@@ -61,7 +62,7 @@ class MarketSymbolTransactionIntegrationTest {
         .when(helperSpy)
         .applyChanges(any(), any());
 
-    Set<String> symbols = new LinkedHashSet<>(Set.of(TEST_SYMBOL, "MSFT"));
+    Set<String> symbols = new LinkedHashSet<>(Set.of(TEST_SYMBOL, SECOND_TEST_SYMBOL));
 
     assertThrows(
         IllegalStateException.class, () -> marketSymbolService.applyChanges(symbols, Set.of()));

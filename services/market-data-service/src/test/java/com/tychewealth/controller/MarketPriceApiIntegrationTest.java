@@ -1,7 +1,14 @@
 package com.tychewealth.controller;
 
+import static com.tychewealth.constants.TestConstants.LATEST_PRICES_ENDPOINT;
+import static com.tychewealth.constants.TestConstants.PRICE_HISTORY_ENDPOINT;
 import static com.tychewealth.constants.TestConstants.SECOND_TEST_SYMBOL;
+import static com.tychewealth.constants.TestConstants.TEST_BUCKET_START_GTE_FILTER;
+import static com.tychewealth.constants.TestConstants.TEST_CAPTURED_AT_EQ_FILTER;
+import static com.tychewealth.constants.TestConstants.TEST_CAPTURED_AT_FIELD;
 import static com.tychewealth.constants.TestConstants.TEST_SYMBOL;
+import static com.tychewealth.constants.TestConstants.TEST_SYMBOL_IN_FILTER;
+import static com.tychewealth.constants.TestConstants.THIRD_TEST_SYMBOL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -33,6 +40,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 
 @ActiveProfiles("test")
 @SpringBootTest(
@@ -74,8 +82,8 @@ class MarketPriceApiIntegrationTest {
 
     mockMvc
         .perform(
-            get("/internal/prices/latest")
-                .param("symbol.in", TEST_SYMBOL + "," + SECOND_TEST_SYMBOL)
+            get(LATEST_PRICES_ENDPOINT)
+                .param(TEST_SYMBOL_IN_FILTER, TEST_SYMBOL + "," + SECOND_TEST_SYMBOL)
                 .param("offset", "1")
                 .param("limit", "1"))
         .andExpect(status().isOk())
@@ -98,8 +106,8 @@ class MarketPriceApiIntegrationTest {
 
     mockMvc
         .perform(
-            get("/internal/prices/latest")
-                .param("symbol.in", TEST_SYMBOL + "," + SECOND_TEST_SYMBOL)
+            get(LATEST_PRICES_ENDPOINT)
+                .param(TEST_SYMBOL_IN_FILTER, TEST_SYMBOL + "," + SECOND_TEST_SYMBOL)
                 .param("limit", "20"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].symbol").value(TEST_SYMBOL))
@@ -113,7 +121,7 @@ class MarketPriceApiIntegrationTest {
   @Test
   void rejectsLatestPriceRequestWithoutRequiredSymbolFilter() throws Exception {
     mockMvc
-        .perform(get("/internal/prices/latest"))
+        .perform(get(LATEST_PRICES_ENDPOINT))
         .andExpect(status().isBadRequest())
         .andExpect(
             jsonPath("$.code")
@@ -126,30 +134,30 @@ class MarketPriceApiIntegrationTest {
   void rejectsMalformedHistoryTimestampFiltersAsBadRequests() throws Exception {
     mockMvc
         .perform(
-            get("/internal/prices/history")
-                .param("symbol.in", TEST_SYMBOL)
-                .param("capturedAt.eq", "not-an-instant"))
+            get(PRICE_HISTORY_ENDPOINT)
+                .param(TEST_SYMBOL_IN_FILTER, TEST_SYMBOL)
+                .param(TEST_CAPTURED_AT_EQ_FILTER, "not-an-instant"))
         .andExpect(status().isBadRequest())
         .andExpect(
             jsonPath("$.code").value(ErrorDefinition.MARKET_PRICE_CAPTURED_AT_INVALID.getCode()));
 
     mockMvc
         .perform(
-            get("/internal/prices/history")
-                .param("symbol.in", TEST_SYMBOL)
-                .param("bucketStart.gte", "not-an-instant"))
+            get(PRICE_HISTORY_ENDPOINT)
+                .param(TEST_SYMBOL_IN_FILTER, TEST_SYMBOL)
+                .param(TEST_BUCKET_START_GTE_FILTER, "not-an-instant"))
         .andExpect(status().isBadRequest())
         .andExpect(
-            jsonPath("$.code").value(ErrorDefinition.MARKET_PRICE_CAPTURED_AT_INVALID.getCode()));
+            jsonPath("$.code").value(ErrorDefinition.MARKET_PRICE_BUCKET_START_INVALID.getCode()));
   }
 
   @Test
   void rejectsInstantOutsideLocalDateTimeRangeAsBadRequest() throws Exception {
     mockMvc
         .perform(
-            get("/internal/prices/history")
-                .param("symbol.in", TEST_SYMBOL)
-                .param("capturedAt.eq", "+1000000000-12-31T23:59:59.999999999Z"))
+            get(PRICE_HISTORY_ENDPOINT)
+                .param(TEST_SYMBOL_IN_FILTER, TEST_SYMBOL)
+                .param(TEST_CAPTURED_AT_EQ_FILTER, "+1000000000-12-31T23:59:59.999999999Z"))
         .andExpect(status().isBadRequest())
         .andExpect(
             jsonPath("$.code").value(ErrorDefinition.MARKET_PRICE_CAPTURED_AT_INVALID.getCode()));
@@ -172,13 +180,48 @@ class MarketPriceApiIntegrationTest {
 
     mockMvc
         .perform(
-            get("/internal/prices/history")
-                .param("symbol.in", TEST_SYMBOL + "," + SECOND_TEST_SYMBOL)
+            get(PRICE_HISTORY_ENDPOINT)
+                .param(TEST_SYMBOL_IN_FILTER, TEST_SYMBOL + "," + SECOND_TEST_SYMBOL)
                 .param("limit", "2"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(2));
 
     assertThat(statistics.getPrepareStatementCount()).isEqualTo(2);
+  }
+
+  @Test
+  @Transactional
+  void filtersHistoryByRequestedSymbolsAndInclusiveCapturedAtRange() throws Exception {
+    MarketSymbolEntity requestedSymbolInRange = saveSymbol(TEST_SYMBOL);
+    MarketSymbolEntity unrequestedSymbolInRange = saveSymbol(SECOND_TEST_SYMBOL);
+    MarketSymbolEntity requestedSymbolOutsideRange = saveSymbol(THIRD_TEST_SYMBOL);
+    LocalDateTime rangeStart = LocalDateTime.of(2026, 2, 12, 12, 0);
+    LocalDateTime capturedAtInRange = LocalDateTime.of(2026, 2, 12, 15, 0);
+    LocalDateTime rangeEnd = LocalDateTime.of(2026, 2, 12, 18, 0);
+    LocalDateTime capturedAtOutsideRange = LocalDateTime.of(2026, 2, 12, 19, 0);
+    checkpointRepository.saveAllAndFlush(
+        List.of(
+            new MarketPriceCheckpointEntity(
+                requestedSymbolInRange, new BigDecimal("187.24"), capturedAtInRange, rangeStart),
+            new MarketPriceCheckpointEntity(
+                unrequestedSymbolInRange, new BigDecimal("412.50"), capturedAtInRange, rangeStart),
+            new MarketPriceCheckpointEntity(
+                requestedSymbolOutsideRange,
+                new BigDecimal("298.75"),
+                capturedAtOutsideRange,
+                rangeEnd)));
+
+    mockMvc
+        .perform(
+            get(PRICE_HISTORY_ENDPOINT)
+                .param(TEST_SYMBOL_IN_FILTER, TEST_SYMBOL + "," + THIRD_TEST_SYMBOL)
+                .param(TEST_CAPTURED_AT_FIELD + ".gte", "2026-02-12T12:00:00Z")
+                .param(TEST_CAPTURED_AT_FIELD + ".lte", "2026-02-12T18:00:00Z")
+                .param("limit", "20"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(1))
+        .andExpect(jsonPath("$[0].symbol").value(TEST_SYMBOL))
+        .andExpect(jsonPath("$[0].capturedAt").value("2026-02-12T15:00:00Z"));
   }
 
   private MarketSymbolEntity saveSymbol(String symbol) {

@@ -8,6 +8,7 @@ import com.tychewealth.listing.shared.FilterFieldMapping;
 import com.tychewealth.listing.shared.OffsetBasedPageRequest;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /** Utility methods for working with parsed API filters. */
 public final class ListingUtils {
@@ -20,6 +21,14 @@ public final class ListingUtils {
         .filter(filter -> filter.field().equals(field))
         .filter(filter -> operator == null || filter.operator() == operator)
         .findFirst();
+  }
+
+  public static List<ApiFilter> findFilters(
+      List<ApiFilter> filters, String field, Set<FilterOperator> operators) {
+    return filters.stream()
+        .filter(filter -> filter.field().equals(field))
+        .filter(filter -> operators.contains(filter.operator()))
+        .toList();
   }
 
   public static OffsetBasedPageRequest pageRequest(

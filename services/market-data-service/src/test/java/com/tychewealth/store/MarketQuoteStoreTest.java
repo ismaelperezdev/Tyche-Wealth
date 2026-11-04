@@ -1,5 +1,8 @@
 package com.tychewealth.store;
 
+import static com.tychewealth.constants.TestConstants.SECOND_TEST_SYMBOL;
+import static com.tychewealth.constants.TestConstants.TEST_SYMBOL;
+import static com.tychewealth.constants.TestConstants.THIRD_TEST_SYMBOL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,8 +38,10 @@ import org.springframework.data.redis.core.types.Expiration;
 @ExtendWith(MockitoExtension.class)
 class MarketQuoteStoreTest {
 
-  private static final String SYMBOL = "AAPL";
-  private static final String REDIS_KEY = "market:quote:AAPL";
+  private static final String REDIS_KEY_PREFIX = "market:quote:";
+  private static final String REDIS_KEY = REDIS_KEY_PREFIX + TEST_SYMBOL;
+  private static final String SECOND_REDIS_KEY = REDIS_KEY_PREFIX + SECOND_TEST_SYMBOL;
+  private static final String THIRD_REDIS_KEY = REDIS_KEY_PREFIX + THIRD_TEST_SYMBOL;
   private static final Duration QUOTE_TTL = Duration.ofMinutes(10);
 
   @Mock private RedisTemplate<String, String> redisTemplate;
@@ -70,7 +75,7 @@ class MarketQuoteStoreTest {
     when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     when(valueOperations.get(REDIS_KEY)).thenReturn(serializedQuote);
 
-    Optional<MarketQuote> result = marketQuoteStore.findBySymbol(SYMBOL);
+    Optional<MarketQuote> result = marketQuoteStore.findBySymbol(TEST_SYMBOL);
 
     assertThat(result).contains(quote);
   }
@@ -80,7 +85,7 @@ class MarketQuoteStoreTest {
     when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     when(valueOperations.get(REDIS_KEY)).thenReturn(null);
 
-    assertThat(marketQuoteStore.findBySymbol(SYMBOL)).isEmpty();
+    assertThat(marketQuoteStore.findBySymbol(TEST_SYMBOL)).isEmpty();
   }
 
   @Test
@@ -88,21 +93,22 @@ class MarketQuoteStoreTest {
     MarketQuote firstQuote = quote();
     MarketQuote secondQuote =
         new MarketQuote(
-            "MSFT", new BigDecimal("234.56000000"), LocalDateTime.of(2026, 8, 27, 12, 5));
+            SECOND_TEST_SYMBOL,
+            new BigDecimal("234.56000000"),
+            LocalDateTime.of(2026, 8, 27, 12, 5));
     when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-    when(valueOperations.multiGet(
-            List.of("market:quote:AAPL", "market:quote:GOOG", "market:quote:MSFT")))
+    when(valueOperations.multiGet(List.of(REDIS_KEY, THIRD_REDIS_KEY, SECOND_REDIS_KEY)))
         .thenReturn(
             Arrays.asList(
                 objectMapper.writeValueAsString(firstQuote),
                 null,
                 objectMapper.writeValueAsString(secondQuote)));
 
-    List<MarketQuote> result = marketQuoteStore.findBySymbols(List.of("AAPL", "GOOG", "MSFT"));
+    List<MarketQuote> result =
+        marketQuoteStore.findBySymbols(List.of(TEST_SYMBOL, THIRD_TEST_SYMBOL, SECOND_TEST_SYMBOL));
 
     assertThat(result).containsExactly(firstQuote, secondQuote);
-    verify(valueOperations)
-        .multiGet(List.of("market:quote:AAPL", "market:quote:GOOG", "market:quote:MSFT"));
+    verify(valueOperations).multiGet(List.of(REDIS_KEY, THIRD_REDIS_KEY, SECOND_REDIS_KEY));
   }
 
   @Test
@@ -117,7 +123,9 @@ class MarketQuoteStoreTest {
     MarketQuote firstQuote = quote();
     MarketQuote secondQuote =
         new MarketQuote(
-            "MSFT", new BigDecimal("234.56000000"), LocalDateTime.of(2026, 8, 27, 12, 5));
+            SECOND_TEST_SYMBOL,
+            new BigDecimal("234.56000000"),
+            LocalDateTime.of(2026, 8, 27, 12, 5));
     when(redisTemplate.executePipelined(any(RedisCallback.class)))
         .thenAnswer(
             invocation -> {
@@ -131,13 +139,13 @@ class MarketQuoteStoreTest {
 
     verify(redisStringCommands)
         .set(
-            bytes("market:quote:AAPL"),
+            bytes(REDIS_KEY),
             bytes(objectMapper.writeValueAsString(firstQuote)),
             eq(Expiration.from(QUOTE_TTL)),
             eq(RedisStringCommands.SetOption.upsert()));
     verify(redisStringCommands)
         .set(
-            bytes("market:quote:MSFT"),
+            bytes(SECOND_REDIS_KEY),
             bytes(objectMapper.writeValueAsString(secondQuote)),
             eq(Expiration.from(QUOTE_TTL)),
             eq(RedisStringCommands.SetOption.upsert()));
@@ -155,7 +163,7 @@ class MarketQuoteStoreTest {
     MarketQuote firstQuote = quote();
     MarketQuote lastQuote =
         new MarketQuote(
-            SYMBOL, new BigDecimal("200.00000000"), LocalDateTime.of(2026, 8, 27, 12, 5));
+            TEST_SYMBOL, new BigDecimal("200.00000000"), LocalDateTime.of(2026, 8, 27, 12, 5));
     when(redisTemplate.executePipelined(any(RedisCallback.class)))
         .thenAnswer(
             invocation -> {
@@ -204,7 +212,7 @@ class MarketQuoteStoreTest {
     when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     when(valueOperations.get(REDIS_KEY)).thenReturn("not-json");
 
-    assertThatThrownBy(() -> marketQuoteStore.findBySymbol(SYMBOL))
+    assertThatThrownBy(() -> marketQuoteStore.findBySymbol(TEST_SYMBOL))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Unable to deserialize market quote");
   }
@@ -217,6 +225,6 @@ class MarketQuoteStoreTest {
 
   private MarketQuote quote() {
     return new MarketQuote(
-        SYMBOL, new BigDecimal("123.45000000"), LocalDateTime.of(2026, 8, 27, 12, 0));
+        TEST_SYMBOL, new BigDecimal("123.45000000"), LocalDateTime.of(2026, 8, 27, 12, 0));
   }
 }

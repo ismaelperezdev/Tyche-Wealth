@@ -11,6 +11,7 @@ import com.tychewealth.listing.shared.FilterFieldMapping;
 import com.tychewealth.listing.shared.OffsetBasedPageRequest;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class ListingUtilsTest {
@@ -41,6 +42,24 @@ class ListingUtilsTest {
   @Test
   void returnsEmptyWhenNoFilterMatches() {
     assertThat(ListingUtils.findFilter(List.of(), "symbol", FilterOperator.EQ)).isEmpty();
+  }
+
+  @Test
+  void findsAllFiltersForFieldAndRequestedOperators() {
+    ApiFilter greaterThan = new ApiFilter("capturedAt", FilterOperator.GT, "from-exclusive");
+    ApiFilter greaterThanOrEqual =
+        new ApiFilter("capturedAt", FilterOperator.GTE, "from-inclusive");
+    List<ApiFilter> filters =
+        List.of(
+            new ApiFilter("symbol", FilterOperator.IN, "AAPL"),
+            greaterThan,
+            new ApiFilter("capturedAt", FilterOperator.LTE, "to"),
+            greaterThanOrEqual);
+
+    assertThat(
+            ListingUtils.findFilters(
+                filters, "capturedAt", Set.of(FilterOperator.GT, FilterOperator.GTE)))
+        .containsExactly(greaterThan, greaterThanOrEqual);
   }
 
   @Test

@@ -59,15 +59,22 @@ public class MarketPriceReadHelper {
   }
 
   public void validateHistoryFilters(List<ApiFilter> filters) {
-    ApiFilter fromFilter =
-        ListingUtils.findFilter(filters, CAPTURED_AT, FilterOperator.GTE).orElse(null);
-    ApiFilter toFilter =
-        ListingUtils.findFilter(filters, CAPTURED_AT, FilterOperator.LTE).orElse(null);
-
     requiredSymbols(filters);
 
-    Instant from = parseTimeFilter(fromFilter);
-    Instant to = parseTimeFilter(toFilter);
+    Instant from =
+        ListingUtils.findFilters(
+                filters, CAPTURED_AT, Set.of(FilterOperator.GT, FilterOperator.GTE))
+            .stream()
+            .map(this::parseTimeFilter)
+            .max(Comparator.naturalOrder())
+            .orElse(null);
+    Instant to =
+        ListingUtils.findFilters(
+                filters, CAPTURED_AT, Set.of(FilterOperator.LT, FilterOperator.LTE))
+            .stream()
+            .map(this::parseTimeFilter)
+            .min(Comparator.naturalOrder())
+            .orElse(null);
     if (from != null && to != null) {
       validationHelper.validateTimeRange(from, to);
     }

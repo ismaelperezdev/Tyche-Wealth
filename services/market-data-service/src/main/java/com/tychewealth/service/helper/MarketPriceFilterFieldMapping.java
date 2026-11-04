@@ -43,16 +43,16 @@ public class MarketPriceFilterFieldMapping extends FilterFieldMapping {
         SYMBOL_QUERY_PARAM,
         value -> value.trim().toUpperCase(Locale.ROOT),
         CAPTURED_AT,
-        this::toUtcLocalDateTime,
+        value -> toUtcLocalDateTime(value, ErrorDefinition.MARKET_PRICE_CAPTURED_AT_INVALID),
         BUCKET_START,
-        this::toUtcLocalDateTime);
+        value -> toUtcLocalDateTime(value, ErrorDefinition.MARKET_PRICE_BUCKET_START_INVALID));
   }
 
-  private LocalDateTime toUtcLocalDateTime(String value) {
+  private LocalDateTime toUtcLocalDateTime(String value, ErrorDefinition errorDefinition) {
     try {
       return LocalDateTime.ofInstant(Instant.parse(value), ZoneOffset.UTC);
     } catch (DateTimeException exception) {
-      throw new InvalidMarketPriceQueryException(ErrorDefinition.MARKET_PRICE_CAPTURED_AT_INVALID);
+      throw new InvalidMarketPriceQueryException(errorDefinition);
     }
   }
 }

@@ -2,7 +2,11 @@ package com.tychewealth.service.impl;
 
 import static com.tychewealth.constants.TestConstants.PADDED_TEST_SYMBOL;
 import static com.tychewealth.constants.TestConstants.SECOND_TEST_SYMBOL;
+import static com.tychewealth.constants.TestConstants.TEST_CAPTURED_AT_FIELD;
+import static com.tychewealth.constants.TestConstants.TEST_ID_FIELD;
 import static com.tychewealth.constants.TestConstants.TEST_SYMBOL;
+import static com.tychewealth.constants.TestConstants.TEST_SYMBOL_FIELD;
+import static com.tychewealth.constants.TestConstants.THIRD_TEST_SYMBOL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -81,7 +85,7 @@ class MarketPriceReadServiceImplTest {
             new ListQuery(
                 List.of(
                     new ApiFilter(
-                        "symbol",
+                        TEST_SYMBOL_FIELD,
                         FilterOperator.IN,
                         PADDED_TEST_SYMBOL,
                         TEST_SYMBOL,
@@ -97,17 +101,23 @@ class MarketPriceReadServiceImplTest {
 
   @Test
   void paginatesSymbolsBeforeReadingQuotesFromRedis() {
-    when(marketQuoteStore.findBySymbols(List.of("GOOG"))).thenReturn(List.of());
+    when(marketQuoteStore.findBySymbols(List.of(THIRD_TEST_SYMBOL))).thenReturn(List.of());
 
     var prices =
         service.getLatestPrices(
             new ListQuery(
-                List.of(new ApiFilter("symbol", FilterOperator.IN, "AAPL", "MSFT", "GOOG")),
+                List.of(
+                    new ApiFilter(
+                        TEST_SYMBOL_FIELD,
+                        FilterOperator.IN,
+                        TEST_SYMBOL,
+                        SECOND_TEST_SYMBOL,
+                        THIRD_TEST_SYMBOL)),
                 new PageCriteria(1, 1, List.of())));
 
     assertThat(prices.content()).isEmpty();
     assertThat(prices.totalCandidates()).isEqualTo(3);
-    verify(marketQuoteStore).findBySymbols(List.of("GOOG"));
+    verify(marketQuoteStore).findBySymbols(List.of(THIRD_TEST_SYMBOL));
     verifyNoInteractions(checkpointService);
   }
 
@@ -122,8 +132,13 @@ class MarketPriceReadServiceImplTest {
         service.getLatestPrices(
             new ListQuery(
                 List.of(
-                    new ApiFilter("symbol", FilterOperator.IN, TEST_SYMBOL, SECOND_TEST_SYMBOL),
-                    new ApiFilter("symbol", FilterOperator.IN, SECOND_TEST_SYMBOL, "GOOG")),
+                    new ApiFilter(
+                        TEST_SYMBOL_FIELD, FilterOperator.IN, TEST_SYMBOL, SECOND_TEST_SYMBOL),
+                    new ApiFilter(
+                        TEST_SYMBOL_FIELD,
+                        FilterOperator.IN,
+                        SECOND_TEST_SYMBOL,
+                        THIRD_TEST_SYMBOL)),
                 new PageCriteria(0, 20, List.of())));
 
     assertThat(prices.content()).hasSize(1);
@@ -138,8 +153,8 @@ class MarketPriceReadServiceImplTest {
         service.getLatestPrices(
             new ListQuery(
                 List.of(
-                    new ApiFilter("symbol", FilterOperator.EQ, TEST_SYMBOL),
-                    new ApiFilter("symbol", FilterOperator.EQ, SECOND_TEST_SYMBOL)),
+                    new ApiFilter(TEST_SYMBOL_FIELD, FilterOperator.EQ, TEST_SYMBOL),
+                    new ApiFilter(TEST_SYMBOL_FIELD, FilterOperator.EQ, SECOND_TEST_SYMBOL)),
                 new PageCriteria(0, 20, List.of())));
 
     assertThat(prices.content()).isEmpty();
@@ -164,7 +179,7 @@ class MarketPriceReadServiceImplTest {
   @Test
   void returnsFilteredAndPagedHistoryAsFlatCheckpoints() {
     MarketSymbolEntity symbol = new MarketSymbolEntity();
-    symbol.setSymbol("AAPL");
+    symbol.setSymbol(TEST_SYMBOL);
     LocalDateTime capturedAt = LocalDateTime.of(2026, 8, 27, 12, 30);
     LocalDateTime bucketStart = LocalDateTime.of(2026, 8, 27, 12, 0);
     MarketPriceCheckpointEntity checkpoint =
@@ -176,13 +191,17 @@ class MarketPriceReadServiceImplTest {
         service.getPriceHistory(
             new ListQuery(
                 List.of(
-                    new ApiFilter("symbol", FilterOperator.IN, "aapl", "MSFT"),
-                    new ApiFilter("capturedAt", FilterOperator.GTE, FROM.toString()),
-                    new ApiFilter("capturedAt", FilterOperator.LTE, TO.toString())),
+                    new ApiFilter(
+                        TEST_SYMBOL_FIELD,
+                        FilterOperator.IN,
+                        TEST_SYMBOL.toLowerCase(java.util.Locale.ROOT),
+                        SECOND_TEST_SYMBOL),
+                    new ApiFilter(TEST_CAPTURED_AT_FIELD, FilterOperator.GTE, FROM.toString()),
+                    new ApiFilter(TEST_CAPTURED_AT_FIELD, FilterOperator.LTE, TO.toString())),
                 new PageCriteria(0, 20, List.of())));
 
     assertThat(history.getContent()).hasSize(1);
-    assertThat(history.getContent().getFirst().symbol()).isEqualTo("AAPL");
+    assertThat(history.getContent().getFirst().symbol()).isEqualTo(TEST_SYMBOL);
     assertThat(history.getContent().getFirst().capturedAt())
         .isEqualTo(Instant.parse("2026-08-27T12:30:00Z"));
     assertThat(history.getContent().getFirst().bucketStart()).isEqualTo(FROM);
@@ -195,16 +214,17 @@ class MarketPriceReadServiceImplTest {
 
     service.getPriceHistory(
         new ListQuery(
-            List.of(new ApiFilter("symbol", FilterOperator.IN, "AAPL")),
-            new PageCriteria(0, 20, List.of(new SortCriteria("capturedAt", SortDirection.DESC)))));
+            List.of(new ApiFilter(TEST_SYMBOL_FIELD, FilterOperator.IN, TEST_SYMBOL)),
+            new PageCriteria(
+                0, 20, List.of(new SortCriteria(TEST_CAPTURED_AT_FIELD, SortDirection.DESC)))));
 
     verify(checkpointService)
         .findCheckpoints(
             any(),
             argThat(
                 pageRequest ->
-                    pageRequest.getSort().getOrderFor("capturedAt").isDescending()
-                        && pageRequest.getSort().getOrderFor("id").isAscending()));
+                    pageRequest.getSort().getOrderFor(TEST_CAPTURED_AT_FIELD).isDescending()
+                        && pageRequest.getSort().getOrderFor(TEST_ID_FIELD).isAscending()));
   }
 
   @Test
@@ -214,11 +234,82 @@ class MarketPriceReadServiceImplTest {
                 service.getPriceHistory(
                     new ListQuery(
                         List.of(
-                            new ApiFilter("symbol", FilterOperator.IN, "AAPL"),
-                            new ApiFilter("capturedAt", FilterOperator.GTE, TO.toString()),
-                            new ApiFilter("capturedAt", FilterOperator.LTE, FROM.toString())),
+                            new ApiFilter(TEST_SYMBOL_FIELD, FilterOperator.IN, TEST_SYMBOL),
+                            new ApiFilter(
+                                TEST_CAPTURED_AT_FIELD, FilterOperator.GTE, TO.toString()),
+                            new ApiFilter(
+                                TEST_CAPTURED_AT_FIELD, FilterOperator.LTE, FROM.toString())),
                         new PageCriteria(0, 20, List.of()))))
-        .isInstanceOf(InvalidMarketPriceQueryException.class);
+        .isInstanceOf(InvalidMarketPriceQueryException.class)
+        .extracting(
+            exception -> ((InvalidMarketPriceQueryException) exception).getErrorDefinition())
+        .isEqualTo(ErrorDefinition.MARKET_PRICE_TIME_RANGE_INVALID);
+
+    verifyNoInteractions(checkpointService);
+  }
+
+  @Test
+  void rejectsHistoryRangeWhenLaterLowerBoundExceedsUpperBound() {
+    assertThatThrownBy(
+            () ->
+                service.getPriceHistory(
+                    new ListQuery(
+                        List.of(
+                            new ApiFilter(TEST_SYMBOL_FIELD, FilterOperator.IN, TEST_SYMBOL),
+                            new ApiFilter(
+                                TEST_CAPTURED_AT_FIELD, FilterOperator.GTE, FROM.toString()),
+                            new ApiFilter(
+                                TEST_CAPTURED_AT_FIELD,
+                                FilterOperator.GTE,
+                                TO.plusSeconds(1).toString()),
+                            new ApiFilter(
+                                TEST_CAPTURED_AT_FIELD, FilterOperator.LTE, TO.toString())),
+                        new PageCriteria(0, 20, List.of()))))
+        .isInstanceOf(InvalidMarketPriceQueryException.class)
+        .extracting(
+            exception -> ((InvalidMarketPriceQueryException) exception).getErrorDefinition())
+        .isEqualTo(ErrorDefinition.MARKET_PRICE_TIME_RANGE_INVALID);
+
+    verifyNoInteractions(checkpointService);
+  }
+
+  @Test
+  void rejectsMalformedLaterHistoryBound() {
+    assertThatThrownBy(
+            () ->
+                service.getPriceHistory(
+                    new ListQuery(
+                        List.of(
+                            new ApiFilter(TEST_SYMBOL_FIELD, FilterOperator.IN, TEST_SYMBOL),
+                            new ApiFilter(
+                                TEST_CAPTURED_AT_FIELD, FilterOperator.GTE, FROM.toString()),
+                            new ApiFilter(
+                                TEST_CAPTURED_AT_FIELD, FilterOperator.GTE, "not-an-instant")),
+                        new PageCriteria(0, 20, List.of()))))
+        .isInstanceOf(InvalidMarketPriceQueryException.class)
+        .extracting(
+            exception -> ((InvalidMarketPriceQueryException) exception).getErrorDefinition())
+        .isEqualTo(ErrorDefinition.MARKET_PRICE_CAPTURED_AT_INVALID);
+
+    verifyNoInteractions(checkpointService);
+  }
+
+  @Test
+  void rejectsReversedStrictHistoryRangeBeforeQueryingCheckpoints() {
+    assertThatThrownBy(
+            () ->
+                service.getPriceHistory(
+                    new ListQuery(
+                        List.of(
+                            new ApiFilter(TEST_SYMBOL_FIELD, FilterOperator.IN, TEST_SYMBOL),
+                            new ApiFilter(TEST_CAPTURED_AT_FIELD, FilterOperator.GT, TO.toString()),
+                            new ApiFilter(
+                                TEST_CAPTURED_AT_FIELD, FilterOperator.LT, FROM.toString())),
+                        new PageCriteria(0, 20, List.of()))))
+        .isInstanceOf(InvalidMarketPriceQueryException.class)
+        .extracting(
+            exception -> ((InvalidMarketPriceQueryException) exception).getErrorDefinition())
+        .isEqualTo(ErrorDefinition.MARKET_PRICE_TIME_RANGE_INVALID);
 
     verifyNoInteractions(checkpointService);
   }
@@ -230,7 +321,7 @@ class MarketPriceReadServiceImplTest {
     var history =
         service.getPriceHistory(
             new ListQuery(
-                List.of(new ApiFilter("symbol", FilterOperator.IN, "AAPL")),
+                List.of(new ApiFilter(TEST_SYMBOL_FIELD, FilterOperator.IN, TEST_SYMBOL)),
                 new PageCriteria(0, 20, List.of())));
 
     assertThat(history.getContent()).isEmpty();
@@ -245,8 +336,8 @@ class MarketPriceReadServiceImplTest {
         service.getPriceHistory(
             new ListQuery(
                 List.of(
-                    new ApiFilter("symbol", FilterOperator.IN, "AAPL"),
-                    new ApiFilter("capturedAt", FilterOperator.GTE, FROM.toString())),
+                    new ApiFilter(TEST_SYMBOL_FIELD, FilterOperator.IN, TEST_SYMBOL),
+                    new ApiFilter(TEST_CAPTURED_AT_FIELD, FilterOperator.GTE, FROM.toString())),
                 new PageCriteria(0, 20, List.of())));
 
     assertThat(history.getContent()).isEmpty();
