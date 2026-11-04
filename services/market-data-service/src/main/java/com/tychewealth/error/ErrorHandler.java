@@ -5,6 +5,8 @@ import static com.tychewealth.constants.LogConstants.HANDLE_ACTION;
 import static com.tychewealth.constants.LogConstants.UNHANDLED_EXCEPTION;
 import static com.tychewealth.error.ErrorDefinition.*;
 
+import com.tychewealth.error.exception.InvalidMarketPriceQueryException;
+import com.tychewealth.listing.exception.FilterException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +28,17 @@ public class ErrorHandler {
         reason == null || reason.isBlank() ? errorDefinition.getDescription() : reason;
 
     return build(status, errorDefinition, description);
+  }
+
+  @ExceptionHandler(InvalidMarketPriceQueryException.class)
+  public ResponseEntity<ErrorResponse> handleInvalidMarketPriceQuery(
+      InvalidMarketPriceQueryException ex) {
+    return build(HttpStatus.BAD_REQUEST, ex.getErrorDefinition(), ex.getMessage());
+  }
+
+  @ExceptionHandler(FilterException.class)
+  public ResponseEntity<ErrorResponse> handleFilterException(FilterException ex) {
+    return build(ex.getHttpStatus(), GENERIC_BAD_REQUEST, ex.getMessage());
   }
 
   @ExceptionHandler(Exception.class)

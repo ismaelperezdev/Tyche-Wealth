@@ -1,5 +1,6 @@
 package com.tychewealth.provider;
 
+import static com.tychewealth.constants.TestConstants.TEST_SYMBOL;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.tychewealth.model.MarketQuote;
@@ -14,10 +15,10 @@ class MockMarketQuoteProviderTest {
 
   @Test
   void shouldKeepSubsequentPricesForSymbolWithinRealisticRange() {
-    MarketQuote previousQuote = provider.fetchQuote("AAPL");
+    MarketQuote previousQuote = provider.fetchQuote(TEST_SYMBOL);
 
     for (int index = 0; index < 100; index++) {
-      MarketQuote currentQuote = provider.fetchQuote("AAPL");
+      MarketQuote currentQuote = provider.fetchQuote(TEST_SYMBOL);
       BigDecimal relativeChange =
           currentQuote
               .price()
@@ -25,7 +26,7 @@ class MockMarketQuoteProviderTest {
               .abs()
               .divide(previousQuote.price(), 10, java.math.RoundingMode.HALF_UP);
 
-      assertThat(currentQuote.symbol()).isEqualTo("AAPL");
+      assertThat(currentQuote.symbol()).isEqualTo(TEST_SYMBOL);
       assertThat(currentQuote.price()).isPositive();
       assertThat(relativeChange).isLessThanOrEqualTo(MAX_CHANGE_PERCENT);
       previousQuote = currentQuote;

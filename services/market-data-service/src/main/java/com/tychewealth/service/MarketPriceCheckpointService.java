@@ -1,6 +1,7 @@
 package com.tychewealth.service;
 
 import com.tychewealth.entity.MarketPriceCheckpointEntity;
+import com.tychewealth.listing.shared.OffsetBasedPageRequest;
 import com.tychewealth.mapper.MarketPriceCheckpointMapper;
 import com.tychewealth.model.MarketPriceCheckpointBatch;
 import com.tychewealth.repository.MarketPriceCheckpointRepository;
@@ -11,6 +12,8 @@ import java.util.Map;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +34,13 @@ public class MarketPriceCheckpointService {
       throw new IllegalStateException(
           "app.market-price.checkpoint-batch-size must be greater than zero");
     }
+  }
+
+  @Transactional(readOnly = true)
+  public Page<MarketPriceCheckpointEntity> findCheckpoints(
+      Specification<MarketPriceCheckpointEntity> specification,
+      OffsetBasedPageRequest pageRequest) {
+    return marketPriceCheckpointRepository.findAll(specification, pageRequest);
   }
 
   @Transactional

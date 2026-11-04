@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.model.MarketQuote;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.data.redis.connection.RedisConnection;
@@ -57,11 +59,27 @@ public class MarketQuoteStore {
       return Optional.empty();
     }
 
-    try {
-      return Optional.of(objectMapper.readValue(serializedQuote, MarketQuote.class));
-    } catch (JsonProcessingException error) {
-      throw new IllegalStateException("Unable to deserialize market quote", error);
+    return Optional.of(deserialize(serializedQuote));
+  }
+
+  public List<MarketQuote> findBySymbols(Collection<String> symbols) {
+    if (symbols.isEmpty()) {
+      return List.of();
     }
+
+    List<String> keys = symbols.stream().map(symbol -> KEY_PREFIX + symbol).toList();
+    List<String> serializedQuotes = redisTemplate.opsForValue().multiGet(keys);
+    if (serializedQuotes == null || serializedQuotes.isEmpty()) {
+      return List.of();
+    }
+
+    List<MarketQuote> quotes = new ArrayList<>(serializedQuotes.size());
+    for (String serializedQuote : serializedQuotes) {
+      if (serializedQuote != null) {
+        quotes.add(deserialize(serializedQuote));
+      }
+    }
+    return List.copyOf(quotes);
   }
 
   private String serialize(MarketQuote quote) {
@@ -69,6 +87,14 @@ public class MarketQuoteStore {
       return objectMapper.writeValueAsString(quote);
     } catch (JsonProcessingException error) {
       throw new IllegalStateException("Unable to serialize market quote", error);
+    }
+  }
+
+  private MarketQuote deserialize(String serializedQuote) {
+    try {
+      return objectMapper.readValue(serializedQuote, MarketQuote.class);
+    } catch (JsonProcessingException error) {
+      throw new IllegalStateException("Unable to deserialize market quote", error);
     }
   }
 

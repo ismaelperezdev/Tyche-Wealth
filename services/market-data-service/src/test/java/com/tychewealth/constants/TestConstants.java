@@ -12,6 +12,15 @@ public final class TestConstants {
   public static final String TEST_SYMBOL_FIELD = "symbol";
   public static final String TEST_SYMBOL = "AAPL";
   public static final String SECOND_TEST_SYMBOL = "MSFT";
+  public static final String THIRD_TEST_SYMBOL = "GOOG";
+  public static final String TEST_CAPTURED_AT_FIELD = "capturedAt";
+  public static final String TEST_BUCKET_START_FIELD = "bucketStart";
+  public static final String TEST_ID_FIELD = "id";
+  public static final String TEST_SYMBOL_IN_FILTER = TEST_SYMBOL_FIELD + ".in";
+  public static final String TEST_CAPTURED_AT_EQ_FILTER = TEST_CAPTURED_AT_FIELD + ".eq";
+  public static final String TEST_BUCKET_START_GTE_FILTER = TEST_BUCKET_START_FIELD + ".gte";
+  public static final String LATEST_PRICES_ENDPOINT = "/internal/prices/latest";
+  public static final String PRICE_HISTORY_ENDPOINT = "/internal/prices/history";
   public static final String ACTIVE_SYMBOL_CHANGES_TOPIC = "active-symbol-changes";
   public static final String PADDED_TEST_SYMBOL = " aapl ";
   public static final String OVERSIZED_TEST_SYMBOL = "ABCDEFGHIJKLMNOPQRSTU";

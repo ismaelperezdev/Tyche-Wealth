@@ -1,5 +1,7 @@
 package com.tychewealth.service;
 
+import static com.tychewealth.constants.TestConstants.SECOND_TEST_SYMBOL;
+import static com.tychewealth.constants.TestConstants.TEST_SYMBOL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -27,7 +29,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class MarketQuoteServiceTest {
 
-  private static final String SYMBOL = "AAPL";
   private static final LocalDateTime CAPTURED_AT = LocalDateTime.of(2026, 8, 27, 13, 15);
 
   @Mock private MarketSymbolRepository marketSymbolRepository;
@@ -50,10 +51,10 @@ class MarketQuoteServiceTest {
 
   @Test
   void shouldSaveQuoteAndNewCheckpointForActiveSymbol() {
-    MarketQuote quote = new MarketQuote(SYMBOL, new BigDecimal("123.45"), CAPTURED_AT);
+    MarketQuote quote = new MarketQuote(TEST_SYMBOL, new BigDecimal("123.45"), CAPTURED_AT);
     when(marketSymbolRepository.findByActiveTrue()).thenReturn(List.of(marketSymbol));
-    when(marketSymbol.getSymbol()).thenReturn(SYMBOL);
-    when(marketQuoteProvider.fetchQuote(SYMBOL)).thenReturn(quote);
+    when(marketSymbol.getSymbol()).thenReturn(TEST_SYMBOL);
+    when(marketQuoteProvider.fetchQuote(TEST_SYMBOL)).thenReturn(quote);
     marketQuoteService.captureQuotes();
 
     verify(marketQuoteStore).saveAll(List.of(quote));
@@ -72,13 +73,14 @@ class MarketQuoteServiceTest {
   @Test
   void shouldCaptureAllActiveSymbolsBeforeDelegatingBatchPersistence() {
     MarketSymbolEntity secondSymbol = org.mockito.Mockito.mock(MarketSymbolEntity.class);
-    MarketQuote firstQuote = new MarketQuote(SYMBOL, new BigDecimal("123.45"), CAPTURED_AT);
-    MarketQuote secondQuote = new MarketQuote("MSFT", new BigDecimal("234.56"), CAPTURED_AT);
+    MarketQuote firstQuote = new MarketQuote(TEST_SYMBOL, new BigDecimal("123.45"), CAPTURED_AT);
+    MarketQuote secondQuote =
+        new MarketQuote(SECOND_TEST_SYMBOL, new BigDecimal("234.56"), CAPTURED_AT);
     when(marketSymbolRepository.findByActiveTrue()).thenReturn(List.of(marketSymbol, secondSymbol));
-    when(marketSymbol.getSymbol()).thenReturn(SYMBOL);
-    when(secondSymbol.getSymbol()).thenReturn("MSFT");
-    when(marketQuoteProvider.fetchQuote(SYMBOL)).thenReturn(firstQuote);
-    when(marketQuoteProvider.fetchQuote("MSFT")).thenReturn(secondQuote);
+    when(marketSymbol.getSymbol()).thenReturn(TEST_SYMBOL);
+    when(secondSymbol.getSymbol()).thenReturn(SECOND_TEST_SYMBOL);
+    when(marketQuoteProvider.fetchQuote(TEST_SYMBOL)).thenReturn(firstQuote);
+    when(marketQuoteProvider.fetchQuote(SECOND_TEST_SYMBOL)).thenReturn(secondQuote);
 
     marketQuoteService.captureQuotes();
 
@@ -89,8 +91,8 @@ class MarketQuoteServiceTest {
   @Test
   void shouldPropagateProviderFailureBeforeWritingAnyBatch() {
     when(marketSymbolRepository.findByActiveTrue()).thenReturn(List.of(marketSymbol));
-    when(marketSymbol.getSymbol()).thenReturn(SYMBOL);
-    when(marketQuoteProvider.fetchQuote(SYMBOL))
+    when(marketSymbol.getSymbol()).thenReturn(TEST_SYMBOL);
+    when(marketQuoteProvider.fetchQuote(TEST_SYMBOL))
         .thenThrow(new IllegalStateException("provider failed"));
 
     assertThatThrownBy(() -> marketQuoteService.captureQuotes())
@@ -104,14 +106,15 @@ class MarketQuoteServiceTest {
   void shouldDelegateQuotesFromDifferentBucketsSeparately() {
     MarketSymbolEntity secondSymbol = org.mockito.Mockito.mock(MarketSymbolEntity.class);
     MarketQuote firstQuote =
-        new MarketQuote(SYMBOL, new BigDecimal("123.45"), LocalDateTime.of(2026, 8, 27, 5, 0));
+        new MarketQuote(TEST_SYMBOL, new BigDecimal("123.45"), LocalDateTime.of(2026, 8, 27, 5, 0));
     MarketQuote secondQuote =
-        new MarketQuote("MSFT", new BigDecimal("234.56"), LocalDateTime.of(2026, 8, 27, 7, 0));
+        new MarketQuote(
+            SECOND_TEST_SYMBOL, new BigDecimal("234.56"), LocalDateTime.of(2026, 8, 27, 7, 0));
     when(marketSymbolRepository.findByActiveTrue()).thenReturn(List.of(marketSymbol, secondSymbol));
-    when(marketSymbol.getSymbol()).thenReturn(SYMBOL);
-    when(secondSymbol.getSymbol()).thenReturn("MSFT");
-    when(marketQuoteProvider.fetchQuote(SYMBOL)).thenReturn(firstQuote);
-    when(marketQuoteProvider.fetchQuote("MSFT")).thenReturn(secondQuote);
+    when(marketSymbol.getSymbol()).thenReturn(TEST_SYMBOL);
+    when(secondSymbol.getSymbol()).thenReturn(SECOND_TEST_SYMBOL);
+    when(marketQuoteProvider.fetchQuote(TEST_SYMBOL)).thenReturn(firstQuote);
+    when(marketQuoteProvider.fetchQuote(SECOND_TEST_SYMBOL)).thenReturn(secondQuote);
 
     marketQuoteService.captureQuotes();
 
