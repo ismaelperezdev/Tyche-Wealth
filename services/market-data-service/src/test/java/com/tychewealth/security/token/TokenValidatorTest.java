@@ -22,11 +22,11 @@ class TokenValidatorTest {
   private static final String JWT_SECRET = "0123456789abcdef0123456789abcdef";
 
   private final RedisTemplate<String, String> redisTemplate = org.mockito.Mockito.mock();
-    private TokenValidator tokenValidator;
+  private TokenValidator tokenValidator;
 
   @BeforeEach
   void setUp() {
-      AccessTokenSupport accessTokenSupport = new AccessTokenSupport(JWT_SECRET);
+    AccessTokenSupport accessTokenSupport = new AccessTokenSupport(JWT_SECRET);
     tokenValidator = new TokenValidator(accessTokenSupport, new TokenStateSupport(redisTemplate));
   }
 

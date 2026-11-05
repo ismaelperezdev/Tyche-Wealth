@@ -67,10 +67,7 @@ class MarketPriceSecurityIntegrationTest {
   @Test
   void allowsPrometheusScrapingWithConfiguredBasicCredentials() throws Exception {
     mockMvc
-        .perform(
-            get("/actuator/prometheus")
-                .header(
-                    "Authorization", basicAuth()))
+        .perform(get("/actuator/prometheus").header("Authorization", basicAuth()))
         .andExpect(status().isOk());
   }
 
@@ -123,10 +120,7 @@ class MarketPriceSecurityIntegrationTest {
   @Test
   void basicCredentialsDoNotAuthenticateProtectedApiRoute() throws Exception {
     mockMvc
-        .perform(
-            get(PRICE_HISTORY_ENDPOINT)
-                .header(
-                    "Authorization", basicAuth()))
+        .perform(get(PRICE_HISTORY_ENDPOINT).header("Authorization", basicAuth()))
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value("TYCHE-602"));
   }
