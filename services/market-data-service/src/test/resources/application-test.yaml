@@ -2,6 +2,15 @@ spring:
   application:
     name: market-data-service-test
 
+app:
+  auth:
+    jwt:
+      secret: test-jwt-secret-0123456789abcdef
+  security:
+    prometheus:
+      username: prometheus-scraper
+      password: test-prometheus-password
+
 clients:
   twelve-data:
     base-url: https://api.twelvedata.com

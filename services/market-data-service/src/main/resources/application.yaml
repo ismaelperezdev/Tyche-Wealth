@@ -82,6 +82,13 @@ kafka:
   enabled: ${KAFKA_ENABLED:true}
 
 app:
+  auth:
+    jwt:
+      secret: ${JWT_SECRET}
+  security:
+    prometheus:
+      username: ${PROMETHEUS_BASIC_AUTH_USERNAME:prometheus-scraper}
+      password: ${PROMETHEUS_PASSWORD}
   market-symbol:
     batch-size: ${MARKET_SYMBOL_BATCH_SIZE:500}
   market-price:
