@@ -71,6 +71,22 @@ class TokenValidatorTest {
   }
 
   @Test
+  void rejectsTokenWithoutExpiration() {
+    String token = accessTokenWithoutExpiration();
+
+    assertThatThrownBy(() -> tokenValidator.validateAndExtractUserId("Bearer " + token))
+        .isInstanceOf(BadCredentialsException.class);
+  }
+
+  @Test
+  void rejectsTokenSignedWithDifferentKey() {
+    String token = accessTokenSignedWithDifferentKey();
+
+    assertThatThrownBy(() -> tokenValidator.validateAndExtractUserId("Bearer " + token))
+        .isInstanceOf(BadCredentialsException.class);
+  }
+
+  @Test
   void rejectsRevokedToken() {
     String token = accessToken(Instant.now().plusSeconds(900), null, "42");
     when(redisTemplate.hasKey("auth:access-token:blacklist:jti:jti-123")).thenReturn(true);
@@ -114,6 +130,28 @@ class TokenValidatorTest {
         .issuedAt(Date.from(Instant.now().minusSeconds(1)))
         .expiration(Date.from(Instant.now().plusSeconds(900)))
         .signWith(key, Jwts.SIG.HS256)
+        .compact();
+  }
+
+  private String accessTokenWithoutExpiration() {
+    SecretKey key = Keys.hmacShaKeyFor(JWT_SECRET.getBytes(StandardCharsets.UTF_8));
+    return Jwts.builder()
+        .subject("42")
+        .id("jti-123")
+        .issuedAt(Date.from(Instant.now().minusSeconds(1)))
+        .signWith(key, Jwts.SIG.HS256)
+        .compact();
+  }
+
+  private String accessTokenSignedWithDifferentKey() {
+    SecretKey differentKey =
+        Keys.hmacShaKeyFor("abcdef0123456789abcdef0123456789".getBytes(StandardCharsets.UTF_8));
+    return Jwts.builder()
+        .subject("42")
+        .id("jti-123")
+        .issuedAt(Date.from(Instant.now().minusSeconds(1)))
+        .expiration(Date.from(Instant.now().plusSeconds(900)))
+        .signWith(differentKey, Jwts.SIG.HS256)
         .compact();
   }
 }

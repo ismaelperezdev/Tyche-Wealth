@@ -1,6 +1,7 @@
 package com.tychewealth.security.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -23,8 +24,6 @@ import org.springframework.util.StringUtils;
 @Configuration
 public class PrometheusSecurityConfig {
 
-  private static final String ACTUATOR_PROMETHEUS_PATH = "/actuator/prometheus";
-
   @Bean
   @Order(1)
   public SecurityFilterChain prometheusSecurityFilterChain(
@@ -33,7 +32,7 @@ public class PrometheusSecurityConfig {
       @Value("${app.security.hsts.include-sub-domains:true}") boolean hstsIncludeSubDomains,
       @Value("${app.security.hsts.max-age-seconds:31536000}") long hstsMaxAgeSeconds)
       throws Exception {
-    http.securityMatcher(ACTUATOR_PROMETHEUS_PATH)
+    http.securityMatcher(EndpointRequest.to("prometheus"))
         .csrf(AbstractHttpConfigurer::disable)
         .headers(
             headers ->

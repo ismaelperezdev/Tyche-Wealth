@@ -1,6 +1,7 @@
 package com.tychewealth.security.config;
 
 import com.tychewealth.security.JwtAuthenticationFilter;
+import jakarta.servlet.DispatcherType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -50,6 +51,8 @@ public class ApplicationSecurityConfig {
                     .requestMatchers("/actuator/health", "/actuator/health/**")
                     .permitAll()
                     .requestMatchers(HttpMethod.OPTIONS, "/**")
+                    .permitAll()
+                    .dispatcherTypeMatchers(DispatcherType.ERROR)
                     .permitAll()
                     .anyRequest()
                     .authenticated())

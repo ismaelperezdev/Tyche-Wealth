@@ -11,14 +11,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.tychewealth.store.MarketQuoteStore;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.Base64;
-import java.util.Date;
+import com.tychewealth.testdata.SecurityTestHelper;
 import java.util.List;
-import javax.crypto.SecretKey;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -47,8 +41,6 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 class MarketPriceSecurityIntegrationTest {
 
-  private static final String JWT_SECRET = "test-jwt-secret-0123456789abcdef";
-
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private RedisTemplate<String, String> redisTemplate;
@@ -67,13 +59,19 @@ class MarketPriceSecurityIntegrationTest {
   @Test
   void allowsPrometheusScrapingWithConfiguredBasicCredentials() throws Exception {
     mockMvc
-        .perform(get("/actuator/prometheus").header("Authorization", basicAuth()))
+        .perform(
+            get("/actuator/prometheus").header("Authorization", SecurityTestHelper.basicAuth()))
         .andExpect(status().isOk());
   }
 
   @Test
+  void rejectsPrometheusScrapingWithoutAuthorization() throws Exception {
+    mockMvc.perform(get("/actuator/prometheus")).andExpect(status().isUnauthorized());
+  }
+
+  @Test
   void allowsValidBearerTokenOnProtectedApiRoute() throws Exception {
-    String token = accessToken("valid-jti");
+    String token = SecurityTestHelper.accessToken("valid-jti");
     when(redisTemplate.hasKey("auth:access-token:blacklist:jti:valid-jti")).thenReturn(false);
     when(marketQuoteStore.findBySymbols(List.of(TEST_SYMBOL))).thenReturn(List.of());
 
@@ -95,7 +93,7 @@ class MarketPriceSecurityIntegrationTest {
 
   @Test
   void rejectsRevokedBearerToken() throws Exception {
-    String token = accessToken("revoked-jti");
+    String token = SecurityTestHelper.accessToken("revoked-jti");
     when(redisTemplate.hasKey("auth:access-token:blacklist:jti:revoked-jti")).thenReturn(true);
 
     mockMvc
@@ -106,7 +104,7 @@ class MarketPriceSecurityIntegrationTest {
 
   @Test
   void rejectsBearerTokenWhenRedisIsUnavailable() throws Exception {
-    String token = accessToken("redis-unavailable-jti");
+    String token = SecurityTestHelper.accessToken("redis-unavailable-jti");
     doThrow(new IllegalStateException("Redis unavailable"))
         .when(redisTemplate)
         .hasKey("auth:access-token:blacklist:jti:redis-unavailable-jti");
@@ -120,25 +118,9 @@ class MarketPriceSecurityIntegrationTest {
   @Test
   void basicCredentialsDoNotAuthenticateProtectedApiRoute() throws Exception {
     mockMvc
-        .perform(get(PRICE_HISTORY_ENDPOINT).header("Authorization", basicAuth()))
+        .perform(
+            get(PRICE_HISTORY_ENDPOINT).header("Authorization", SecurityTestHelper.basicAuth()))
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value("TYCHE-602"));
-  }
-
-  private String basicAuth() {
-    String credentials = "prometheus-scraper" + ":" + "test-prometheus-password";
-    return "Basic "
-        + Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
-  }
-
-  private String accessToken(String tokenId) {
-    SecretKey key = Keys.hmacShaKeyFor(JWT_SECRET.getBytes(StandardCharsets.UTF_8));
-    return Jwts.builder()
-        .subject("42")
-        .id(tokenId)
-        .issuedAt(Date.from(Instant.now().minusSeconds(1)))
-        .expiration(Date.from(Instant.now().plusSeconds(900)))
-        .signWith(key, Jwts.SIG.HS256)
-        .compact();
   }
 }

@@ -45,9 +45,11 @@ public class SecurityCommonConfig {
 
   @Bean
   public AuthenticationEntryPoint authenticationEntryPoint(ObjectMapper objectMapper) {
-    return (request, response, exception) ->
-        writeErrorResponse(
-            response, objectMapper, HttpStatus.UNAUTHORIZED, ErrorDefinition.GENERIC_UNAUTHORIZED);
+    return (request, response, exception) -> {
+      response.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
+      writeErrorResponse(
+          response, objectMapper, HttpStatus.UNAUTHORIZED, ErrorDefinition.GENERIC_UNAUTHORIZED);
+    };
   }
 
   @Bean
@@ -79,7 +81,7 @@ public class SecurityCommonConfig {
 
     CorsConfiguration configuration = new CorsConfiguration();
     configuration.setAllowedOrigins(origins);
-    configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
+    configuration.setAllowedMethods(List.of("GET", "HEAD", "POST", "PATCH", "DELETE", "OPTIONS"));
     configuration.setAllowedHeaders(List.of("*"));
     configuration.setAllowCredentials(true);
 

@@ -30,6 +30,10 @@ public class AccessTokenSupport {
         throw new BadCredentialsException("Token is not an access token");
       }
 
+      if (claims.getExpiration() == null) {
+        throw new BadCredentialsException("Access token has no expiration");
+      }
+
       String tokenId = claims.getId();
       if (!StringUtils.hasText(tokenId)) {
         throw new BadCredentialsException("Access token has no identifier");
