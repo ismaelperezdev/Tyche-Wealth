@@ -7,6 +7,7 @@ on:
     paths:
       - "pom.xml"
       - "libraries/**"
+      - "clients/**"
       - "services/**"
       - "docker-compose.yml"
       - ".github/workflows/shared-changes.yml"
@@ -14,6 +15,7 @@ on:
     paths:
       - "pom.xml"
       - "libraries/**"
+      - "clients/**"
       - "services/**"
       - "docker-compose.yml"
       - ".github/workflows/shared-changes.yml"
@@ -50,6 +52,12 @@ jobs:
 
       - name: Test listing-support
         run: ./mvnw -pl libraries/listing-support -am test
+
+      - name: Build market-data-client
+        run: ./mvnw -pl clients/market-data-client -am -DskipTests package
+
+      - name: Test market-data-client
+        run: ./mvnw -pl clients/market-data-client -am test
 
   security:
     if: ${{ github.event_name != 'pull_request' }}
