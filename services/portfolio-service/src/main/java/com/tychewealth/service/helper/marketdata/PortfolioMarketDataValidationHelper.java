@@ -60,6 +60,12 @@ public class PortfolioMarketDataValidationHelper {
     }
   }
 
+  public void validateExpandedHistoryCount(long resultCount) {
+    if (resultCount > maxResults) {
+      throw resultLimitExceeded(resultCount);
+    }
+  }
+
   private PortfolioException resultLimitExceeded(long received) {
     return new PortfolioException(
         PORTFOLIO_MARKET_DATA_RESULT_LIMIT_EXCEEDED,

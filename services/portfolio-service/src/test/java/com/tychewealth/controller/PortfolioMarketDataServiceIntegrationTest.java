@@ -39,6 +39,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -183,6 +184,33 @@ class PortfolioMarketDataServiceIntegrationTest {
   }
 
   @Test
+  void rejectsHistoryWhenCheckpointExpansionExceedsTheConfiguredLimit() throws Exception {
+    List<PriceCheckpoint> checkpoints =
+        IntStream.range(0, 2501)
+            .mapToObj(
+                ignored ->
+                    new PriceCheckpoint(
+                        "AAPL", BigDecimal.ONE, CHECKPOINT_AT_LATER_ASSET_CREATION, HISTORY_FROM))
+            .toList();
+    Instant effectiveFrom = EARLY_ASSET_CREATED_AT;
+    when(marketDataClient.getPriceHistory(
+            List.of("AAPL"), effectiveFrom, HISTORY_TO, 0, 5000, TOKEN))
+        .thenReturn(new MarketDataPage<>(checkpoints, checkpoints.size()));
+
+    mockMvc
+        .perform(
+            get(BASE_URL + "/history")
+                .param("assetIds", earlyAsset.getId().toString(), lateAsset.getId().toString())
+                .param("from", HISTORY_FROM.toString())
+                .param("to", HISTORY_TO.toString())
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(
+            jsonPath("$.type")
+                .value(ErrorDefinition.PORTFOLIO_MARKET_DATA_RESULT_LIMIT_EXCEEDED.getType()));
+  }
+
+  @Test
   void rejectsAnotherUsersPortfolioBeforeCallingMds() throws Exception {
     PortfolioEntity anotherUsersPortfolio =
         buildPortfolio(
@@ -210,6 +238,64 @@ class PortfolioMarketDataServiceIntegrationTest {
   }
 
   @Test
+  void rejectsAnotherUsersAssetIdBeforeCallingMds() throws Exception {
+    PortfolioEntity anotherUsersPortfolio =
+        buildPortfolio(
+            TEST_USER_ID + 1,
+            "Other",
+            CurrencyCodeEnum.USD,
+            RiskProfileEnum.MEDIUM,
+            StrategyTypeEnum.BALANCED,
+            InvestmentHorizonEnum.LONG);
+    portfolioRepository.saveAndFlush(anotherUsersPortfolio);
+    AssetEntity anotherUsersAsset =
+        buildAsset(
+            anotherUsersPortfolio,
+            "Nvidia Corporation",
+            "NVDA",
+            AssetTypeEnum.STOCK,
+            CurrencyCodeEnum.USD);
+    assetRepository.saveAndFlush(anotherUsersAsset);
+
+    assertAssetIdRejectedWithoutCallingMds(anotherUsersAsset.getId());
+  }
+
+  @Test
+  void rejectsSoftDeletedAssetIdBeforeCallingMds() throws Exception {
+    AssetEntity deletedAsset =
+        buildAsset(
+            ownPortfolio, "Nvidia Corporation", "NVDA", AssetTypeEnum.STOCK, CurrencyCodeEnum.USD);
+    deletedAsset.setDeletedAt(LocalDateTime.now(ZoneOffset.UTC));
+    assetRepository.saveAndFlush(deletedAsset);
+
+    assertAssetIdRejectedWithoutCallingMds(deletedAsset.getId());
+  }
+
+  @Test
+  void rejectsAssetIdFromDeletedPortfolioBeforeCallingMds() throws Exception {
+    PortfolioEntity deletedPortfolio =
+        buildPortfolio(
+            TEST_USER_ID,
+            "Closed Portfolio",
+            CurrencyCodeEnum.USD,
+            RiskProfileEnum.MEDIUM,
+            StrategyTypeEnum.BALANCED,
+            InvestmentHorizonEnum.LONG);
+    deletedPortfolio.setDeletedAt(LocalDateTime.now(ZoneOffset.UTC));
+    portfolioRepository.saveAndFlush(deletedPortfolio);
+    AssetEntity activeAsset =
+        buildAsset(
+            deletedPortfolio,
+            "Nvidia Corporation",
+            "NVDA",
+            AssetTypeEnum.STOCK,
+            CurrencyCodeEnum.USD);
+    assetRepository.saveAndFlush(activeAsset);
+
+    assertAssetIdRejectedWithoutCallingMds(activeAsset.getId());
+  }
+
+  @Test
   void rejectsLatestResultsAboveTheConfiguredLimit() throws Exception {
     when(marketDataClient.getLatestPrices(List.of("AAPL"), 0, 5000, TOKEN))
         .thenReturn(
@@ -225,5 +311,21 @@ class PortfolioMarketDataServiceIntegrationTest {
         .andExpect(
             jsonPath("$.type")
                 .value(ErrorDefinition.PORTFOLIO_MARKET_DATA_RESULT_LIMIT_EXCEEDED.getType()));
+  }
+
+  private void assertAssetIdRejectedWithoutCallingMds(Long assetId) throws Exception {
+    mockMvc
+        .perform(
+            get(BASE_URL + "/latest")
+                .param("assetIds", assetId.toString())
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION))
+        .andExpect(status().isNotFound());
+
+    verify(marketDataClient, never())
+        .getLatestPrices(
+            org.mockito.ArgumentMatchers.anyList(),
+            org.mockito.ArgumentMatchers.anyInt(),
+            org.mockito.ArgumentMatchers.anyInt(),
+            org.mockito.ArgumentMatchers.anyString());
   }
 }

@@ -72,6 +72,31 @@ public class PortfolioMarketDataHelper {
     return List.copyOf(result);
   }
 
+  public long countPriceHistoryResults(
+      List<AssetEntity> assets, Instant from, MarketDataPage<PriceCheckpoint> page) {
+    if (assets.isEmpty()) {
+      return 0;
+    }
+
+    Map<String, List<AssetEntity>> assetsBySymbol = new LinkedHashMap<>();
+    for (AssetEntity asset : assets) {
+      assetsBySymbol
+          .computeIfAbsent(normalizeSymbol(asset.getSymbol()), ignored -> new ArrayList<>())
+          .add(asset);
+    }
+
+    long resultCount = 0;
+    for (PriceCheckpoint checkpoint : page.content()) {
+      for (AssetEntity asset :
+          assetsBySymbol.getOrDefault(normalizeSymbol(checkpoint.symbol()), List.of())) {
+        if (checkpointAppliesToAsset(asset, checkpoint, from)) {
+          resultCount++;
+        }
+      }
+    }
+    return resultCount;
+  }
+
   public Instant effectiveHistoryFrom(List<AssetEntity> assets, Instant requestedFrom) {
     Instant oldestAssetCreatedAt =
         assets.stream()
@@ -89,14 +114,19 @@ public class PortfolioMarketDataHelper {
       PriceCheckpoint checkpoint,
       Instant requestedFrom) {
     for (AssetEntity asset : assets) {
-      Instant assetFrom = assetCreatedAt(asset);
-      if (requestedFrom != null && requestedFrom.isAfter(assetFrom)) {
-        assetFrom = requestedFrom;
-      }
-      if (!checkpoint.capturedAt().isBefore(assetFrom)) {
+      if (checkpointAppliesToAsset(asset, checkpoint, requestedFrom)) {
         result.add(portfolioMarketDataMapper.toCheckpointDto(asset, checkpoint));
       }
     }
+  }
+
+  private static boolean checkpointAppliesToAsset(
+      AssetEntity asset, PriceCheckpoint checkpoint, Instant requestedFrom) {
+    Instant assetFrom = assetCreatedAt(asset);
+    if (requestedFrom != null && requestedFrom.isAfter(assetFrom)) {
+      assetFrom = requestedFrom;
+    }
+    return !checkpoint.capturedAt().isBefore(assetFrom);
   }
 
   private static Instant assetCreatedAt(AssetEntity asset) {

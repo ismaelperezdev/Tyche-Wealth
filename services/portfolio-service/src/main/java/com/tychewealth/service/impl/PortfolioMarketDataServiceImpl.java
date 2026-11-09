@@ -71,6 +71,9 @@ public class PortfolioMarketDataServiceImpl implements PortfolioMarketDataServic
         marketDataClient.getPriceHistory(
             symbols, effectiveFrom, to, 0, maxResults, accessToken(authorizationHeader));
     validationHelper.validateHistoryCount(page);
+    long expandedResultCount =
+        portfolioMarketDataHelper.countPriceHistoryResults(assets, from, page);
+    validationHelper.validateExpandedHistoryCount(expandedResultCount);
     return portfolioMarketDataHelper.mapPriceHistory(assets, from, page);
   }
 
