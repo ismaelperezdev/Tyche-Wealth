@@ -15,6 +15,7 @@ RUN chmod +x mvnw
 RUN ./mvnw -pl services/portfolio-service -am dependency:go-offline
 
 COPY libraries/redis-support/src/ libraries/redis-support/src/
+COPY clients/market-data-client/src/ clients/market-data-client/src/
 COPY services/portfolio-service/src/ services/portfolio-service/src/
 
 RUN ./mvnw -pl services/portfolio-service -am clean package -DskipTests

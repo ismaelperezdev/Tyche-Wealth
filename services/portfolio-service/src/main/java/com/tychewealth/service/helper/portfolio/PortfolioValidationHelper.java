@@ -14,6 +14,7 @@ import static com.tychewealth.constants.LogConstants.UNKNOWN_PERSISTENCE_CONFLIC
 import static com.tychewealth.constants.LogConstants.UPDATE_ACTION;
 import static com.tychewealth.constants.LogConstants.USER_ID;
 import static com.tychewealth.constants.PersistenceConstants.PORTFOLIO_UNIQUE_CONSTRAINT;
+import static com.tychewealth.constants.PortfolioLimits.MAX_PORTFOLIOS_PER_USER;
 import static com.tychewealth.error.handler.ErrorDefinition.PORTFOLIO_LIMIT_REACHED;
 import static com.tychewealth.error.handler.ErrorDefinition.PORTFOLIO_NAME_CONFLICT;
 
@@ -41,8 +42,6 @@ import org.springframework.stereotype.Component;
 @Component
 @AllArgsConstructor
 public class PortfolioValidationHelper {
-
-  private static final long MAX_PORTFOLIOS_PER_USER = 5L;
 
   private final CommonValidationHelper commonValidationHelper;
   private final PortfolioRepository portfolioRepository;

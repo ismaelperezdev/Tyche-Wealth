@@ -88,4 +88,30 @@ public interface AssetRepository extends JpaRepository<AssetEntity, Long> {
         and a.symbol <> ''
       """)
   List<String> findDistinctSymbolsByUserIds(@Param("userIds") Collection<Long> userIds);
+
+  @Query(
+      """
+      select a
+      from AssetEntity a
+      join a.portfolio p
+      where a.id in :assetIds
+        and p.userId = :userId
+        and p.deletedAt is null
+        and a.deletedAt is null
+      """)
+  List<AssetEntity> findActiveByIdsAndPortfolioUserId(
+      @Param("assetIds") Collection<Long> assetIds, @Param("userId") Long userId);
+
+  @Query(
+      """
+      select a
+      from AssetEntity a
+      join a.portfolio p
+      where p.id in :portfolioIds
+        and p.userId = :userId
+        and p.deletedAt is null
+        and a.deletedAt is null
+      """)
+  List<AssetEntity> findActiveByPortfolioIdsAndUserId(
+      @Param("portfolioIds") Collection<Long> portfolioIds, @Param("userId") Long userId);
 }
