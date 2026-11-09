@@ -13,6 +13,7 @@ import static com.tychewealth.constants.LogConstants.REQUEST_CONFLICT;
 import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 import static com.tychewealth.constants.LogConstants.UNKNOWN_PERSISTENCE_CONFLICT_MESSAGE;
 import static com.tychewealth.constants.PersistenceConstants.ASSET_SYMBOL_UNIQUE_CONSTRAINT;
+import static com.tychewealth.constants.PortfolioLimits.MAX_ASSETS_PER_PORTFOLIO;
 import static com.tychewealth.error.handler.ErrorDefinition.ASSET_LIMIT_REACHED;
 import static com.tychewealth.error.handler.ErrorDefinition.ASSET_NAME_CONFLICT;
 import static com.tychewealth.error.handler.ErrorDefinition.ASSET_NOT_FOUND;
@@ -41,8 +42,6 @@ import org.springframework.stereotype.Component;
 @Component
 @AllArgsConstructor
 public class AssetValidationHelper {
-
-  private static final long MAX_ASSETS_PER_PORTFOLIO = 200L;
 
   private final AssetRepository assetRepository;
 

@@ -74,7 +74,27 @@ public enum ErrorDefinition {
       "TYCHE-512",
       "ASSET_NAME_CONFLICT",
       "An asset with name '${name:-}' already exists for this portfolio"),
-  ASSET_NOT_FOUND("TYCHE-513", "ASSET_NOT_FOUND", "The asset was not found");
+  ASSET_NOT_FOUND("TYCHE-513", "ASSET_NOT_FOUND", "The asset was not found"),
+  PORTFOLIO_MARKET_DATA_SELECTION_INVALID(
+      "TYCHE-514",
+      "PORTFOLIO_MARKET_DATA_SELECTION_INVALID",
+      "Portfolios and assets cannot be selected at the same time"),
+  PORTFOLIO_MARKET_DATA_SELECTION_EMPTY(
+      "TYCHE-515",
+      "PORTFOLIO_MARKET_DATA_SELECTION_EMPTY",
+      "The selected ID list must not be empty"),
+  PORTFOLIO_MARKET_DATA_ID_INVALID(
+      "TYCHE-516", "PORTFOLIO_MARKET_DATA_ID_INVALID", "Selected IDs must be positive"),
+  PORTFOLIO_MARKET_DATA_TIME_RANGE_INVALID(
+      "TYCHE-517", "PORTFOLIO_MARKET_DATA_TIME_RANGE_INVALID", "from must not be after to"),
+  PORTFOLIO_MARKET_DATA_SELECTION_LIMIT_EXCEEDED(
+      "TYCHE-518",
+      "PORTFOLIO_MARKET_DATA_SELECTION_LIMIT_EXCEEDED",
+      "The selection exceeds the maximum allowed number of IDs (${expected:-})"),
+  PORTFOLIO_MARKET_DATA_RESULT_LIMIT_EXCEEDED(
+      "TYCHE-519",
+      "PORTFOLIO_MARKET_DATA_RESULT_LIMIT_EXCEEDED",
+      "The market-data result exceeds the single-response limit of ${expected:-} records. Received: ${received:-}");
 
   private final String code;
   private final String type;

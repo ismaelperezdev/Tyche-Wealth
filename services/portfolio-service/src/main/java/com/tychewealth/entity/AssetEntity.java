@@ -31,6 +31,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -102,13 +103,13 @@ public class AssetEntity {
 
   @PrePersist
   void onCreate() {
-    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
     createdAt = now;
     updatedAt = now;
   }
 
   @PreUpdate
   void onUpdate() {
-    updatedAt = LocalDateTime.now();
+    updatedAt = LocalDateTime.now(ZoneOffset.UTC);
   }
 }

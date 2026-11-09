@@ -22,6 +22,11 @@
     <dependencies>
         <dependency>
             <groupId>com.ismaelperezdev</groupId>
+            <artifactId>tyche-wealth-market-data-client</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ismaelperezdev</groupId>
             <artifactId>tyche-wealth-redis-support</artifactId>
             <version>${project.version}</version>
         </dependency>

@@ -1,6 +1,7 @@
 package com.tychewealth.repository;
 
 import com.tychewealth.entity.PortfolioEntity;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -50,6 +51,17 @@ public interface PortfolioRepository extends JpaRepository<PortfolioEntity, Long
         and p.deletedAt is null
       """)
   Optional<PortfolioEntity> findByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
+
+  @Query(
+      """
+      select p
+      from PortfolioEntity p
+      where p.id in :portfolioIds
+        and p.userId = :userId
+        and p.deletedAt is null
+      """)
+  List<PortfolioEntity> findActiveByIdsAndUserId(
+      @Param("portfolioIds") Collection<Long> portfolioIds, @Param("userId") Long userId);
 
   @Query(
       """

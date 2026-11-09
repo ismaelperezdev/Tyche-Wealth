@@ -5,6 +5,8 @@ import com.tychewealth.enums.InvestmentHorizonEnum;
 import com.tychewealth.enums.RiskProfileEnum;
 import com.tychewealth.enums.StrategyTypeEnum;
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDateTime;
 
 public final class TestConstants {
 
@@ -34,6 +36,7 @@ public final class TestConstants {
   public static final long TEST_OTHER_USER_ID = 84L;
   public static final long TEST_PORTFOLIO_ID = 7L;
   public static final long TEST_MAX_PORTFOLIOS_PER_USER = 5L;
+  public static final long TEST_MAX_ASSETS_PER_PORTFOLIO = 200L;
   public static final String TEST_PORTFOLIO_NAME_CORE = "Core";
   public static final String TEST_PORTFOLIO_NAME_RETIREMENT = "Retirement";
   public static final String TEST_PORTFOLIO_DESCRIPTION_LONG_TERM = "Long term portfolio";
@@ -51,6 +54,15 @@ public final class TestConstants {
   public static final String TEST_STRATEGY_TYPE_INCOME = StrategyTypeEnum.INCOME.name();
   public static final String TEST_STRATEGY_TYPE_BALANCED = StrategyTypeEnum.BALANCED.name();
   public static final String TEST_ASSET_SYMBOL_MSFT = "MSFT";
+  public static final BigDecimal TEST_ASSET_QUANTITY_TWO = new BigDecimal("2.00000000");
+  public static final BigDecimal TEST_ASSET_AVERAGE_PRICE_400 = new BigDecimal("400.0000");
+  public static final BigDecimal TEST_MARKET_PRICE_425_50 = new BigDecimal("425.50");
+  public static final Instant TEST_MARKET_DATA_CAPTURED_AT = Instant.parse("2026-11-01T12:00:00Z");
+  public static final Instant TEST_MARKET_DATA_BUCKET_START = Instant.parse("2026-11-01T00:00:00Z");
+  public static final LocalDateTime TEST_ASSET_CREATED_AT_EARLY =
+      LocalDateTime.of(2026, 10, 1, 0, 0);
+  public static final LocalDateTime TEST_ASSET_CREATED_AT_LATE =
+      LocalDateTime.of(2026, 10, 15, 0, 0);
   public static final String TEST_X_TOTAL_COUNT_HEADER = "X-Total-Count";
   public static final String TEST_X_PAGE_HEADER = "X-Page";
   public static final String TEST_X_LIMIT_HEADER = "X-Limit";
