@@ -19,7 +19,7 @@ import org.springframework.context.annotation.Primary;
 
 @SpringBootConfiguration
 @EnableAutoConfiguration(exclude = UserDetailsServiceAutoConfiguration.class)
-@Import(TestSupportConfig.class)
+@Import({TestSupportConfig.class, SecurityTestConfig.class})
 public class SecurityIntegrationTestConfig {
 
   @Bean

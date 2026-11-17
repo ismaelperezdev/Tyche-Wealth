@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Import;
  */
 @Configuration
 @Import({
+  InternalServiceTokenServerConfig.class,
   SecurityCommonConfig.class,
   ApplicationSecurityConfig.class,
   PrometheusSecurityConfig.class

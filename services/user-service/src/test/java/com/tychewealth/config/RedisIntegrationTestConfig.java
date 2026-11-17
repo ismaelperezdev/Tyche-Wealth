@@ -1,5 +1,6 @@
 package com.tychewealth.config;
 
+import com.tychewealth.config.security.SecurityTestConfig;
 import com.tychewealth.config.support.TestSupportConfig;
 import com.tychewealth.ratelimit.RateLimitStore;
 import com.tychewealth.ratelimit.RedisRateLimitStore;
@@ -16,7 +17,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 
 @SpringBootConfiguration
 @EnableAutoConfiguration(exclude = UserDetailsServiceAutoConfiguration.class)
-@Import(TestSupportConfig.class)
+@Import({TestSupportConfig.class, SecurityTestConfig.class})
 public class RedisIntegrationTestConfig {
 
   @Bean
