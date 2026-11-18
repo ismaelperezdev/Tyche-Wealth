@@ -91,7 +91,7 @@ Incorporar Spring Authorization Server para clientes técnicos manteniendo la au
 
 #### Cambios esperados
 
-Cadena OAuth, clientes persistentes, firma asimétrica y JWKS; Portfolio como OAuth2 Client y MDS como Resource Server.
+Cadena OAuth, clientes en memoria desde configuración, firma asimétrica y JWKS; Portfolio como OAuth2 Client y MDS como Resource Server.
 
 #### Ventajas
 
@@ -253,12 +253,12 @@ Define la cadena OAuth con orden anterior a las existentes, limitada al matcher 
 **`ServiceTokenClaimsCustomizer`**  
 Ruta sugerida: `services/user-service/src/main/java/com/tychewealth/service/token/ServiceTokenClaimsCustomizer.java`.
 
-Extensión estándar para asignar audiencia e identidad técnica a Client Credentials. Restringe permisos a los autorizados al cliente y no copia claims arbitrarios de la solicitud. El cliente no elige libremente su destinatario. El personalizador permanece como bean en `InternalServiceTokenServerConfig`: lee la lista no vacía de audiencias del setting de cliente `internal.service-token.audiences`, administrado por el emisor. No hay audiencia por defecto; una configuración ausente o inválida rechaza la emisión con `server_error`. Los parámetros de solicitud no sustituyen esta política. MDS se configura únicamente como destinatario del cliente de integración, no como literal productivo.
+Extensión estándar para asignar audiencia e identidad técnica a Client Credentials. Restringe permisos a los configurados para el cliente y no copia claims arbitrarios de la solicitud. El cliente no elige libremente su destinatario. El personalizador permanece como bean en `InternalServiceTokenServerConfig`: lee la lista no vacía de audiencias del cliente registrado en memoria y la contrasta con la lista permitida de configuración. Una configuración de cliente ausente o inválida rechaza la emisión con `server_error`. Los parámetros de solicitud no sustituyen esta política.
 
-**`OAuthClientProvisioner`**, si se elige provisionamiento al arrancar  
-Ruta sugerida: `services/user-service/src/main/java/com/tychewealth/config/security/OAuthClientProvisioner.java`.
+**Registros de clientes desde configuración**
+Configurados bajo `app.oauth2.authorization-server.clients` en `services/user-service/src/main/resources/application.properties` o en la configuración externa del despliegue.
 
-Registra clientes idempotentemente mediante el repositorio estándar; no expone administración pública ni regenera secretos en cada arranque. El mecanismo operativo exacto queda pendiente.
+Al arrancar, `InternalServiceTokenServerConfig` construye un `InMemoryRegisteredClientRepository` desde la configuración. Clientes, scopes, audiencias y duración se reconstruyen en cada reinicio; no hay tabla OAuth ni administración dinámica en base de datos. Los secretos se reciben desde variables de entorno o un gestor de secretos, se codifican con el `PasswordEncoder` del servicio y solo se conservan como hashes en los registros en memoria. No incluir secretos productivos en Git.
 
 **`InternalAccessTokenProvider`**  
 Ruta sugerida: `services/portfolio-service/src/main/java/com/tychewealth/service/token/InternalAccessTokenProvider.java`.
@@ -291,7 +291,7 @@ Contrato inicial propuesto:
 | Scope | `market-prices:read` |
 | Identidad | Claim explícito y controlado por el emisor para clientes técnicos |
 | Firma | Asimétrica, separada de los tokens humanos |
-| Duración | Propuesta inicial: 5 minutos, configurable |
+| Duración | 15 minutos por defecto, configurable |
 | Refresh token | No; solicitar otro access token |
 | Claves públicas | JWKS con `kid` |
 
@@ -306,7 +306,7 @@ Cada historia modifica un solo microservicio e incluye pruebas y documentación.
 | ID | Historia | Ámbito | SP | Criterios principales |
 |---|---|---|---:|---|
 | US-1 | Emisión Client Credentials y aislamiento | user-service | 5 | Cadena OAuth, contrato de claims, credenciales/scopes/grants inválidos rechazados, sin refresh, regresiones humanas y Prometheus. Cliente y claves de prueba; no habilitar aún en producción. |
-| US-2 | Clientes persistentes y provisionamiento | user-service | 5 | Liquibase y repositorios JDBC, hashes, provisionamiento idempotente, reinicios y rotación de credenciales verificados; decidir almacenamiento de autorizaciones. |
+| US-2 | Clientes desde configuración | user-service | 5 | Clientes, scopes, audiencias y TTL cargados en repositorio en memoria; secretos externos y codificados; configuración inválida rechazada; reinicio reconstruye registros. Sin esquema OAuth ni provisionamiento en BBDD. |
 | US-3 | Claves duraderas, JWKS y rotación | user-service | 3 | Claves externas, issuer estable, solo claves públicas, transición por `kid`, fallo claro ante configuración crítica ausente. |
 | PF-1 | Adquisición y reutilización para MDS | portfolio-service | 5 | OAuth2 Client, identidad estable, renovación, eliminación del reenvío humano, fallo de dependencia sin fallback; selección inválida no adquiere tokens. |
 | MDS-1 | Consultas internas solo para servicios | market-data-service | 5 | Resource Server, contrato completo y scope, rechazo de humanos, limpieza de autenticación anterior, errores y Prometheus preservados. |
@@ -320,7 +320,7 @@ Orden: US-1 → US-2 → US-3; PF-1 y MDS-1 pueden desarrollarse en paralelo con
 Pruebas mínimas:
 
 - Cadenas de producción y servidor servlet real para el aislamiento de filtros; login, refresh, logout, revocación y Prometheus sin regresiones.
-- Clientes persistentes e idempotencia, restricciones de grant/scope, ausencia de secretos en claro, estabilidad y rotación de claves.
+- Clientes cargados desde configuración, restricciones de grant/scope/audiencia, ausencia de secretos en claro en los registros y comportamiento tras reinicio.
 - En Portfolio, reutilización y expiración, token técnico en ambas lecturas, cero adquisición para selecciones inválidas y fallo del emisor sin fallback ni error de login humano.
 - En MDS, JWT/JWKS firmados de test: firma, emisor, audiencia y expiración inválidos; ausencia de expiración; identidad humana incluso bajo el mismo emisor; permisos insuficientes; Basic no autoriza precios y bearer técnico no sustituye Prometheus.
 - Reinicio y caída del emisor, disponibilidad de claves, expiración, comportamiento de errores y activación coordinada en el flujo completo.
@@ -329,7 +329,7 @@ Pruebas mínimas:
 
 1. **Issuer y URLs por entorno:** fijar un `iss` estable y token/JWKS accesibles desde host y contenedores. Se resuelve definiendo topología y configuración, sin derivar identidad del hostname de cada petición.
 2. **Claim técnico y política de clientes:** concretar nombre, valor y relación con identidad del cliente, además de cómo se asignan audiencias al crecer los destinos. Se requiere contrato emisor/receptor y pruebas negativas antes de PF-1 y MDS-1.
-3. **Persistencia de autorizaciones:** clientes duraderos están acordados; decidir almacenamiento de autorizaciones según necesidades reales de revocación/introspección y comportamiento estándar. Persistir no hace que MDS revoque JWT localmente. No añadir tablas de consentimiento innecesarias.
-4. **Provisionamiento y secretos:** elegir mecanismo reproducible para registrar clientes y entregar/rotar credenciales y claves, sin Git ni modificaciones involuntarias al arrancar.
+3. **Persistencia de autorizaciones:** los registros de cliente se cargan desde configuración y viven en memoria. Decidir por separado si se necesitan autorizaciones persistentes para introspección o revocación; persistirlas no hace que MDS revoque JWT localmente. No añadir tablas de consentimiento innecesarias.
+4. **Provisionamiento y secretos:** definir valores por entorno y entrega/rotación segura de secretos; mantener credenciales productivas fuera de Git.
 5. **Protección OAuth:** confirmar si rate limiting se implementa en user-service o infraestructura, con cobertura efectiva antes de exposición compartida.
-6. **Parámetros operativos:** confirmar duración inicial, tolerancia de reloj, timeouts y límites antes del despliegue; 5 minutos es propuesta, no requisito previamente cerrado.
+6. **Parámetros operativos:** confirmar tolerancia de reloj, timeouts y límites antes del despliegue; la duración predeterminada del token es de 15 minutos y sigue siendo configurable.

@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.util.List;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
@@ -36,6 +37,7 @@ public class InternalServiceTokenTestConfig {
   private static final String MARKET_PRICES_READ_SCOPE = "market-prices:read";
 
   @Bean
+  @Primary
   public RegisteredClientRepository internalServiceTestClientRepository(
       PasswordEncoder passwordEncoder) {
     RegisteredClient client =

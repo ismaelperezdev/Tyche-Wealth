@@ -91,7 +91,7 @@ Introduce Spring Authorization Server for machine clients while preserving exist
 
 #### Expected Changes
 
-OAuth chain, persistent clients, asymmetric signing and JWKS; Portfolio as OAuth2 Client and MDS as Resource Server.
+OAuth chain, configuration-backed in-memory clients, asymmetric signing and JWKS; Portfolio as OAuth2 Client and MDS as Resource Server.
 
 #### Advantages
 
@@ -253,12 +253,12 @@ Defines the higher-priority OAuth chain, limited by the server endpoint matcher,
 **`ServiceTokenClaimsCustomizer`**  
 Suggested path: `services/user-service/src/main/java/com/tychewealth/service/token/ServiceTokenClaimsCustomizer.java`.
 
-Standard extension assigning audience and machine identity for Client Credentials. Restricts permissions to those registered for the client and does not copy arbitrary request claims. Clients cannot freely select their recipients. The customizer remains a bean in `InternalServiceTokenServerConfig`: it reads the non-empty audience list from the issuer-managed client setting `internal.service-token.audiences`. There is no default audience; missing or invalid configuration rejects issuance with `server_error`. Request parameters cannot override this policy. MDS is configured only as the integration client destination, not as a production literal.
+Standard extension assigning audience and machine identity for Client Credentials. Restricts permissions to those configured for the client and does not copy arbitrary request claims. Clients cannot freely select their recipients. The customizer remains a bean in `InternalServiceTokenServerConfig`: it reads the non-empty audience list from the in-memory registered client and checks it against the configured audience allowlist. Invalid or missing client configuration rejects issuance with `server_error`. Request parameters cannot override this policy.
 
-**`OAuthClientProvisioner`**, if startup provisioning is selected  
-Suggested path: `services/user-service/src/main/java/com/tychewealth/config/security/OAuthClientProvisioner.java`.
+**Configuration-backed client registrations**
+Configured under `app.oauth2.authorization-server.clients` in `services/user-service/src/main/resources/application.properties` or external deployment configuration.
 
-Startup provisioning is not implemented in this service. Production client registrations are managed externally through the deployment's configured `RegisteredClientRepository`; that provisioning process must set the server-managed `internal.service-token.audiences` client setting to a non-empty list of non-blank audience names for every `client_credentials` client. The audience must identify only the authorized resource servers and must not be supplied by the token requester. Provisioning must fail or be withheld when the setting is absent or invalid, because token issuance rejects such registrations. Keep credentials and audience assignments in the deployment's secret/configuration management; do not add production client credentials or a default audience to source control.
+At startup, `InternalServiceTokenServerConfig` builds an `InMemoryRegisteredClientRepository` from configuration. The configured clients, scopes, audiences, and token lifetimes are rebuilt on each restart; there is no OAuth client table or runtime database administration. Client secrets are supplied through environment/secret management, encoded with the service `PasswordEncoder`, and held only as hashes in the in-memory registrations. Never commit production secrets.
 
 **`InternalAccessTokenProvider`**  
 Suggested path: `services/portfolio-service/src/main/java/com/tychewealth/service/token/InternalAccessTokenProvider.java`.
@@ -291,7 +291,7 @@ Initial proposed contract:
 | Scope | `market-prices:read` |
 | Identity | Explicit issuer-controlled claim for machine clients |
 | Signature | Asymmetric, separate from user tokens |
-| Lifetime | Initial proposal: 5 minutes, configurable |
+| Lifetime | 15 minutes by default, configurable |
 | Refresh token | None; request another access token |
 | Public keys | JWKS with `kid` |
 
@@ -306,7 +306,7 @@ Each story modifies only one microservice and includes its tests and documentati
 | ID | Story | Scope | SP | Main acceptance criteria |
 |---|---|---|---:|---|
 | US-1 | Client Credentials issuance and isolation | user-service | 5 | OAuth chain, claims contract, invalid credentials/scopes/grants rejected, no refresh, user and Prometheus regressions. Test clients and keys; not yet production-enabled. |
-| US-2 | Persistent clients and provisioning | user-service | 5 | Liquibase and JDBC repositories, hashes, idempotent provisioning, restart and credential-rotation verification; decide authorization storage. |
+| US-2 | Configuration-backed clients | user-service | 5 | Clients, scopes, audiences, and TTL loaded into an in-memory repository; secrets supplied externally and encoded; invalid configuration rejected; restart rebuilds registrations from configuration. No OAuth client schema or database provisioning. |
 | US-3 | Durable keys, JWKS, and rotation | user-service | 3 | External keys, stable issuer, public-only output, `kid` transition, clear failure for missing critical configuration. |
 | PF-1 | Token acquisition and reuse for MDS | portfolio-service | 5 | OAuth2 Client, stable identity, renewal, remove user-token forwarding, dependency failure without fallback; invalid selection acquires no token. |
 | MDS-1 | Service-only internal reads | market-data-service | 5 | Resource Server, complete contract and scope, user rejection, obsolete-auth cleanup, preserved errors and Prometheus. |
@@ -320,7 +320,7 @@ Order: US-1 → US-2 → US-3; PF-1 and MDS-1 can run in parallel once the contr
 Minimum verification:
 
 - Production chains and real servlet-server execution for filter isolation; no login, refresh, logout, revocation, or Prometheus regressions.
-- Persistent clients and idempotency, grant/scope restrictions, no plaintext secrets, key stability and rotation.
+- Configuration-loaded clients, grant/scope/audience restrictions, no plaintext client secrets in registrations, and restart behavior.
 - In Portfolio, reuse and expiration, machine tokens on both reads, no acquisition for invalid selections, issuer failure without fallback or user-login errors.
 - In MDS, signed test JWTs/JWKS: invalid signature, issuer, audience, or expiration; missing expiration; human identity even under the same issuer; insufficient permissions; Basic does not authorize prices and machine Bearer does not replace Prometheus.
 - Issuer restart/outage, key availability, expiration, error behavior, and coordinated activation across the complete flow.
@@ -329,7 +329,7 @@ Minimum verification:
 
 1. **Issuer and environment URLs:** fix a stable `iss` and token/JWKS access from host and containers. Resolve through topology and configuration, not by deriving identity from each request hostname.
 2. **Machine claim and client policy:** specify claim name/value and client-identity relationship, plus audience assignment as destinations grow. Requires an issuer/recipient contract and negative tests before PF-1 and MDS-1.
-3. **Authorization persistence:** durable clients are agreed; choose authorization storage based on actual revocation/introspection needs and standard behavior. Persistence does not make MDS revoke locally validated JWTs. Avoid unnecessary consent tables.
-4. **Provisioning and secrets:** choose reproducible client registration and credential/key delivery and rotation, without Git or unintended startup modifications.
+3. **Authorization persistence:** client registrations are configuration-backed and in memory. Decide separately whether authorization records are needed for introspection or revocation; persistence does not make MDS revoke locally validated JWTs. Avoid unnecessary consent tables.
+4. **Provisioning and secrets:** define environment-specific client values and secure secret delivery/rotation; keep production credentials out of Git.
 5. **OAuth protection:** confirm user-service or infrastructure rate limiting, with effective coverage before shared exposure.
-6. **Operational parameters:** confirm initial lifetime, clock skew, timeouts, and limits before deployment; five minutes is a proposal, not a previously finalized requirement.
+6. **Operational parameters:** confirm clock skew, timeouts, and limits before deployment; the default token lifetime is 15 minutes and remains configurable.
