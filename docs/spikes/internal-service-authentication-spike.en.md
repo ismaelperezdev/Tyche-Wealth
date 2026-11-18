@@ -258,7 +258,7 @@ Standard extension assigning audience and machine identity for Client Credential
 **`OAuthClientProvisioner`**, if startup provisioning is selected  
 Suggested path: `services/user-service/src/main/java/com/tychewealth/config/security/OAuthClientProvisioner.java`.
 
-Registers clients idempotently through the standard repository; exposes no public administration and does not regenerate secrets on every startup. The exact operational mechanism remains open.
+Startup provisioning is not implemented in this service. Production client registrations are managed externally through the deployment's configured `RegisteredClientRepository`; that provisioning process must set the server-managed `internal.service-token.audiences` client setting to a non-empty list of non-blank audience names for every `client_credentials` client. The audience must identify only the authorized resource servers and must not be supplied by the token requester. Provisioning must fail or be withheld when the setting is absent or invalid, because token issuance rejects such registrations. Keep credentials and audience assignments in the deployment's secret/configuration management; do not add production client credentials or a default audience to source control.
 
 **`InternalAccessTokenProvider`**  
 Suggested path: `services/portfolio-service/src/main/java/com/tychewealth/service/token/InternalAccessTokenProvider.java`.

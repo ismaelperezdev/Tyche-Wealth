@@ -14,6 +14,7 @@ import static com.tychewealth.testhelper.AuthTestHelper.refresh;
 import static com.tychewealth.testhelper.AuthTestHelper.seedTrustedDevice;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -31,6 +32,7 @@ import com.tychewealth.repository.RefreshTokenRepository;
 import com.tychewealth.repository.TrustedDeviceRepository;
 import com.tychewealth.repository.UserRepository;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
@@ -204,16 +206,24 @@ class InternalServiceTokenServerIntegrationTest {
         requestToken(CLIENT_ID, CLIENT_SECRET, CLIENT_CREDENTIALS_GRANT, MARKET_PRICES_READ_SCOPE)
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.token_type").value("Bearer"))
-            .andExpect(jsonPath("$.expires_in").value(300))
             .andExpect(jsonPath("$.scope").value(MARKET_PRICES_READ_SCOPE))
             .andExpect(jsonPath("$.refresh_token").doesNotExist())
             .andReturn();
+
+    int expiresIn =
+        com.jayway.jsonpath.JsonPath.read(
+            result.getResponse().getContentAsString(), "$.expires_in");
+    assertTrue(expiresIn > 0 && expiresIn <= 300);
 
     String accessToken =
         com.jayway.jsonpath.JsonPath.read(
             result.getResponse().getContentAsString(), "$.access_token");
     var claims = SignedJWT.parse(accessToken).getJWTClaimsSet();
 
+    assertEquals(
+        300,
+        Duration.between(claims.getIssueTime().toInstant(), claims.getExpirationTime().toInstant())
+            .getSeconds());
     assertEquals(CLIENT_ID, claims.getSubject());
     assertEquals(List.of("market-data-service"), claims.getAudience());
   }
@@ -268,7 +278,7 @@ class InternalServiceTokenServerIntegrationTest {
   @Test
   void usesOnlyAudiencesAuthorizedInClientSettings() throws Exception {
     var template = registeredClientRepository.findByClientId(CLIENT_ID);
-    String clientId = "other-client-" + UUID.randomUUID();
+    String clientId = "other-client";
     var client =
         RegisteredClient.from(template)
             .id(UUID.randomUUID().toString())
@@ -278,7 +288,7 @@ class InternalServiceTokenServerIntegrationTest {
                 ClientSettings.builder()
                     .setting(
                         InternalServiceTokenServerConfig.SERVICE_TOKEN_AUDIENCES_SETTING,
-                        List.of("another-internal-service"))
+                        List.of("market-data-service"))
                     .build())
             .build();
     registeredClientRepository.save(client);
@@ -293,7 +303,7 @@ class InternalServiceTokenServerIntegrationTest {
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                     .param("grant_type", CLIENT_CREDENTIALS_GRANT)
                     .param("scope", MARKET_PRICES_READ_SCOPE)
-                    .param("audience", "market-data-service")
+                    .param("audience", "user-service")
                     .param("resource", "https://unauthorized-service.test"))
             .andExpect(status().isOk())
             .andReturn();
@@ -303,25 +313,39 @@ class InternalServiceTokenServerIntegrationTest {
             .get("access_token")
             .asText();
     assertEquals(
-        List.of("another-internal-service"),
-        SignedJWT.parse(token).getJWTClaimsSet().getAudience());
+        List.of("market-data-service"), SignedJWT.parse(token).getJWTClaimsSet().getAudience());
   }
 
   @ParameterizedTest
   @MethodSource("invalidAudienceSettings")
   void refusesIssuanceWithMissingOrInvalidAudienceSettings(Object audiences) throws Exception {
     var template = registeredClientRepository.findByClientId(CLIENT_ID);
-    String clientId = "misconfigured-client-" + UUID.randomUUID();
     var settings = ClientSettings.builder();
     if (audiences != null) {
       settings.setting(InternalServiceTokenServerConfig.SERVICE_TOKEN_AUDIENCES_SETTING, audiences);
     }
+    try {
+      registeredClientRepository.save(
+          RegisteredClient.from(template).clientSettings(settings.build()).build());
+
+      requestToken(CLIENT_ID, CLIENT_SECRET, CLIENT_CREDENTIALS_GRANT, MARKET_PRICES_READ_SCOPE)
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.error").value("server_error"))
+          .andExpect(jsonPath("$.access_token").doesNotExist());
+    } finally {
+      registeredClientRepository.save(template);
+    }
+  }
+
+  @Test
+  void refusesIssuanceForClientNotInAllowedClientIds() throws Exception {
+    var template = registeredClientRepository.findByClientId(CLIENT_ID);
+    String clientId = "unlisted-client";
     registeredClientRepository.save(
         RegisteredClient.from(template)
             .id(UUID.randomUUID().toString())
             .clientId(clientId)
             .clientSecret(passwordEncoder.encode(CLIENT_SECRET))
-            .clientSettings(settings.build())
             .build());
 
     requestToken(clientId, CLIENT_SECRET, CLIENT_CREDENTIALS_GRANT, MARKET_PRICES_READ_SCOPE)
@@ -331,7 +355,13 @@ class InternalServiceTokenServerIntegrationTest {
   }
 
   private static Stream<Object> invalidAudienceSettings() {
-    return Stream.of(null, List.of(), "not-a-list", List.of(""), List.of("valid-service", 123));
+    return Stream.of(
+        null,
+        List.of(),
+        "not-a-list",
+        List.of(""),
+        List.of("valid-service", 123),
+        List.of("not-allowed-service"));
   }
 
   private ResultActions requestToken(

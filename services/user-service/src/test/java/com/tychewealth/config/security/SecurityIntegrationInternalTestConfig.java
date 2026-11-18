@@ -32,7 +32,10 @@ public class SecurityIntegrationInternalTestConfig {
     @Override
     public void initialize(@NonNull ConfigurableApplicationContext applicationContext) {
       TestSupportConfig.applyCommonProperties(applicationContext);
-      TestPropertyValues.of("app.oauth2.authorization-server.enabled=true")
+      TestPropertyValues.of(
+              "app.oauth2.authorization-server.enabled=true",
+              "app.oauth2.authorization-server.allowed-audiences=market-data-service",
+              "app.oauth2.authorization-server.allowed-client-ids=portfolio-service-integration-test,other-client")
           .applyTo(applicationContext.getEnvironment());
     }
   }

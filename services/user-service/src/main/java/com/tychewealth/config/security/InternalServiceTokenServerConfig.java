@@ -1,7 +1,9 @@
 package com.tychewealth.config.security;
 
+import com.tychewealth.dto.security.InternalServiceTokenPropertiesDto;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -20,6 +22,7 @@ import org.springframework.security.web.SecurityFilterChain;
 
 /** Security chain for internal service-token endpoints. */
 @Configuration
+@EnableConfigurationProperties(InternalServiceTokenPropertiesDto.class)
 @ConditionalOnProperty(
     prefix = "app.oauth2.authorization-server",
     name = "enabled",
@@ -47,11 +50,16 @@ public class InternalServiceTokenServerConfig {
   }
 
   @Bean
-  public OAuth2TokenCustomizer<JwtEncodingContext> serviceTokenClaimsCustomizer() {
+  public OAuth2TokenCustomizer<JwtEncodingContext> serviceTokenClaimsCustomizer(
+      InternalServiceTokenPropertiesDto properties) {
     return context -> {
       if (!AuthorizationGrantType.CLIENT_CREDENTIALS.equals(context.getAuthorizationGrantType())
           || !OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
         return;
+      }
+
+      if (!properties.allowedClientIds().contains(context.getRegisteredClient().getClientId())) {
+        throw new OAuth2AuthenticationException(OAuth2ErrorCodes.SERVER_ERROR);
       }
 
       Object configuredAudiences =
@@ -62,7 +70,11 @@ public class InternalServiceTokenServerConfig {
       if (!(configuredAudiences instanceof List<?> audiences)
           || audiences.isEmpty()
           || audiences.stream()
-              .anyMatch(value -> !(value instanceof String audience) || audience.isBlank())) {
+              .anyMatch(
+                  value ->
+                      !(value instanceof String audience)
+                          || audience.isBlank()
+                          || !properties.allowedAudiences().contains(audience))) {
         // Missing or malformed server configuration must never produce a usable token.
         throw new OAuth2AuthenticationException(OAuth2ErrorCodes.SERVER_ERROR);
       }
