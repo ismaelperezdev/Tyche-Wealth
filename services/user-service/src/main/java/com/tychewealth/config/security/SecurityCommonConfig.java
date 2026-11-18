@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -43,6 +44,15 @@ public class SecurityCommonConfig {
       com.tychewealth.service.token.TokenValidator tokenValidator,
       AuthenticationEntryPoint authenticationEntryPoint) {
     return new JwtAuthenticationFilter(tokenValidator, authenticationEntryPoint);
+  }
+
+  @Bean
+  public FilterRegistrationBean<JwtAuthenticationFilter> jwtAuthenticationFilterRegistration(
+      JwtAuthenticationFilter jwtAuthenticationFilter) {
+    FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>();
+    registration.setFilter(jwtAuthenticationFilter);
+    registration.setEnabled(false);
+    return registration;
   }
 
   @Bean

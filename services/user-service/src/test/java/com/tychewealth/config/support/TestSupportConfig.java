@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tychewealth.config.AuthRateLimitConfig;
 import com.tychewealth.config.TestDatabaseConfig;
-import com.tychewealth.config.security.SecurityTestConfig;
 import com.tychewealth.controller.impl.AuthApiController;
 import com.tychewealth.controller.impl.UserApiController;
 import com.tychewealth.email.EmailSender;
@@ -64,7 +63,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 
 @TestConfiguration
 @Import({
-  SecurityTestConfig.class,
   TestDatabaseConfig.class,
   AuthRateLimitConfig.class,
   AuthApiController.class,
