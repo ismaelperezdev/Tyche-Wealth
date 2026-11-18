@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.tychewealth.dto.security.InternalServiceTokenPropertiesDto;
 import com.tychewealth.dto.security.InternalServiceTokenPropertiesDto.ServiceClientProperties;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import java.time.Duration;
 import java.util.List;
 import java.util.Set;
@@ -23,6 +25,51 @@ class InternalServiceTokenClientConfigurationTest {
   private static final String PORTFOLIO_CLIENT_SECRET = "portfolio-secret";
   private static final String ANALYTICS_CLIENT_ID = "analytics-service";
   private static final String ANALYTICS_CLIENT_SECRET = "analytics-secret";
+
+  private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+
+  @Test
+  void acceptsClientSecretAtBcryptLimitMeasuredInUtf8Bytes() {
+    var properties = propertiesWithClientSecret("a".repeat(70) + "é");
+
+    assertTrue(validator.validate(properties).isEmpty());
+  }
+
+  @Test
+  void rejectsClientSecretOverBcryptLimitMeasuredInUtf8Bytes() {
+    var properties = propertiesWithClientSecret("a".repeat(71) + "é");
+
+    assertTrue(
+        validator.validate(properties).stream()
+            .anyMatch(
+                violation ->
+                    violation
+                        .getPropertyPath()
+                        .toString()
+                        .contains("clientSecretWithinBcryptLimit")));
+  }
+
+  @Test
+  void preservesNotBlankValidationForClientSecret() {
+    var properties = propertiesWithClientSecret(" ");
+
+    assertTrue(
+        validator.validate(properties).stream()
+            .anyMatch(
+                violation -> violation.getPropertyPath().toString().contains("clientSecret")));
+  }
+
+  private InternalServiceTokenPropertiesDto propertiesWithClientSecret(String clientSecret) {
+    return new InternalServiceTokenPropertiesDto(
+        Set.of("market-data-service"),
+        List.of(
+            new ServiceClientProperties(
+                PORTFOLIO_CLIENT_ID,
+                clientSecret,
+                Set.of("market-prices:read"),
+                Set.of("market-data-service"),
+                900)));
+  }
 
   @Test
   void buildsRegisteredClientsFromConfigurationWithEncodedSecretsAndPerClientPolicies() {
