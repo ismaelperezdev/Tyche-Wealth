@@ -35,7 +35,16 @@ public class SecurityIntegrationInternalTestConfig {
       TestPropertyValues.of(
               "app.oauth2.authorization-server.enabled=true",
               "app.oauth2.authorization-server.allowed-audiences=market-data-service",
-              "app.oauth2.authorization-server.allowed-client-ids=portfolio-service-integration-test,other-client")
+              "app.oauth2.authorization-server.clients[0].client-id=portfolio-service-integration-test",
+              "app.oauth2.authorization-server.clients[0].client-secret=integration-test-secret",
+              "app.oauth2.authorization-server.clients[0].scopes=market-prices:read",
+              "app.oauth2.authorization-server.clients[0].audiences=market-data-service",
+              "app.oauth2.authorization-server.clients[0].access-token-ttl-seconds=300",
+              "app.oauth2.authorization-server.clients[1].client-id=other-client",
+              "app.oauth2.authorization-server.clients[1].client-secret=integration-test-secret",
+              "app.oauth2.authorization-server.clients[1].scopes=market-prices:read",
+              "app.oauth2.authorization-server.clients[1].audiences=market-data-service",
+              "app.oauth2.authorization-server.clients[1].access-token-ttl-seconds=300")
           .applyTo(applicationContext.getEnvironment());
     }
   }

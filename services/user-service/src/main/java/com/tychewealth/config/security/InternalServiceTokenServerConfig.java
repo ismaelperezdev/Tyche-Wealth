@@ -1,7 +1,11 @@
 package com.tychewealth.config.security;
 
 import com.tychewealth.dto.security.InternalServiceTokenPropertiesDto;
+import com.tychewealth.dto.security.InternalServiceTokenPropertiesDto.ServiceClientProperties;
+import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -11,11 +15,18 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
+import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
+import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
+import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
 import org.springframework.security.web.SecurityFilterChain;
@@ -50,6 +61,37 @@ public class InternalServiceTokenServerConfig {
   }
 
   @Bean
+  @ConditionalOnMissingBean(RegisteredClientRepository.class)
+  public RegisteredClientRepository registeredClientRepository(
+      InternalServiceTokenPropertiesDto properties, PasswordEncoder passwordEncoder) {
+    List<RegisteredClient> clients =
+        properties.clients().stream()
+            .map(client -> buildRegisteredClient(client, passwordEncoder))
+            .toList();
+    return new InMemoryRegisteredClientRepository(clients);
+  }
+
+  private RegisteredClient buildRegisteredClient(
+      ServiceClientProperties client, PasswordEncoder passwordEncoder) {
+    return RegisteredClient.withId(UUID.randomUUID().toString())
+        .clientId(client.clientId())
+        .clientSecret(passwordEncoder.encode(client.clientSecret()))
+        .clientName(client.clientId())
+        .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+        .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+        .scopes(scopes -> scopes.addAll(client.scopes()))
+        .clientSettings(
+            ClientSettings.builder()
+                .setting(SERVICE_TOKEN_AUDIENCES_SETTING, List.copyOf(client.audiences()))
+                .build())
+        .tokenSettings(
+            TokenSettings.builder()
+                .accessTokenTimeToLive(Duration.ofSeconds(client.accessTokenTtlSeconds()))
+                .build())
+        .build();
+  }
+
+  @Bean
   public OAuth2TokenCustomizer<JwtEncodingContext> serviceTokenClaimsCustomizer(
       InternalServiceTokenPropertiesDto properties) {
     return context -> {
@@ -58,7 +100,9 @@ public class InternalServiceTokenServerConfig {
         return;
       }
 
-      if (!properties.allowedClientIds().contains(context.getRegisteredClient().getClientId())) {
+      if (properties.clients().stream()
+          .noneMatch(
+              client -> client.clientId().equals(context.getRegisteredClient().getClientId()))) {
         throw new OAuth2AuthenticationException(OAuth2ErrorCodes.SERVER_ERROR);
       }
 
