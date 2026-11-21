@@ -20,7 +20,6 @@ import org.springframework.security.oauth2.server.authorization.OAuth2Authorizat
 import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
-import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 
@@ -64,10 +63,5 @@ public class InternalServiceTokenTestConfig {
   public JWKSource<SecurityContext> internalServiceTestJwkSource() throws JOSEException {
     RSAKey signingKey = new RSAKeyGenerator(2048).keyID("integration-test-key").generate();
     return new ImmutableJWKSet<>(new JWKSet(signingKey));
-  }
-
-  @Bean
-  public AuthorizationServerSettings internalServiceTestAuthorizationServerSettings() {
-    return AuthorizationServerSettings.builder().issuer("https://user-service.test").build();
   }
 }

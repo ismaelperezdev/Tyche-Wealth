@@ -13,6 +13,7 @@ import static com.tychewealth.testhelper.AuthTestHelper.logout;
 import static com.tychewealth.testhelper.AuthTestHelper.refresh;
 import static com.tychewealth.testhelper.AuthTestHelper.seedTrustedDevice;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -123,9 +124,9 @@ class InternalServiceTokenServerIntegrationTest {
         restTemplate.exchange(
             "/oauth2/jwks", HttpMethod.GET, new HttpEntity<>(headers), String.class);
     assertEquals(HttpStatus.OK, response.getStatusCode());
-    assertEquals(
-        "integration-test-key",
-        objectMapper.readTree(response.getBody()).get("keys").get(0).get("kid").asText());
+    var jwks = objectMapper.readTree(response.getBody());
+    assertEquals("integration-test-key", jwks.get("keys").get(0).get("kid").asText());
+    assertFalse(jwks.get("keys").get(0).has("d"));
   }
 
   @Test
