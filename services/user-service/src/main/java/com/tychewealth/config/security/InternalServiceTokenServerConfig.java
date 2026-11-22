@@ -1,8 +1,23 @@
 package com.tychewealth.config.security;
 
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.SecurityContext;
 import com.tychewealth.dto.security.InternalServiceTokenPropertiesDto;
 import com.tychewealth.dto.security.InternalServiceTokenPropertiesDto.ServiceClientProperties;
+import com.tychewealth.dto.security.InternalServiceTokenSigningProperties;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.interfaces.RSAPrivateCrtKey;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.RSAPublicKeySpec;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -11,10 +26,12 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.converter.RsaKeyConverters;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
@@ -25,6 +42,7 @@ import org.springframework.security.oauth2.server.authorization.client.InMemoryR
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
+import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
@@ -33,7 +51,10 @@ import org.springframework.security.web.SecurityFilterChain;
 
 /** Security chain for internal service-token endpoints. */
 @Configuration
-@EnableConfigurationProperties(InternalServiceTokenPropertiesDto.class)
+@EnableConfigurationProperties({
+  InternalServiceTokenPropertiesDto.class,
+  InternalServiceTokenSigningProperties.class
+})
 @ConditionalOnProperty(
     prefix = "app.oauth2.authorization-server",
     name = "enabled",
@@ -58,6 +79,63 @@ public class InternalServiceTokenServerConfig {
         .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated());
 
     return http.build();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(JWKSource.class)
+  public JWKSource<SecurityContext> serviceTokenJwkSource(
+      InternalServiceTokenSigningProperties properties, ResourceLoader resourceLoader) {
+    try {
+      List<JWK> keys = new ArrayList<>();
+      keys.add(loadActiveSigningKey(properties, resourceLoader));
+      keys.addAll(loadPreviousPublicKeys(properties, resourceLoader));
+      return new ImmutableJWKSet<>(new JWKSet(keys));
+    } catch (IOException | GeneralSecurityException | IllegalArgumentException e) {
+      throw new IllegalStateException("Unable to load the internal service-token signing key", e);
+    }
+  }
+
+  private RSAKey loadActiveSigningKey(
+      InternalServiceTokenSigningProperties properties, ResourceLoader resourceLoader)
+      throws IOException, GeneralSecurityException {
+    try (InputStream privateKeyInput =
+        resourceLoader.getResource(properties.privateKeyLocation()).getInputStream()) {
+      RSAPrivateCrtKey privateKey =
+          (RSAPrivateCrtKey) RsaKeyConverters.pkcs8().convert(privateKeyInput);
+      RSAPublicKey publicKey =
+          (RSAPublicKey)
+              KeyFactory.getInstance("RSA")
+                  .generatePublic(
+                      new RSAPublicKeySpec(
+                          privateKey.getModulus(), privateKey.getPublicExponent()));
+      return new RSAKey.Builder(publicKey)
+          .privateKey(privateKey)
+          .keyID(properties.activeKeyId())
+          .build();
+    }
+  }
+
+  private List<JWK> loadPreviousPublicKeys(
+      InternalServiceTokenSigningProperties properties, ResourceLoader resourceLoader)
+      throws IOException {
+    List<JWK> keys = new ArrayList<>();
+    for (var previousKey : properties.previousPublicKeys()) {
+      try (InputStream previousKeyInput =
+          resourceLoader.getResource(previousKey.publicKeyLocation()).getInputStream()) {
+        keys.add(
+            new RSAKey.Builder(RsaKeyConverters.x509().convert(previousKeyInput))
+                .keyID(previousKey.keyId())
+                .build());
+      }
+    }
+    return keys;
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(AuthorizationServerSettings.class)
+  public AuthorizationServerSettings serviceTokenAuthorizationServerSettings(
+      InternalServiceTokenSigningProperties properties) {
+    return AuthorizationServerSettings.builder().issuer(properties.issuer()).build();
   }
 
   @Bean
@@ -93,7 +171,8 @@ public class InternalServiceTokenServerConfig {
 
   @Bean
   public OAuth2TokenCustomizer<JwtEncodingContext> serviceTokenClaimsCustomizer(
-      InternalServiceTokenPropertiesDto properties) {
+      InternalServiceTokenPropertiesDto properties,
+      InternalServiceTokenSigningProperties signingProperties) {
     return context -> {
       if (!AuthorizationGrantType.CLIENT_CREDENTIALS.equals(context.getAuthorizationGrantType())
           || !OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
@@ -122,6 +201,7 @@ public class InternalServiceTokenServerConfig {
         // Missing or malformed server configuration must never produce a usable token.
         throw new OAuth2AuthenticationException(OAuth2ErrorCodes.SERVER_ERROR);
       }
+      context.getJwsHeader().keyId(signingProperties.activeKeyId());
       context.getClaims().audience(audiences.stream().map(String.class::cast).toList());
     };
   }

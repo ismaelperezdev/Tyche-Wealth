@@ -13,6 +13,7 @@ import static com.tychewealth.testhelper.AuthTestHelper.logout;
 import static com.tychewealth.testhelper.AuthTestHelper.refresh;
 import static com.tychewealth.testhelper.AuthTestHelper.seedTrustedDevice;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -20,6 +21,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
 import com.tychewealth.config.AuthRateLimitConfig;
@@ -123,9 +125,19 @@ class InternalServiceTokenServerIntegrationTest {
         restTemplate.exchange(
             "/oauth2/jwks", HttpMethod.GET, new HttpEntity<>(headers), String.class);
     assertEquals(HttpStatus.OK, response.getStatusCode());
-    assertEquals(
-        "integration-test-key",
-        objectMapper.readTree(response.getBody()).get("keys").get(0).get("kid").asText());
+    var jwks = objectMapper.readTree(response.getBody());
+    var keys = jwks.get("keys");
+    assertFalse(keys.isEmpty());
+    assertEquals("integration-test-key", keys.get(0).get("kid").asText());
+    for (JsonNode key : keys) {
+      assertFalse(key.has("d"));
+      assertFalse(key.has("p"));
+      assertFalse(key.has("q"));
+      assertFalse(key.has("dp"));
+      assertFalse(key.has("dq"));
+      assertFalse(key.has("qi"));
+      assertFalse(key.has("oth"));
+    }
   }
 
   @Test

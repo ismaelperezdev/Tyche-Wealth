@@ -17,7 +17,8 @@ import org.springframework.context.annotation.Primary;
 
 @SpringBootConfiguration
 @EnableAutoConfiguration(exclude = UserDetailsServiceAutoConfiguration.class)
-@Import({TestSupportConfig.class, SecurityConfig.class, InternalServiceTokenTestConfig.class})
+// Register test beans before security configuration evaluates @ConditionalOnMissingBean.
+@Import({InternalServiceTokenTestConfig.class, TestSupportConfig.class, SecurityConfig.class})
 public class SecurityIntegrationInternalTestConfig {
 
   @Bean
@@ -34,6 +35,9 @@ public class SecurityIntegrationInternalTestConfig {
       TestSupportConfig.applyCommonProperties(applicationContext);
       TestPropertyValues.of(
               "app.oauth2.authorization-server.enabled=true",
+              "app.oauth2.authorization-server.signing.issuer=https://user-service.test",
+              "app.oauth2.authorization-server.signing.active-key-id=integration-test-key",
+              "app.oauth2.authorization-server.signing.private-key-location=classpath:unused-test-key.pem",
               "app.oauth2.authorization-server.allowed-audiences=market-data-service",
               "app.oauth2.authorization-server.clients[0].client-id=portfolio-service-integration-test",
               "app.oauth2.authorization-server.clients[0].client-secret=integration-test-secret",
