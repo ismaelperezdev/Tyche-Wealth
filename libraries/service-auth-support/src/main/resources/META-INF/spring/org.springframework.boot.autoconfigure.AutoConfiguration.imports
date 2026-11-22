@@ -1,0 +1,2 @@
+com.tychewealth.serviceauth.client.autoconfigure.ServiceAuthClientAutoConfiguration
+com.tychewealth.serviceauth.resourceserver.autoconfigure.ServiceAuthResourceServerAutoConfiguration
