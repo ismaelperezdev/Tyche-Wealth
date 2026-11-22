@@ -21,6 +21,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
 import com.tychewealth.config.AuthRateLimitConfig;
@@ -125,8 +126,18 @@ class InternalServiceTokenServerIntegrationTest {
             "/oauth2/jwks", HttpMethod.GET, new HttpEntity<>(headers), String.class);
     assertEquals(HttpStatus.OK, response.getStatusCode());
     var jwks = objectMapper.readTree(response.getBody());
-    assertEquals("integration-test-key", jwks.get("keys").get(0).get("kid").asText());
-    assertFalse(jwks.get("keys").get(0).has("d"));
+    var keys = jwks.get("keys");
+    assertFalse(keys.isEmpty());
+    assertEquals("integration-test-key", keys.get(0).get("kid").asText());
+    for (JsonNode key : keys) {
+      assertFalse(key.has("d"));
+      assertFalse(key.has("p"));
+      assertFalse(key.has("q"));
+      assertFalse(key.has("dp"));
+      assertFalse(key.has("dq"));
+      assertFalse(key.has("qi"));
+      assertFalse(key.has("oth"));
+    }
   }
 
   @Test
