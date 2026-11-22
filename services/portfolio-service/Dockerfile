@@ -7,6 +7,7 @@ COPY mvnw pom.xml ./
 COPY clients/market-data-client/pom.xml clients/market-data-client/pom.xml
 COPY libraries/listing-support/pom.xml libraries/listing-support/pom.xml
 COPY libraries/redis-support/pom.xml libraries/redis-support/pom.xml
+COPY libraries/service-auth-support/pom.xml libraries/service-auth-support/pom.xml
 COPY services/user-service/pom.xml services/user-service/pom.xml
 COPY services/portfolio-service/pom.xml services/portfolio-service/pom.xml
 COPY services/market-data-service/pom.xml services/market-data-service/pom.xml
