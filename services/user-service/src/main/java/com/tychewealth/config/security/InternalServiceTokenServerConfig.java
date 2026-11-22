@@ -203,6 +203,7 @@ public class InternalServiceTokenServerConfig {
       }
       context.getJwsHeader().keyId(signingProperties.activeKeyId());
       context.getClaims().audience(audiences.stream().map(String.class::cast).toList());
+      context.getClaims().claim("token_type", "service");
     };
   }
 }

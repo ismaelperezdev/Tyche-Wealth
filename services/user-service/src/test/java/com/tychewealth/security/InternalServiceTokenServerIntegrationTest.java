@@ -237,6 +237,7 @@ class InternalServiceTokenServerIntegrationTest {
         Duration.between(claims.getIssueTime().toInstant(), claims.getExpirationTime().toInstant())
             .getSeconds());
     assertEquals(CLIENT_ID, claims.getSubject());
+    assertEquals("service", claims.getStringClaim("token_type"));
     assertEquals(List.of("market-data-service"), claims.getAudience());
   }
 

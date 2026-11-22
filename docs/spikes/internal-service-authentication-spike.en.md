@@ -274,6 +274,8 @@ Centralizes only shared internal-token contract rules not covered by the standar
 
 It provides independent capabilities for OAuth2 clients (token acquisition and reuse) and resource servers (signature/JWKS validation and shared token-contract rules). Each microservice includes only the side it needs and supplies its own issuer, audience, and credentials. The JWKS cache is local to each consumer and requires neither a shared database table nor Redis. The library never contains private keys or chooses `kid`; user-service remains responsible for signing keys and their rotation.
 
+Signed technical identity contract: `token_type=service` is issued only for Client Credentials access tokens and required by the shared library. This is distinct from `token_type=Bearer` in the OAuth response. This decision closes the previously open claim name/value; issuer configuration and per-client authorization remain deployment/service responsibilities.
+
 #### Component Interaction and Flow
 
 1. The user authenticates through the existing mechanism.
