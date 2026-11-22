@@ -76,6 +76,7 @@ class ServiceAuthResourceServerAutoConfigurationTest {
     Jwt validJwt =
         Jwt.withTokenValue("test-token")
             .header("alg", "RS256")
+            .claim("token_type", "service")
             .issuer(properties.issuer())
             .audience(List.of(properties.audience()))
             .issuedAt(now)
@@ -84,6 +85,7 @@ class ServiceAuthResourceServerAutoConfigurationTest {
     Jwt missingExpirationJwt =
         Jwt.withTokenValue("test-token")
             .header("alg", "RS256")
+            .claim("token_type", "service")
             .issuer(properties.issuer())
             .audience(List.of(properties.audience()))
             .issuedAt(now)
@@ -91,6 +93,7 @@ class ServiceAuthResourceServerAutoConfigurationTest {
     Jwt wrongAudienceJwt =
         Jwt.withTokenValue("test-token")
             .header("alg", "RS256")
+            .claim("token_type", "service")
             .issuer(properties.issuer())
             .audience(List.of("another-service"))
             .issuedAt(now)
@@ -99,6 +102,7 @@ class ServiceAuthResourceServerAutoConfigurationTest {
     Jwt missingAudienceJwt =
         Jwt.withTokenValue("test-token")
             .header("alg", "RS256")
+            .claim("token_type", "service")
             .issuer(properties.issuer())
             .issuedAt(now)
             .expiresAt(now.plusSeconds(60))

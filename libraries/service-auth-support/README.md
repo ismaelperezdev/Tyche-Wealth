@@ -42,7 +42,10 @@ app.service-auth.resource-server.audience=market-data-service
 ```
 
 The library configures a `NimbusJwtDecoder` that validates the JWKS signature, issuer, audience, and
-the presence and validity of `exp`. Nimbus manages the JWKS cache.
+the presence and validity of `exp`. It also requires the signed JWT claim `token_type=service`,
+which `user-service` emits only for Client Credentials access tokens. Missing, malformed, or different
+values are rejected, even if the other validation checks pass. This JWT claim is separate from the
+OAuth token response field `token_type`, whose value remains `Bearer`. Nimbus manages the JWKS cache.
 
 The service must enable JWT support in its own `SecurityFilterChain` and define its authorized routes
 and scopes. This library does not issue tokens, contain private keys, or define service-specific

@@ -72,6 +72,29 @@ class ServiceAuthJwtDecoderIntegrationTest {
         .isInstanceOf(JwtValidationException.class);
   }
 
+  @Test
+  void rejectsMissingHumanAndMalformedTokenTypes() throws Exception {
+    for (Object tokenType : new Object[] {null, "human", List.of("service"), 123}) {
+      Instant now = Instant.now();
+      JWTClaimsSet claims =
+          new JWTClaimsSet.Builder()
+              .issuer(ISSUER)
+              .audience(AUDIENCE)
+              .issueTime(Date.from(now))
+              .expirationTime(Date.from(now.plusSeconds(300)))
+              .claim("token_type", tokenType)
+              .build();
+      SignedJWT jwt =
+          new SignedJWT(
+              new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(signingKey.getKeyID()).build(),
+              claims);
+      jwt.sign(new RSASSASigner(signingKey));
+      assertThatThrownBy(() -> jwtDecoder.decode(jwt.serialize()))
+          .isInstanceOf(JwtValidationException.class)
+          .hasMessageContaining("Token is not a service token");
+    }
+  }
+
   @AfterAll
   static void stopJwksServer() {
     if (jwksServer != null) {
@@ -109,7 +132,11 @@ class ServiceAuthJwtDecoderIntegrationTest {
       throws JOSEException {
     Instant now = Instant.now();
     JWTClaimsSet.Builder claims =
-        new JWTClaimsSet.Builder().issuer(issuer).audience(audience).issueTime(Date.from(now));
+        new JWTClaimsSet.Builder()
+            .issuer(issuer)
+            .audience(audience)
+            .issueTime(Date.from(now))
+            .claim("token_type", "service");
     if (includeExpiration) {
       claims.expirationTime(Date.from(now.plusSeconds(60)));
     }

@@ -41,6 +41,12 @@ public class ServiceAuthResourceServerAutoConfiguration {
     return new org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator<>(
         JwtValidators.createDefaultWithIssuer(properties.issuer()),
         jwt ->
+            "service".equals(jwt.getClaims().get("token_type"))
+                ? OAuth2TokenValidatorResult.success()
+                : OAuth2TokenValidatorResult.failure(
+                    new OAuth2Error(
+                        OAuth2ErrorCodes.INVALID_TOKEN, "Token is not a service token", null)),
+        jwt ->
             jwt.getExpiresAt() != null
                 ? OAuth2TokenValidatorResult.success()
                 : OAuth2TokenValidatorResult.failure(

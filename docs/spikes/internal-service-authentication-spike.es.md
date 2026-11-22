@@ -274,6 +274,8 @@ Centraliza únicamente las reglas compartidas del contrato de tokens internos qu
 
 Debe ofrecer capacidades independientes para clientes OAuth2 (adquisición y reutilización de tokens) y resource servers (validación de firma/JWKS y reglas comunes del contrato). Cada microservicio incorpora solo el lado que necesita y aporta su configuración de issuer, audience y credenciales. La caché JWKS es local al consumidor y no requiere una tabla compartida ni Redis. La librería nunca contiene claves privadas ni decide los `kid`; `user-service` conserva la propiedad de las claves de firma y su rotación.
 
+Contrato de identidad firmado: `token_type=service` se emite solo para access tokens Client Credentials y es obligatorio en la librería. Es distinto del campo `token_type=Bearer` de la respuesta OAuth. Esta decisión cierra el nombre y valor del claim antes pendientes; el issuer y la autorización por cliente siguen siendo responsabilidades del despliegue y de cada servicio.
+
 #### Interacción y flujo
 
 1. El usuario se autentica con el mecanismo actual.
