@@ -261,14 +261,18 @@ Configured under `app.oauth2.authorization-server.clients` in `services/user-ser
 At startup, `InternalServiceTokenServerConfig` builds an `InMemoryRegisteredClientRepository` from configuration. The configured clients, scopes, audiences, and token lifetimes are rebuilt on each restart; there is no OAuth client table or runtime database administration. Client secrets are supplied through environment/secret management, encoded with the service `PasswordEncoder`, and held only as hashes in the in-memory registrations. Never commit production secrets.
 
 **`InternalAccessTokenProvider`**  
-Suggested path: `services/portfolio-service/src/main/java/com/tychewealth/service/token/InternalAccessTokenProvider.java`.
+Portfolio-local integration over the shared token-client component.
 
-Local component using `AuthorizedClientServiceOAuth2AuthorizedClientManager`, a stable service identity, and the registration for MDS. Spring manages reuse and reacquisition after expiration; do not implement custom HTTP protocol or caching by default.
+Configures `AuthorizedClientServiceOAuth2AuthorizedClientManager`, the stable service identity, and the registration for MDS. Spring manages reuse and reacquisition after expiration; do not implement custom HTTP protocol or caching by default.
 
 **`InternalTokenValidators`**, if additional validators are needed  
-Suggested path: `services/market-data-service/src/main/java/com/tychewealth/security/token/InternalTokenValidators.java`.
+Shared validation component configurable by each resource server.
 
-Groups audience and machine-identity validation not directly covered by standard validators. Permissions and routes remain in MDS; extraction is a future option after actual duplication appears.
+Centralizes only shared internal-token contract rules not covered by the standard Resource Server. Each service's route and permission policy remains local to that microservice.
+
+**Shared service-to-service authentication library**
+
+It provides independent capabilities for OAuth2 clients (token acquisition and reuse) and resource servers (signature/JWKS validation and shared token-contract rules). Each microservice includes only the side it needs and supplies its own issuer, audience, and credentials. The JWKS cache is local to each consumer and requires neither a shared database table nor Redis. The library never contains private keys or chooses `kid`; user-service remains responsible for signing keys and their rotation.
 
 #### Component Interaction and Flow
 
@@ -301,21 +305,22 @@ Issued JWTs are not immediately invalidated by changing the client secret or dis
 
 #### Implementation Outline
 
-Each story modifies only one microservice and includes its tests and documentation. Titles are proposals, not created tickets.
+Each story has a bounded implementation scope and includes its tests and documentation. Titles are proposals, not created tickets.
 
 | ID | Story | Scope | SP | Main acceptance criteria |
 |---|---|---|---:|---|
 | US-1 | Client Credentials issuance and isolation | user-service | 5 | OAuth chain, claims contract, invalid credentials/scopes/grants rejected, no refresh, user and Prometheus regressions. Test clients and keys; not yet production-enabled. |
 | US-2 | Configuration-backed clients | user-service | 5 | Clients, scopes, audiences, and TTL loaded into an in-memory repository; secrets supplied externally and encoded; invalid configuration rejected; restart rebuilds registrations from configuration. No OAuth client schema or database provisioning. |
 | US-3 | Durable keys, JWKS, and rotation | user-service | 3 | External keys, stable issuer, public-only output, `kid` transition, clear failure for missing critical configuration. |
+| AUTH-LIB-1 | Shared OAuth2 client and Resource Server capabilities | shared library | To estimate | Independent components for token acquisition/reuse and token/JWKS validation; consumer-specific configuration; tests for both roles; no private keys, `kid`, or microservice-specific permission policy. |
 | PF-1 | Token acquisition and reuse for MDS | portfolio-service | 5 | OAuth2 Client, stable identity, renewal, remove user-token forwarding, dependency failure without fallback; invalid selection acquires no token. |
 | MDS-1 | Service-only internal reads | market-data-service | 5 | Resource Server, complete contract and scope, user rejection, obsolete-auth cleanup, preserved errors and Prometheus. |
 | OPS-1 | Integrated deployment | Infrastructure | 3 | Compose configuration, URLs, secrets and TLS, network restrictions, coordinated activation and end-to-end verification; no service-code changes. |
 | US-4 | Token-endpoint abuse protection | user-service | 3 | Limit abuse before token processing, tests and safe logs; required before shared exposure unless infrastructure provides equivalent protection. |
 
-Baseline: **26 SP**. Additional endpoint protection: **3 SP**, totaling **29 SP** if implemented in user-service. These relative estimates require team calibration. The initial 8–13 SP estimate for the whole integration is revised: 13 SP fits the issuer block, not the complete scope.
+Baseline for the listed microservice stories: **26 SP**, plus AUTH-LIB-1, still to be estimated. Additional endpoint protection: **3 SP**, totaling **29 SP + AUTH-LIB-1** if implemented in user-service. These relative estimates require team calibration. The initial 8–13 SP estimate for the whole integration is revised: 13 SP fits the issuer block, not the complete scope.
 
-Order: US-1 → US-2 → US-3; PF-1 and MDS-1 can run in parallel once the contract is fixed; OPS-1 validates integration. US-4 or equivalent protection must precede endpoint exposure. Library extraction would have its own story and is not included now.
+Order: US-1 → US-2 → US-3 → AUTH-LIB-1 → PF-1 and MDS-1 (these two can run in parallel using the library); OPS-1 validates integration. US-4 or equivalent protection must precede endpoint exposure.
 
 Minimum verification:
 

@@ -261,14 +261,18 @@ Configurados bajo `app.oauth2.authorization-server.clients` en `services/user-se
 Al arrancar, `InternalServiceTokenServerConfig` construye un `InMemoryRegisteredClientRepository` desde la configuración. Clientes, scopes, audiencias y duración se reconstruyen en cada reinicio; no hay tabla OAuth ni administración dinámica en base de datos. Los secretos se reciben desde variables de entorno o un gestor de secretos, se codifican con el `PasswordEncoder` del servicio y solo se conservan como hashes en los registros en memoria. No incluir secretos productivos en Git.
 
 **`InternalAccessTokenProvider`**  
-Ruta sugerida: `services/portfolio-service/src/main/java/com/tychewealth/service/token/InternalAccessTokenProvider.java`.
+Integración local en Portfolio sobre el componente común de cliente de tokens.
 
-Componente local sobre `AuthorizedClientServiceOAuth2AuthorizedClientManager`, con identidad estable de servicio y registro destinado a MDS. Spring gestiona reutilización y readquisición al expirar; no implementar protocolo HTTP ni caché propios por defecto.
+Configura `AuthorizedClientServiceOAuth2AuthorizedClientManager`, la identidad estable del servicio y el registro destinado a MDS. Spring gestiona reutilización y readquisición al expirar; no implementar protocolo HTTP ni caché propios por defecto.
 
 **`InternalTokenValidators`**, si se necesitan validadores adicionales  
-Ruta sugerida: `services/market-data-service/src/main/java/com/tychewealth/security/token/InternalTokenValidators.java`.
+Componente común de validación, configurable por cada resource server.
 
-Agrupa validación de audiencia e identidad técnica no cubierta directamente por los validadores estándar. Permisos y rutas permanecen en MDS; posible extracción futura tras comprobar duplicación.
+Centraliza únicamente las reglas compartidas del contrato de tokens internos que no cubra el Resource Server estándar. La política de rutas y permisos propios de cada servicio permanece en ese microservicio.
+
+**Librería compartida de autenticación entre servicios**
+
+Debe ofrecer capacidades independientes para clientes OAuth2 (adquisición y reutilización de tokens) y resource servers (validación de firma/JWKS y reglas comunes del contrato). Cada microservicio incorpora solo el lado que necesita y aporta su configuración de issuer, audience y credenciales. La caché JWKS es local al consumidor y no requiere una tabla compartida ni Redis. La librería nunca contiene claves privadas ni decide los `kid`; `user-service` conserva la propiedad de las claves de firma y su rotación.
 
 #### Interacción y flujo
 
@@ -301,21 +305,22 @@ Los JWT emitidos no se invalidan inmediatamente por cambiar el secreto del clien
 
 #### Plan de implementación
 
-Cada historia modifica un solo microservicio e incluye pruebas y documentación. Los nombres son propuestas, no tickets creados.
+Cada historia tiene un ámbito de implementación acotado e incluye pruebas y documentación. Los nombres son propuestas, no tickets creados.
 
 | ID | Historia | Ámbito | SP | Criterios principales |
 |---|---|---|---:|---|
 | US-1 | Emisión Client Credentials y aislamiento | user-service | 5 | Cadena OAuth, contrato de claims, credenciales/scopes/grants inválidos rechazados, sin refresh, regresiones humanas y Prometheus. Cliente y claves de prueba; no habilitar aún en producción. |
 | US-2 | Clientes desde configuración | user-service | 5 | Clientes, scopes, audiencias y TTL cargados en repositorio en memoria; secretos externos y codificados; configuración inválida rechazada; reinicio reconstruye registros. Sin esquema OAuth ni provisionamiento en BBDD. |
 | US-3 | Claves duraderas, JWKS y rotación | user-service | 3 | Claves externas, issuer estable, solo claves públicas, transición por `kid`, fallo claro ante configuración crítica ausente. |
+| AUTH-LIB-1 | Capacidades comunes de cliente OAuth2 y Resource Server | librería compartida | Por estimar | Componentes independientes para adquirir/reutilizar tokens y validar tokens/JWKS; configuración por consumidor; pruebas de ambos roles; sin claves privadas, `kid` ni política de permisos específica de un microservicio. |
 | PF-1 | Adquisición y reutilización para MDS | portfolio-service | 5 | OAuth2 Client, identidad estable, renovación, eliminación del reenvío humano, fallo de dependencia sin fallback; selección inválida no adquiere tokens. |
 | MDS-1 | Consultas internas solo para servicios | market-data-service | 5 | Resource Server, contrato completo y scope, rechazo de humanos, limpieza de autenticación anterior, errores y Prometheus preservados. |
 | OPS-1 | Despliegue integrado | Infraestructura | 3 | Configuración Compose, URLs, secretos y TLS, restricciones de red, activación coordinada y verificación extremo a extremo; sin cambiar código de micros. |
 | US-4 | Protección del endpoint de tokens | user-service | 3 | Limitar abuso antes del filtro de tokens, pruebas y logs seguros; necesaria antes de exposición compartida salvo protección equivalente de infraestructura. |
 
-Base: **26 SP**. Protección adicional del endpoint: **3 SP**, total **29 SP** si se implementa en user-service. Son estimaciones relativas que deben calibrarse con el equipo. La estimación inicial de 8–13 SP para toda la integración se revisa: 13 SP encaja con el bloque emisor, no con el conjunto.
+Base de las historias de microservicios listadas: **26 SP**, más AUTH-LIB-1, pendiente de estimación. Protección adicional del endpoint: **3 SP**, total **29 SP + AUTH-LIB-1** si se implementa en user-service. Son estimaciones relativas que deben calibrarse con el equipo. La estimación inicial de 8–13 SP para toda la integración se revisa: 13 SP encaja con el bloque emisor, no con el conjunto.
 
-Orden: US-1 → US-2 → US-3; PF-1 y MDS-1 pueden desarrollarse en paralelo con contrato fijado; OPS-1 verifica la integración. US-4 o protección equivalente debe estar lista antes de exponer el endpoint. La extracción de librerías tendría historia propia y no se incluye ahora.
+Orden: US-1 → US-2 → US-3 → AUTH-LIB-1 → PF-1 y MDS-1 (estos dos pueden desarrollarse en paralelo usando la librería); OPS-1 verifica la integración. US-4 o protección equivalente debe estar lista antes de exponer el endpoint.
 
 Pruebas mínimas:
 

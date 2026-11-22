@@ -53,6 +53,12 @@ jobs:
       - name: Test listing-support
         run: ./mvnw -pl libraries/listing-support -am test
 
+      - name: Build service-auth-support
+        run: ./mvnw -pl libraries/service-auth-support -am -DskipTests package
+
+      - name: Test service-auth-support
+        run: ./mvnw -pl libraries/service-auth-support -am test
+
       - name: Build market-data-client
         run: ./mvnw -pl clients/market-data-client -am -DskipTests package
 
