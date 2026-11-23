@@ -1,4 +1,10 @@
 services:
+  # For local Portfolio -> MDS auth, add these to the root application-local.properties:
+  # SERVICE_TOKEN_SERVER_ENABLED=true
+  # PORTFOLIO_SERVICE_CLIENT_SECRET=<same secret for user-service and portfolio-service>
+  # Keep the RSA PKCS#8 private key at %USERPROFILE%/.tyche-wealth/keys/service-token-private.pem.
+  # For local runs outside Docker, set SERVICE_TOKEN_PRIVATE_KEY_LOCATION=file:C:/Users/<you>/.tyche-wealth/keys/service-token-private.pem.
+  # Compose mounts the key read-only and overrides SERVICE_TOKEN_PRIVATE_KEY_LOCATION for the container.
   user-service:
     build:
       context: .
