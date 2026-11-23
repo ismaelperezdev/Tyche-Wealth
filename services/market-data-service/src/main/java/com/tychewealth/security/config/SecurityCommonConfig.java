@@ -1,51 +1,50 @@
 package com.tychewealth.security.config;
 
+import static com.tychewealth.constants.LogConstants.AUTHENTICATION_ACTION;
+import static com.tychewealth.constants.LogConstants.AUTHENTICATION_FAILURE;
+import static com.tychewealth.constants.LogConstants.AUTHENTICATION_SERVICE_FAILURE;
+import static com.tychewealth.constants.LogConstants.AUTHORIZATION_ACTION;
+import static com.tychewealth.constants.LogConstants.AUTHORIZATION_FAILURE;
+import static com.tychewealth.constants.LogConstants.SECURITY;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tychewealth.error.ErrorDefinition;
 import com.tychewealth.error.ErrorResponse;
-import com.tychewealth.security.JwtAuthenticationFilter;
-import com.tychewealth.security.token.TokenValidator;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /** Shared security components used by MDS filter chains. */
 @Configuration
+@Slf4j
 public class SecurityCommonConfig {
-
-  @Bean
-  public JwtAuthenticationFilter jwtAuthenticationFilter(
-      TokenValidator tokenValidator, AuthenticationEntryPoint authenticationEntryPoint) {
-    return new JwtAuthenticationFilter(tokenValidator, authenticationEntryPoint);
-  }
-
-  @Bean
-  public FilterRegistrationBean<JwtAuthenticationFilter> jwtAuthenticationFilterRegistration(
-      JwtAuthenticationFilter jwtAuthenticationFilter) {
-    FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>();
-    registration.setFilter(jwtAuthenticationFilter);
-    registration.setEnabled(false);
-    return registration;
-  }
 
   @Bean
   public AuthenticationEntryPoint authenticationEntryPoint(ObjectMapper objectMapper) {
     return (request, response, exception) -> {
+      log.warn(
+          AUTHENTICATION_FAILURE,
+          SECURITY,
+          AUTHENTICATION_ACTION,
+          exception.getClass().getSimpleName());
       response.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
       writeErrorResponse(
           response, objectMapper, HttpStatus.UNAUTHORIZED, ErrorDefinition.GENERIC_UNAUTHORIZED);
@@ -53,10 +52,29 @@ public class SecurityCommonConfig {
   }
 
   @Bean
-  public AccessDeniedHandler accessDeniedHandler(ObjectMapper objectMapper) {
-    return (request, response, exception) ->
+  public AuthenticationFailureHandler bearerAuthenticationFailureHandler(
+      ObjectMapper objectMapper, AuthenticationEntryPoint authenticationEntryPoint) {
+    return (request, response, exception) -> {
+      if (exception instanceof AuthenticationServiceException) {
+        log.error(AUTHENTICATION_SERVICE_FAILURE, SECURITY, AUTHENTICATION_ACTION);
         writeErrorResponse(
-            response, objectMapper, HttpStatus.FORBIDDEN, ErrorDefinition.GENERIC_FORBIDDEN);
+            response,
+            objectMapper,
+            HttpStatus.SERVICE_UNAVAILABLE,
+            ErrorDefinition.MARKET_AUTHENTICATION_SERVICE_UNAVAILABLE);
+        return;
+      }
+      authenticationEntryPoint.commence(request, response, (AuthenticationException) exception);
+    };
+  }
+
+  @Bean
+  public AccessDeniedHandler accessDeniedHandler(ObjectMapper objectMapper) {
+    return (request, response, exception) -> {
+      log.warn(AUTHORIZATION_FAILURE, SECURITY, AUTHORIZATION_ACTION);
+      writeErrorResponse(
+          response, objectMapper, HttpStatus.FORBIDDEN, ErrorDefinition.GENERIC_FORBIDDEN);
+    };
   }
 
   @Bean

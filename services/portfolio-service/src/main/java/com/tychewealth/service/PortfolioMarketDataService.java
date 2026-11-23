@@ -9,13 +9,8 @@ import java.util.List;
 public interface PortfolioMarketDataService {
 
   List<AssetMarketPriceDto> getLatestPrices(
-      Long userId, List<Long> portfolioIds, List<Long> assetIds, String authorizationHeader);
+      Long userId, List<Long> portfolioIds, List<Long> assetIds);
 
   List<AssetPriceCheckpointDto> getPriceHistory(
-      Long userId,
-      List<Long> portfolioIds,
-      List<Long> assetIds,
-      Instant from,
-      Instant to,
-      String authorizationHeader);
+      Long userId, List<Long> portfolioIds, List<Long> assetIds, Instant from, Instant to);
 }

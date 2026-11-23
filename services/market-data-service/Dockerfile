@@ -17,6 +17,7 @@ RUN ./mvnw -pl services/market-data-service -am dependency:go-offline
 
 COPY libraries/redis-support/src/ libraries/redis-support/src/
 COPY libraries/listing-support/src/ libraries/listing-support/src/
+COPY libraries/service-auth-support/src/ libraries/service-auth-support/src/
 COPY services/market-data-service/src/ services/market-data-service/src/
 
 RUN ./mvnw -pl services/market-data-service -am clean package -DskipTests

@@ -31,7 +31,13 @@ public enum ErrorDefinition {
   MARKET_PRICE_BUCKET_START_INVALID(
       "TYCHE-613",
       "MARKET_PRICE_BUCKET_START_INVALID",
-      "bucketStart filters must use ISO-8601 instants");
+      "bucketStart filters must use ISO-8601 instants"),
+
+  // MARKET AUTHENTICATION
+  MARKET_AUTHENTICATION_SERVICE_UNAVAILABLE(
+      "TYCHE-620",
+      "MARKET_AUTHENTICATION_SERVICE_UNAVAILABLE",
+      "The authentication service is temporarily unavailable");
 
   private final String code;
   private final String type;

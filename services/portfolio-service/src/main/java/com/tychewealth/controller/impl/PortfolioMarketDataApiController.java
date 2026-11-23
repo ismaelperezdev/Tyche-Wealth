@@ -16,7 +16,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -32,11 +31,9 @@ public class PortfolioMarketDataApiController implements PortfolioMarketDataApi 
   public ResponseEntity<List<AssetMarketPriceDto>> getLatestPrices(
       @AuthenticationPrincipal Long userId,
       @RequestParam(name = "portfolioIds", required = false) List<Long> portfolioIds,
-      @RequestParam(name = "assetIds", required = false) List<Long> assetIds,
-      @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
+      @RequestParam(name = "assetIds", required = false) List<Long> assetIds) {
     List<AssetMarketPriceDto> response =
-        portfolioMarketDataService.getLatestPrices(
-            userId, portfolioIds, assetIds, authorizationHeader);
+        portfolioMarketDataService.getLatestPrices(userId, portfolioIds, assetIds);
     return noStoreResponse(response);
   }
 
@@ -47,11 +44,9 @@ public class PortfolioMarketDataApiController implements PortfolioMarketDataApi 
       @RequestParam(name = "portfolioIds", required = false) List<Long> portfolioIds,
       @RequestParam(name = "assetIds", required = false) List<Long> assetIds,
       @RequestParam(name = "from", required = false) Instant from,
-      @RequestParam(name = "to", required = false) Instant to,
-      @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
+      @RequestParam(name = "to", required = false) Instant to) {
     List<AssetPriceCheckpointDto> response =
-        portfolioMarketDataService.getPriceHistory(
-            userId, portfolioIds, assetIds, from, to, authorizationHeader);
+        portfolioMarketDataService.getPriceHistory(userId, portfolioIds, assetIds, from, to);
     return noStoreResponse(response);
   }
 

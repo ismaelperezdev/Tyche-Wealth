@@ -1,21 +1,29 @@
 package com.tychewealth.security.config;
 
-import com.tychewealth.security.JwtAuthenticationFilter;
+import static com.tychewealth.constants.LogConstants.AUTHORIZATION_ACTION;
+import static com.tychewealth.constants.LogConstants.AUTHORIZATION_SUCCESS;
+import static com.tychewealth.constants.LogConstants.SECURITY;
+
 import jakarta.servlet.DispatcherType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.ObjectPostProcessor;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
@@ -23,12 +31,14 @@ import org.springframework.web.cors.CorsConfigurationSource;
 @Configuration
 public class ApplicationSecurityConfig {
 
+  private static final Logger log = LoggerFactory.getLogger(ApplicationSecurityConfig.class);
+
   @Bean
   @Order(2)
   public SecurityFilterChain applicationSecurityFilterChain(
       HttpSecurity http,
-      JwtAuthenticationFilter jwtAuthenticationFilter,
       AuthenticationEntryPoint authenticationEntryPoint,
+      AuthenticationFailureHandler bearerAuthenticationFailureHandler,
       AccessDeniedHandler accessDeniedHandler,
       CorsConfigurationSource corsConfigurationSource,
       @Value("${app.security.hsts.include-sub-domains:true}") boolean hstsIncludeSubDomains,
@@ -54,9 +64,38 @@ public class ApplicationSecurityConfig {
                     .permitAll()
                     .dispatcherTypeMatchers(DispatcherType.ERROR)
                     .permitAll()
+                    .requestMatchers("/internal/prices/**")
+                    .access(
+                        (authenticationSupplier, ignored) -> {
+                          var authentication = authenticationSupplier.get();
+                          boolean hasRequiredScope =
+                              authentication.getAuthorities().stream()
+                                  .anyMatch(
+                                      authority ->
+                                          "SCOPE_market-prices:read"
+                                              .equals(authority.getAuthority()));
+                          if (hasRequiredScope) {
+                            log.info(AUTHORIZATION_SUCCESS, SECURITY, AUTHORIZATION_ACTION);
+                          }
+                          return new AuthorizationDecision(hasRequiredScope);
+                        })
                     .anyRequest()
                     .authenticated())
-        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        .oauth2ResourceServer(
+            oauth2 ->
+                oauth2
+                    .authenticationEntryPoint(authenticationEntryPoint)
+                    .withObjectPostProcessor(
+                        new ObjectPostProcessor<BearerTokenAuthenticationFilter>() {
+                          @Override
+                          public BearerTokenAuthenticationFilter postProcess(
+                              BearerTokenAuthenticationFilter filter) {
+                            filter.setAuthenticationFailureHandler(
+                                bearerAuthenticationFailureHandler);
+                            return filter;
+                          }
+                        })
+                    .jwt(Customizer.withDefaults()));
 
     return http.build();
   }
