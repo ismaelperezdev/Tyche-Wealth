@@ -34,6 +34,7 @@ import com.tychewealth.marketdataclient.dto.MarketDataPage;
 import com.tychewealth.marketdataclient.dto.PriceCheckpoint;
 import com.tychewealth.repository.AssetRepository;
 import com.tychewealth.repository.PortfolioRepository;
+import com.tychewealth.serviceauth.client.ServiceAccessTokenProvider;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -57,10 +58,12 @@ class PortfolioMarketDataServiceIntegrationTest {
   private static final String BASE_URL = PORTFOLIO_BASE_URL + "/market-data";
   private static final String TOKEN = createAccessToken(TEST_USER_ID);
   private static final String AUTHORIZATION = TOKEN_TYPE_BEARER_PREFIX + TOKEN;
+  private static final String SERVICE_TOKEN = "technical-access-token";
   @Autowired private MockMvc mockMvc;
   @Autowired private AssetRepository assetRepository;
   @Autowired private PortfolioRepository portfolioRepository;
   @MockitoBean private MarketDataClient marketDataClient;
+  @MockitoBean private ServiceAccessTokenProvider serviceAccessTokenProvider;
 
   private AssetEntity earlyAsset;
   private AssetEntity lateAsset;
@@ -68,6 +71,8 @@ class PortfolioMarketDataServiceIntegrationTest {
 
   @BeforeEach
   void setUp() {
+    when(serviceAccessTokenProvider.getAccessToken("market-data-service", "portfolio-service"))
+        .thenReturn(SERVICE_TOKEN);
     assetRepository.deleteAll();
     portfolioRepository.deleteAll();
 
@@ -106,7 +111,7 @@ class PortfolioMarketDataServiceIntegrationTest {
 
   @Test
   void latestUsesOwnedActiveAssetsAndSendsDistinctNormalizedSymbols() throws Exception {
-    when(marketDataClient.getLatestPrices(List.of("AAPL"), 0, 5000, TOKEN))
+    when(marketDataClient.getLatestPrices(List.of("AAPL"), 0, 5000, SERVICE_TOKEN))
         .thenReturn(
             new MarketDataPage<>(
                 List.of(
@@ -128,7 +133,7 @@ class PortfolioMarketDataServiceIntegrationTest {
         .andExpect(jsonPath("$[0].marketPrice").value(225.50))
         .andExpect(jsonPath("$[1].assetId").value(lateAsset.getId()));
 
-    verify(marketDataClient).getLatestPrices(List.of("AAPL"), 0, 5000, TOKEN);
+    verify(marketDataClient).getLatestPrices(List.of("AAPL"), 0, 5000, SERVICE_TOKEN);
   }
 
   @Test
@@ -140,7 +145,7 @@ class PortfolioMarketDataServiceIntegrationTest {
             "AAPL", BigDecimal.TEN, CHECKPOINT_AT_LATER_ASSET_CREATION, HISTORY_FROM);
     Instant effectiveFrom = Instant.parse("2026-10-01T00:00:00Z");
     when(marketDataClient.getPriceHistory(
-            List.of("AAPL"), effectiveFrom, HISTORY_TO, 0, 5000, TOKEN))
+            List.of("AAPL"), effectiveFrom, HISTORY_TO, 0, 5000, SERVICE_TOKEN))
         .thenReturn(new MarketDataPage<>(List.of(beforeLateAsset, atLateAssetCreation), 2));
 
     mockMvc
@@ -159,7 +164,7 @@ class PortfolioMarketDataServiceIntegrationTest {
         .andExpect(jsonPath("$[2].price").value(10));
 
     verify(marketDataClient)
-        .getPriceHistory(List.of("AAPL"), effectiveFrom, HISTORY_TO, 0, 5000, TOKEN);
+        .getPriceHistory(List.of("AAPL"), effectiveFrom, HISTORY_TO, 0, 5000, SERVICE_TOKEN);
   }
 
   @Test
@@ -167,7 +172,7 @@ class PortfolioMarketDataServiceIntegrationTest {
     PriceCheckpoint checkpoint =
         new PriceCheckpoint("AAPL", BigDecimal.ONE, CHECKPOINT_BEFORE_LATER_ASSET, HISTORY_FROM);
     when(marketDataClient.getPriceHistory(
-            List.of("AAPL"), EARLY_ASSET_CREATED_AT, HISTORY_TO, 0, 5000, TOKEN))
+            List.of("AAPL"), EARLY_ASSET_CREATED_AT, HISTORY_TO, 0, 5000, SERVICE_TOKEN))
         .thenReturn(new MarketDataPage<>(List.of(checkpoint), 2));
 
     mockMvc
@@ -194,7 +199,7 @@ class PortfolioMarketDataServiceIntegrationTest {
             .toList();
     Instant effectiveFrom = EARLY_ASSET_CREATED_AT;
     when(marketDataClient.getPriceHistory(
-            List.of("AAPL"), effectiveFrom, HISTORY_TO, 0, 5000, TOKEN))
+            List.of("AAPL"), effectiveFrom, HISTORY_TO, 0, 5000, SERVICE_TOKEN))
         .thenReturn(new MarketDataPage<>(checkpoints, checkpoints.size()));
 
     mockMvc
@@ -235,6 +240,8 @@ class PortfolioMarketDataServiceIntegrationTest {
             org.mockito.ArgumentMatchers.anyInt(),
             org.mockito.ArgumentMatchers.anyInt(),
             org.mockito.ArgumentMatchers.anyString());
+    verify(serviceAccessTokenProvider, never())
+        .getAccessToken("market-data-service", "portfolio-service");
   }
 
   @Test
@@ -297,7 +304,7 @@ class PortfolioMarketDataServiceIntegrationTest {
 
   @Test
   void rejectsLatestResultsAboveTheConfiguredLimit() throws Exception {
-    when(marketDataClient.getLatestPrices(List.of("AAPL"), 0, 5000, TOKEN))
+    when(marketDataClient.getLatestPrices(List.of("AAPL"), 0, 5000, SERVICE_TOKEN))
         .thenReturn(
             new MarketDataPage<>(
                 List.of(new LatestMarketPrice("AAPL", BigDecimal.ONE, HISTORY_FROM)), 5001));
@@ -327,5 +334,7 @@ class PortfolioMarketDataServiceIntegrationTest {
             org.mockito.ArgumentMatchers.anyInt(),
             org.mockito.ArgumentMatchers.anyInt(),
             org.mockito.ArgumentMatchers.anyString());
+    verify(serviceAccessTokenProvider, never())
+        .getAccessToken("market-data-service", "portfolio-service");
   }
 }

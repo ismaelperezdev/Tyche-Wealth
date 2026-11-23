@@ -56,8 +56,7 @@ class PortfolioMarketDataApiControllerIntegrationTest {
             new BigDecimal("400.0000"),
             new BigDecimal("425.50"),
             CAPTURED_AT);
-    when(portfolioMarketDataService.getLatestPrices(
-            TEST_USER_ID, List.of(TEST_PORTFOLIO_ID), null, authorizationHeader))
+    when(portfolioMarketDataService.getLatestPrices(TEST_USER_ID, List.of(TEST_PORTFOLIO_ID), null))
         .thenReturn(List.of(quote));
 
     mockMvc
@@ -74,7 +73,7 @@ class PortfolioMarketDataApiControllerIntegrationTest {
         .andExpect(jsonPath("$[0].averagePrice").value(400.0));
 
     verify(portfolioMarketDataService)
-        .getLatestPrices(TEST_USER_ID, List.of(TEST_PORTFOLIO_ID), null, authorizationHeader);
+        .getLatestPrices(TEST_USER_ID, List.of(TEST_PORTFOLIO_ID), null);
   }
 
   @Test
@@ -91,7 +90,7 @@ class PortfolioMarketDataApiControllerIntegrationTest {
             CAPTURED_AT,
             BUCKET_START);
     when(portfolioMarketDataService.getPriceHistory(
-            TEST_USER_ID, null, List.of(TEST_ASSET_ID), from, to, authorizationHeader))
+            TEST_USER_ID, null, List.of(TEST_ASSET_ID), from, to))
         .thenReturn(List.of(checkpoint));
 
     mockMvc
@@ -109,6 +108,6 @@ class PortfolioMarketDataApiControllerIntegrationTest {
         .andExpect(jsonPath("$[0].bucketStart").value(BUCKET_START.toString()));
 
     verify(portfolioMarketDataService)
-        .getPriceHistory(TEST_USER_ID, null, List.of(TEST_ASSET_ID), from, to, authorizationHeader);
+        .getPriceHistory(TEST_USER_ID, null, List.of(TEST_ASSET_ID), from, to);
   }
 }

@@ -82,9 +82,12 @@ kafka:
   enabled: ${KAFKA_ENABLED:true}
 
 app:
-  auth:
-    jwt:
-      secret: ${JWT_SECRET}
+  service-auth:
+    resource-server:
+      enabled: ${SERVICE_AUTH_RESOURCE_SERVER_ENABLED:true}
+      issuer: ${SERVICE_TOKEN_ISSUER:http://localhost:8080}
+      jwk-set-uri: ${SERVICE_TOKEN_JWK_SET_URI:http://user-service:8080/oauth2/jwks}
+      audience: ${SERVICE_TOKEN_AUDIENCE:market-data-service}
   security:
     prometheus:
       username: ${PROMETHEUS_BASIC_AUTH_USERNAME:prometheus-scraper}

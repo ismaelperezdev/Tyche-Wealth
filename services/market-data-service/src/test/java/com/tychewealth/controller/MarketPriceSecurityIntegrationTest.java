@@ -4,7 +4,6 @@ import static com.tychewealth.constants.TestConstants.LATEST_PRICES_ENDPOINT;
 import static com.tychewealth.constants.TestConstants.PRICE_HISTORY_ENDPOINT;
 import static com.tychewealth.constants.TestConstants.TEST_SYMBOL;
 import static com.tychewealth.constants.TestConstants.TEST_SYMBOL_IN_FILTER;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -12,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.tychewealth.store.MarketQuoteStore;
 import com.tychewealth.testdata.SecurityTestHelper;
+import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -21,6 +21,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.BadJwtException;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -36,7 +40,11 @@ import org.springframework.test.web.servlet.MockMvc;
       "spring.jpa.hibernate.ddl-auto=create-drop",
       "spring.liquibase.enabled=false",
       "kafka.enabled=false",
-      "app.market-price.scheduler.enabled=false"
+      "app.market-price.scheduler.enabled=false",
+      "app.service-auth.resource-server.enabled=true",
+      "app.service-auth.resource-server.issuer=http://localhost:8080",
+      "app.service-auth.resource-server.jwk-set-uri=http://localhost:8080/oauth2/jwks",
+      "app.service-auth.resource-server.audience=market-data-service"
     })
 @AutoConfigureMockMvc
 class MarketPriceSecurityIntegrationTest {
@@ -46,6 +54,8 @@ class MarketPriceSecurityIntegrationTest {
   @MockitoBean private RedisTemplate<String, String> redisTemplate;
 
   @MockitoBean private MarketQuoteStore marketQuoteStore;
+
+  @MockitoBean private JwtDecoder jwtDecoder;
 
   @ParameterizedTest
   @ValueSource(strings = {LATEST_PRICES_ENDPOINT, PRICE_HISTORY_ENDPOINT})
@@ -71,8 +81,8 @@ class MarketPriceSecurityIntegrationTest {
 
   @Test
   void allowsValidBearerTokenOnProtectedApiRoute() throws Exception {
-    String token = SecurityTestHelper.accessToken("valid-jti");
-    when(redisTemplate.hasKey("auth:access-token:blacklist:jti:valid-jti")).thenReturn(false);
+    String token = "valid-service-token";
+    when(jwtDecoder.decode(token)).thenReturn(serviceJwt(token, "market-prices:read"));
     when(marketQuoteStore.findBySymbols(List.of(TEST_SYMBOL))).thenReturn(List.of());
 
     mockMvc
@@ -84,7 +94,30 @@ class MarketPriceSecurityIntegrationTest {
   }
 
   @Test
+  void rejectsHumanToken() throws Exception {
+    when(jwtDecoder.decode("human-token"))
+        .thenThrow(new BadJwtException("Token is not a service token"));
+
+    mockMvc
+        .perform(get(PRICE_HISTORY_ENDPOINT).header("Authorization", "Bearer human-token"))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value("TYCHE-602"));
+  }
+
+  @Test
+  void rejectsServiceTokenWithoutRequiredScope() throws Exception {
+    String token = "service-token-without-scope";
+    when(jwtDecoder.decode(token)).thenReturn(serviceJwt(token, "other-scope"));
+
+    mockMvc
+        .perform(get(PRICE_HISTORY_ENDPOINT).header("Authorization", "Bearer " + token))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
   void rejectsInvalidBearerToken() throws Exception {
+    when(jwtDecoder.decode("not-a-jwt")).thenThrow(new BadJwtException("Invalid JWT"));
+
     mockMvc
         .perform(get(PRICE_HISTORY_ENDPOINT).header("Authorization", "Bearer not-a-jwt"))
         .andExpect(status().isUnauthorized())
@@ -92,27 +125,15 @@ class MarketPriceSecurityIntegrationTest {
   }
 
   @Test
-  void rejectsRevokedBearerToken() throws Exception {
-    String token = SecurityTestHelper.accessToken("revoked-jti");
-    when(redisTemplate.hasKey("auth:access-token:blacklist:jti:revoked-jti")).thenReturn(true);
+  void returnsServiceUnavailableWhenJwksCannotBeRetrieved() throws Exception {
+    when(jwtDecoder.decode("service-token"))
+        .thenThrow(new JwtException("Unable to retrieve signing keys"));
 
     mockMvc
-        .perform(get(PRICE_HISTORY_ENDPOINT).header("Authorization", "Bearer " + token))
-        .andExpect(status().isUnauthorized())
-        .andExpect(jsonPath("$.code").value("TYCHE-602"));
-  }
-
-  @Test
-  void rejectsBearerTokenWhenRedisIsUnavailable() throws Exception {
-    String token = SecurityTestHelper.accessToken("redis-unavailable-jti");
-    doThrow(new IllegalStateException("Redis unavailable"))
-        .when(redisTemplate)
-        .hasKey("auth:access-token:blacklist:jti:redis-unavailable-jti");
-
-    mockMvc
-        .perform(get(PRICE_HISTORY_ENDPOINT).header("Authorization", "Bearer " + token))
-        .andExpect(status().isUnauthorized())
-        .andExpect(jsonPath("$.code").value("TYCHE-602"));
+        .perform(get(PRICE_HISTORY_ENDPOINT).header("Authorization", "Bearer service-token"))
+        .andExpect(status().isServiceUnavailable())
+        .andExpect(jsonPath("$.code").value("TYCHE-620"))
+        .andExpect(jsonPath("$.type").value("MARKET_AUTHENTICATION_SERVICE_UNAVAILABLE"));
   }
 
   @Test
@@ -122,5 +143,18 @@ class MarketPriceSecurityIntegrationTest {
             get(PRICE_HISTORY_ENDPOINT).header("Authorization", SecurityTestHelper.basicAuth()))
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value("TYCHE-602"));
+  }
+
+  private static Jwt serviceJwt(String token, String scope) {
+    Instant now = Instant.now();
+    return Jwt.withTokenValue(token)
+        .header("alg", "RS256")
+        .issuer("http://localhost:8080")
+        .issuedAt(now.minusSeconds(1))
+        .expiresAt(now.plusSeconds(900))
+        .claim("token_type", "service")
+        .claim("aud", List.of("market-data-service"))
+        .claim("scope", scope)
+        .build();
   }
 }

@@ -13,6 +13,7 @@ import com.tychewealth.repository.PortfolioRepository;
 import com.tychewealth.service.PortfolioMarketDataService;
 import com.tychewealth.service.helper.marketdata.PortfolioMarketDataHelper;
 import com.tychewealth.service.helper.marketdata.PortfolioMarketDataValidationHelper;
+import com.tychewealth.serviceauth.client.ServiceAccessTokenProvider;
 import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -30,13 +31,14 @@ public class PortfolioMarketDataServiceImpl implements PortfolioMarketDataServic
   private final PortfolioMarketDataValidationHelper validationHelper;
   private final PortfolioMarketDataHelper portfolioMarketDataHelper;
   private final MarketDataClient marketDataClient;
+  private final ServiceAccessTokenProvider serviceAccessTokenProvider;
 
   @Value("${app.market-data.max-results:5000}")
   private int maxResults;
 
   @Override
   public List<AssetMarketPriceDto> getLatestPrices(
-      Long userId, List<Long> portfolioIds, List<Long> assetIds, String authorizationHeader) {
+      Long userId, List<Long> portfolioIds, List<Long> assetIds) {
     validationHelper.validateRequest(userId, portfolioIds, assetIds, null, null);
     List<AssetEntity> assets = resolveAssets(userId, portfolioIds, assetIds);
     if (assets.isEmpty()) {
@@ -44,19 +46,14 @@ public class PortfolioMarketDataServiceImpl implements PortfolioMarketDataServic
     }
     List<String> symbols = portfolioMarketDataHelper.symbolsFor(assets);
     MarketDataPage<LatestMarketPrice> page =
-        marketDataClient.getLatestPrices(symbols, 0, maxResults, accessToken(authorizationHeader));
+        marketDataClient.getLatestPrices(symbols, 0, maxResults, serviceAccessToken());
     validationHelper.validateLatestPriceCount(page);
     return portfolioMarketDataHelper.mapLatestPrices(assets, page);
   }
 
   @Override
   public List<AssetPriceCheckpointDto> getPriceHistory(
-      Long userId,
-      List<Long> portfolioIds,
-      List<Long> assetIds,
-      Instant from,
-      Instant to,
-      String authorizationHeader) {
+      Long userId, List<Long> portfolioIds, List<Long> assetIds, Instant from, Instant to) {
     validationHelper.validateRequest(userId, portfolioIds, assetIds, from, to);
     List<AssetEntity> assets = resolveAssets(userId, portfolioIds, assetIds);
     if (assets.isEmpty()) {
@@ -69,7 +66,7 @@ public class PortfolioMarketDataServiceImpl implements PortfolioMarketDataServic
     List<String> symbols = portfolioMarketDataHelper.symbolsFor(assets);
     MarketDataPage<PriceCheckpoint> page =
         marketDataClient.getPriceHistory(
-            symbols, effectiveFrom, to, 0, maxResults, accessToken(authorizationHeader));
+            symbols, effectiveFrom, to, 0, maxResults, serviceAccessToken());
     validationHelper.validateHistoryCount(page);
     long expandedResultCount =
         portfolioMarketDataHelper.countPriceHistoryResults(assets, from, page);
@@ -98,7 +95,7 @@ public class PortfolioMarketDataServiceImpl implements PortfolioMarketDataServic
     return List.copyOf(new LinkedHashSet<>(ids));
   }
 
-  private static String accessToken(String authorizationHeader) {
-    return authorizationHeader.replaceFirst("(?i)^Bearer\\s+", "");
+  private String serviceAccessToken() {
+    return serviceAccessTokenProvider.getAccessToken("market-data-service", "portfolio-service");
   }
 }

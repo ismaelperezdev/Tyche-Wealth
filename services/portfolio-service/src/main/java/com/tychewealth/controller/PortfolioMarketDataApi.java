@@ -8,11 +8,9 @@ import com.tychewealth.dto.marketdata.AssetPriceCheckpointDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Instant;
 import java.util.List;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -26,8 +24,7 @@ public interface PortfolioMarketDataApi {
   ResponseEntity<List<AssetMarketPriceDto>> getLatestPrices(
       @AuthenticationPrincipal Long userId,
       @RequestParam(name = "portfolioIds", required = false) List<Long> portfolioIds,
-      @RequestParam(name = "assetIds", required = false) List<Long> assetIds,
-      @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader);
+      @RequestParam(name = "assetIds", required = false) List<Long> assetIds);
 
   /** Returns market-price checkpoints for each selected active asset in the requested range. */
   @GetMapping(value = "/history", produces = REQUEST_PRODUCES)
@@ -36,6 +33,5 @@ public interface PortfolioMarketDataApi {
       @RequestParam(name = "portfolioIds", required = false) List<Long> portfolioIds,
       @RequestParam(name = "assetIds", required = false) List<Long> assetIds,
       @RequestParam(name = "from", required = false) Instant from,
-      @RequestParam(name = "to", required = false) Instant to,
-      @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader);
+      @RequestParam(name = "to", required = false) Instant to);
 }
