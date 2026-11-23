@@ -44,3 +44,6 @@ graphify-out/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Private security audit reports
+/docs/cibersecurity-informs/2026-11-23
