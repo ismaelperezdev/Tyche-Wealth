@@ -144,9 +144,9 @@ class PortfolioMarketDataServiceIntegrationTest {
         new PriceCheckpoint(
             "AAPL", BigDecimal.TEN, CHECKPOINT_AT_LATER_ASSET_CREATION, HISTORY_FROM);
     Instant effectiveFrom = Instant.parse("2026-10-01T00:00:00Z");
-    when(marketDataClient.getPriceHistory(
-            List.of("AAPL"), effectiveFrom, HISTORY_TO, 0, 5000, SERVICE_TOKEN))
-        .thenReturn(new MarketDataPage<>(List.of(beforeLateAsset, atLateAssetCreation), 2));
+    when(marketDataClient.getSampledPriceHistory(
+            List.of("AAPL"), effectiveFrom, HISTORY_TO, SERVICE_TOKEN))
+        .thenReturn(List.of(beforeLateAsset, atLateAssetCreation));
 
     mockMvc
         .perform(
@@ -164,16 +164,16 @@ class PortfolioMarketDataServiceIntegrationTest {
         .andExpect(jsonPath("$[2].price").value(10));
 
     verify(marketDataClient)
-        .getPriceHistory(List.of("AAPL"), effectiveFrom, HISTORY_TO, 0, 5000, SERVICE_TOKEN);
+        .getSampledPriceHistory(List.of("AAPL"), effectiveFrom, HISTORY_TO, SERVICE_TOKEN);
   }
 
   @Test
-  void returnsUnprocessableEntityWhenMdsHistoryPageIsTruncated() throws Exception {
+  void consumesSampledHistoryAsACompleteNonPaginatedResponse() throws Exception {
     PriceCheckpoint checkpoint =
         new PriceCheckpoint("AAPL", BigDecimal.ONE, CHECKPOINT_BEFORE_LATER_ASSET, HISTORY_FROM);
-    when(marketDataClient.getPriceHistory(
-            List.of("AAPL"), EARLY_ASSET_CREATED_AT, HISTORY_TO, 0, 5000, SERVICE_TOKEN))
-        .thenReturn(new MarketDataPage<>(List.of(checkpoint), 2));
+    when(marketDataClient.getSampledPriceHistory(
+            List.of("AAPL"), EARLY_ASSET_CREATED_AT, HISTORY_TO, SERVICE_TOKEN))
+        .thenReturn(List.of(checkpoint));
 
     mockMvc
         .perform(
@@ -182,10 +182,8 @@ class PortfolioMarketDataServiceIntegrationTest {
                 .param("from", HISTORY_FROM.toString())
                 .param("to", HISTORY_TO.toString())
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION))
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            jsonPath("$.type")
-                .value(ErrorDefinition.PORTFOLIO_MARKET_DATA_RESULT_LIMIT_EXCEEDED.getType()));
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].assetId").value(earlyAsset.getId()));
   }
 
   @Test
@@ -198,9 +196,9 @@ class PortfolioMarketDataServiceIntegrationTest {
                         "AAPL", BigDecimal.ONE, CHECKPOINT_AT_LATER_ASSET_CREATION, HISTORY_FROM))
             .toList();
     Instant effectiveFrom = EARLY_ASSET_CREATED_AT;
-    when(marketDataClient.getPriceHistory(
-            List.of("AAPL"), effectiveFrom, HISTORY_TO, 0, 5000, SERVICE_TOKEN))
-        .thenReturn(new MarketDataPage<>(checkpoints, checkpoints.size()));
+    when(marketDataClient.getSampledPriceHistory(
+            List.of("AAPL"), effectiveFrom, HISTORY_TO, SERVICE_TOKEN))
+        .thenReturn(checkpoints);
 
     mockMvc
         .perform(

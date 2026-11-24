@@ -16,6 +16,12 @@ public class MarketDataClient {
 
   private static final String LATEST_PRICES_PATH = "/internal/prices/latest";
   private static final String PRICE_HISTORY_PATH = "/internal/prices/history";
+  private static final String SAMPLED_PRICE_HISTORY_PATH = PRICE_HISTORY_PATH + "/sampled";
+  private static final String SYMBOL_IN_QUERY_PARAM = "symbol.in";
+  private static final String CAPTURED_AT_GTE_QUERY_PARAM = "capturedAt.gte";
+  private static final String CAPTURED_AT_LTE_QUERY_PARAM = "capturedAt.lte";
+  private static final String OFFSET_QUERY_PARAM = "offset";
+  private static final String LIMIT_QUERY_PARAM = "limit";
   private static final String TOTAL_COUNT_HEADER = "X-Total-Count";
 
   private final RestClient restClient;
@@ -34,9 +40,12 @@ public class MarketDataClient {
                 uriBuilder -> {
                   uriBuilder.path(LATEST_PRICES_PATH);
                   if (symbols != null) {
-                    uriBuilder.queryParam("symbol.in", String.join(",", symbols));
+                    uriBuilder.queryParam(SYMBOL_IN_QUERY_PARAM, String.join(",", symbols));
                   }
-                  return uriBuilder.queryParam("offset", offset).queryParam("limit", limit).build();
+                  return uriBuilder
+                      .queryParam(OFFSET_QUERY_PARAM, offset)
+                      .queryParam(LIMIT_QUERY_PARAM, limit)
+                      .build();
                 })
             .headers(headers -> addBearerToken(headers, accessToken))
             .retrieve()
@@ -55,21 +64,48 @@ public class MarketDataClient {
                 uriBuilder -> {
                   uriBuilder.path(PRICE_HISTORY_PATH);
                   if (symbols != null) {
-                    uriBuilder.queryParam("symbol.in", String.join(",", symbols));
+                    uriBuilder.queryParam(SYMBOL_IN_QUERY_PARAM, String.join(",", symbols));
                   }
                   if (from != null) {
-                    uriBuilder.queryParam("capturedAt.gte", from);
+                    uriBuilder.queryParam(CAPTURED_AT_GTE_QUERY_PARAM, from);
                   }
                   if (to != null) {
-                    uriBuilder.queryParam("capturedAt.lte", to);
+                    uriBuilder.queryParam(CAPTURED_AT_LTE_QUERY_PARAM, to);
                   }
-                  return uriBuilder.queryParam("offset", offset).queryParam("limit", limit).build();
+                  return uriBuilder
+                      .queryParam(OFFSET_QUERY_PARAM, offset)
+                      .queryParam(LIMIT_QUERY_PARAM, limit)
+                      .build();
                 })
             .headers(headers -> addBearerToken(headers, accessToken))
             .retrieve()
             .toEntity(new ParameterizedTypeReference<>() {});
 
     return toPage(response);
+  }
+
+  /** Gets the complete, sampled history for chart consumers without pagination metadata. */
+  public List<PriceCheckpoint> getSampledPriceHistory(
+      List<String> symbols, Instant from, Instant to, String accessToken) {
+    return restClient
+        .get()
+        .uri(
+            uriBuilder -> {
+              uriBuilder.path(SAMPLED_PRICE_HISTORY_PATH);
+              if (symbols != null) {
+                uriBuilder.queryParam(SYMBOL_IN_QUERY_PARAM, String.join(",", symbols));
+              }
+              if (from != null) {
+                uriBuilder.queryParam(CAPTURED_AT_GTE_QUERY_PARAM, from);
+              }
+              if (to != null) {
+                uriBuilder.queryParam(CAPTURED_AT_LTE_QUERY_PARAM, to);
+              }
+              return uriBuilder.build();
+            })
+        .headers(headers -> addBearerToken(headers, accessToken))
+        .retrieve()
+        .body(new ParameterizedTypeReference<>() {});
   }
 
   private static void addBearerToken(HttpHeaders headers, String accessToken) {

@@ -97,6 +97,7 @@ app:
   market-price:
     bucket-hours: ${MARKET_PRICE_BUCKET_HOURS:6}
     checkpoint-batch-size: ${MARKET_PRICE_CHECKPOINT_BATCH_SIZE:500}
+    history-scan-page-size: ${MARKET_PRICE_HISTORY_SCAN_PAGE_SIZE:1000}
     scheduler:
       enabled: ${MARKET_PRICE_SCHEDULER_ENABLED:true}
       fixed-delay: ${MARKET_PRICE_SCHEDULER_FIXED_DELAY:5m}

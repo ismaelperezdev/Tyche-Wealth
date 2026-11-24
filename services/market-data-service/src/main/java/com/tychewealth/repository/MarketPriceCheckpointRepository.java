@@ -4,6 +4,7 @@ import com.tychewealth.entity.MarketPriceCheckpointEntity;
 import com.tychewealth.model.MarketPriceCheckpointBatch;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,6 +23,9 @@ public interface MarketPriceCheckpointRepository
   @Override
   @EntityGraph(attributePaths = "marketSymbol")
   Page<MarketPriceCheckpointEntity> findAll(
+      Specification<MarketPriceCheckpointEntity> specification, Pageable pageable);
+
+  Slice<MarketPriceCheckpointEntity> findScanSlice(
       Specification<MarketPriceCheckpointEntity> specification, Pageable pageable);
 
   default void insertIfAbsentBatch(MarketPriceCheckpointBatch batch) {

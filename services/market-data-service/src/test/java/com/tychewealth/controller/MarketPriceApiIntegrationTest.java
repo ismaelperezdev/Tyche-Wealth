@@ -37,6 +37,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -55,7 +58,8 @@ import org.springframework.transaction.annotation.Transactional;
       "spring.jpa.properties.hibernate.session.events.log=false",
       "spring.liquibase.enabled=false",
       "kafka.enabled=false",
-      "app.market-price.scheduler.enabled=false"
+      "app.market-price.scheduler.enabled=false",
+      "app.market-price.history-scan-page-size=2"
     })
 @AutoConfigureMockMvc(addFilters = false)
 class MarketPriceApiIntegrationTest {
@@ -222,6 +226,96 @@ class MarketPriceApiIntegrationTest {
         .andExpect(jsonPath("$.length()").value(1))
         .andExpect(jsonPath("$[0].symbol").value(TEST_SYMBOL))
         .andExpect(jsonPath("$[0].capturedAt").value("2026-02-12T15:00:00Z"));
+  }
+
+  @Test
+  void samplesHistoryWithinDatabaseBatchesWhenResolutionIsRequested() throws Exception {
+    String sampledSymbol = "SAMPLETEST";
+    MarketSymbolEntity symbol = saveSymbol(sampledSymbol);
+    checkpointRepository.saveAllAndFlush(
+        List.of(
+            new MarketPriceCheckpointEntity(
+                symbol,
+                new BigDecimal("187.24"),
+                LocalDateTime.of(2026, 2, 2, 12, 0),
+                LocalDateTime.of(2026, 2, 2, 12, 0)),
+            new MarketPriceCheckpointEntity(
+                symbol,
+                new BigDecimal("188.24"),
+                LocalDateTime.of(2026, 2, 25, 12, 0),
+                LocalDateTime.of(2026, 2, 25, 12, 0))));
+
+    mockMvc
+        .perform(
+            get(PRICE_HISTORY_ENDPOINT + "/sampled")
+                .param(TEST_SYMBOL_IN_FILTER, sampledSymbol)
+                .param("capturedAt.gte", "2025-02-01T00:00:00Z")
+                .param("capturedAt.lte", "2026-03-01T00:00:00Z"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(1))
+        .andExpect(jsonPath("$[0].capturedAt").value("2026-02-25T12:00:00Z"))
+        .andExpect(header().doesNotExist("X-Total-Count"))
+        .andExpect(header().doesNotExist("Link"));
+  }
+
+  @Test
+  void readsMultipleSampledBatchesWithoutExecutingCountQueries() throws Exception {
+    MarketSymbolEntity symbol = saveSymbol("BATCHTEST");
+    LocalDateTime start = LocalDateTime.of(2026, 2, 2, 0, 0);
+    checkpointRepository.saveAllAndFlush(
+        List.of(
+            new MarketPriceCheckpointEntity(symbol, new BigDecimal("187.24"), start, start),
+            new MarketPriceCheckpointEntity(
+                symbol, new BigDecimal("188.24"), start.plusHours(6), start.plusHours(6)),
+            new MarketPriceCheckpointEntity(
+                symbol, new BigDecimal("189.24"), start.plusHours(12), start.plusHours(12))));
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    statistics.clear();
+
+    mockMvc
+        .perform(
+            get(PRICE_HISTORY_ENDPOINT + "/sampled")
+                .param(TEST_SYMBOL_IN_FILTER, "BATCHTEST")
+                .param("capturedAt.gte", "2026-02-02T00:00:00Z")
+                .param("capturedAt.lte", "2026-02-09T00:00:00Z"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(3));
+
+    assertThat(statistics.getPrepareStatementCount()).isEqualTo(2);
+  }
+
+  @Test
+  @Transactional
+  void repositoryScanSlicesRemainOrderedAcrossOffsets() {
+    MarketSymbolEntity symbol = saveSymbol("ORDERTEST");
+    LocalDateTime start = LocalDateTime.of(2026, 2, 2, 0, 0);
+    checkpointRepository.saveAllAndFlush(
+        List.of(
+            new MarketPriceCheckpointEntity(
+                symbol, new BigDecimal("189.24"), start.plusHours(12), start.plusHours(12)),
+            new MarketPriceCheckpointEntity(symbol, new BigDecimal("187.24"), start, start),
+            new MarketPriceCheckpointEntity(
+                symbol, new BigDecimal("188.24"), start.plusHours(6), start.plusHours(6))));
+    Specification<MarketPriceCheckpointEntity> specification =
+        (root, query, criteriaBuilder) ->
+            criteriaBuilder.equal(root.join("marketSymbol").get("symbol"), "ORDERTEST");
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    statistics.clear();
+
+    Slice<MarketPriceCheckpointEntity> firstSlice =
+        checkpointRepository.findScanSlice(specification, PageRequest.of(0, 2));
+    Slice<MarketPriceCheckpointEntity> secondSlice =
+        checkpointRepository.findScanSlice(specification, PageRequest.of(1, 2));
+
+    assertThat(firstSlice.getContent())
+        .extracting(MarketPriceCheckpointEntity::getCapturedAt)
+        .containsExactly(start, start.plusHours(6));
+    assertThat(firstSlice.hasNext()).isTrue();
+    assertThat(secondSlice.getContent())
+        .extracting(MarketPriceCheckpointEntity::getCapturedAt)
+        .containsExactly(start.plusHours(12));
+    assertThat(secondSlice.hasNext()).isFalse();
+    assertThat(statistics.getPrepareStatementCount()).isEqualTo(2);
   }
 
   private MarketSymbolEntity saveSymbol(String symbol) {

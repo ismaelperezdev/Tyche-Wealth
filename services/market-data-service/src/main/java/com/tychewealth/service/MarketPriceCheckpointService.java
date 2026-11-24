@@ -13,8 +13,11 @@ import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Persists new market-price checkpoints within a database transaction. */
@@ -41,6 +44,13 @@ public class MarketPriceCheckpointService {
       Specification<MarketPriceCheckpointEntity> specification,
       OffsetBasedPageRequest pageRequest) {
     return marketPriceCheckpointRepository.findAll(specification, pageRequest);
+  }
+
+  /** Reads one detached batch so long history scans do not retain every entity in one context. */
+  @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
+  public Slice<MarketPriceCheckpointEntity> findCheckpointScanSlice(
+      Specification<MarketPriceCheckpointEntity> specification, Pageable pageRequest) {
+    return marketPriceCheckpointRepository.findScanSlice(specification, pageRequest);
   }
 
   @Transactional

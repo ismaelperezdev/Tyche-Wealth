@@ -64,10 +64,10 @@ public class PortfolioMarketDataServiceImpl implements PortfolioMarketDataServic
       return List.of();
     }
     List<String> symbols = portfolioMarketDataHelper.symbolsFor(assets);
+    List<PriceCheckpoint> sampledHistory =
+        marketDataClient.getSampledPriceHistory(symbols, effectiveFrom, to, serviceAccessToken());
     MarketDataPage<PriceCheckpoint> page =
-        marketDataClient.getPriceHistory(
-            symbols, effectiveFrom, to, 0, maxResults, serviceAccessToken());
-    validationHelper.validateHistoryCount(page);
+        new MarketDataPage<>(sampledHistory, sampledHistory.size());
     long expandedResultCount =
         portfolioMarketDataHelper.countPriceHistoryResults(assets, from, page);
     validationHelper.validateExpandedHistoryCount(expandedResultCount);

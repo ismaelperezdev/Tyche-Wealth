@@ -143,6 +143,32 @@ class MarketDataClientIntegrationTest {
   }
 
   @Test
+  void requestsCompleteSampledHistoryWithoutPaginationMetadata() {
+    Instant from = Instant.parse("2026-11-01T00:00:00Z");
+    Instant to = Instant.parse("2026-11-08T00:00:00Z");
+    server
+        .expect(
+            requestTo(
+                "http://market-data.test/internal/prices/history/sampled?symbol.in=AAPL&capturedAt.gte=2026-11-01T00:00:00Z&capturedAt.lte=2026-11-08T00:00:00Z"))
+        .andExpect(
+            request ->
+                assertThat(request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION))
+                    .isEqualTo("Bearer service-token"))
+        .andRespond(
+            withSuccess(
+                """
+                [{"symbol":"AAPL","price":201.25,"capturedAt":"2026-11-08T00:00:00Z","bucketStart":"2026-11-08T00:00:00Z"}]
+                """,
+                MediaType.APPLICATION_JSON));
+
+    var result = client.getSampledPriceHistory(List.of("AAPL"), from, to, "service-token");
+
+    assertThat(result).hasSize(1);
+    assertThat(result.getFirst().symbol()).isEqualTo("AAPL");
+    server.verify();
+  }
+
+  @Test
   void rejectsSuccessfulResponseWithoutTotalCountHeader() {
     server
         .expect(
