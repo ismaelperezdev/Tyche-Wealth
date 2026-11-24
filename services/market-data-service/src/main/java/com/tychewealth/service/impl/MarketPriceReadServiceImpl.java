@@ -5,16 +5,19 @@ import com.tychewealth.dto.marketprice.PriceCheckpointDto;
 import com.tychewealth.entity.MarketPriceCheckpointEntity;
 import com.tychewealth.listing.filter.ListQuery;
 import com.tychewealth.mapper.MarketPriceReadMapper;
+import com.tychewealth.model.HistoryResolution;
 import com.tychewealth.service.LatestPricesResult;
 import com.tychewealth.service.MarketPriceCheckpointService;
 import com.tychewealth.service.MarketPriceReadService;
+import com.tychewealth.service.helper.MarketPriceHistorySampler;
 import com.tychewealth.service.helper.MarketPriceReadHelper;
 import com.tychewealth.store.MarketQuoteStore;
+import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /** Implements reads from the latest-quote cache and persistent price checkpoints. */
 @Service
@@ -25,6 +28,7 @@ public class MarketPriceReadServiceImpl implements MarketPriceReadService {
   private final MarketPriceCheckpointService marketPriceCheckpointService;
   private final MarketPriceReadHelper readHelper;
   private final MarketPriceReadMapper readMapper;
+  private final MarketPriceHistorySampler historySampler;
 
   @Override
   public LatestPricesResult getLatestPrices(ListQuery query) {
@@ -37,12 +41,35 @@ public class MarketPriceReadServiceImpl implements MarketPriceReadService {
   }
 
   @Override
-  @Transactional(readOnly = true)
   public Page<PriceCheckpointDto> getPriceHistory(ListQuery query) {
     readHelper.validateHistoryFilters(query.filter());
     Page<MarketPriceCheckpointEntity> page =
         marketPriceCheckpointService.findCheckpoints(
             readHelper.specification(query), readHelper.pageRequest(query.pageCriteria()));
     return page.map(readMapper::toPriceCheckpointDto);
+  }
+
+  @Override
+  public Page<PriceCheckpointDto> getPriceHistory(ListQuery query, HistoryResolution resolution) {
+    readHelper.validateHistoryFilters(query.filter());
+    List<PriceCheckpointDto> sampled =
+        historySampler.sample(readHelper.specification(query), resolution).stream()
+            .map(readMapper::toPriceCheckpointDto)
+            .toList();
+    var pageable = readHelper.pageRequest(query.pageCriteria());
+    int start = (int) Math.min(pageable.getOffset(), sampled.size());
+    int end = Math.min(start + pageable.getPageSize(), sampled.size());
+    return new PageImpl<>(sampled.subList(start, end), pageable, sampled.size());
+  }
+
+  @Override
+  public List<PriceCheckpointDto> getSampledPriceHistory(
+      ListQuery query, Instant from, Instant to) {
+    readHelper.validateHistoryFilters(query.filter());
+    return historySampler
+        .sample(readHelper.specification(query), historySampler.resolution(from, to))
+        .stream()
+        .map(readMapper::toPriceCheckpointDto)
+        .toList();
   }
 }

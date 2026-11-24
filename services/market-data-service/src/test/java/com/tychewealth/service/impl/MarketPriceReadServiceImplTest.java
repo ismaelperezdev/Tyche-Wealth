@@ -27,9 +27,11 @@ import com.tychewealth.listing.enums.SortDirection;
 import com.tychewealth.listing.filter.ListQuery;
 import com.tychewealth.listing.jpa.JpaListingSpecificationBuilder;
 import com.tychewealth.mapper.MarketPriceReadMapper;
+import com.tychewealth.model.HistoryResolution;
 import com.tychewealth.model.MarketQuote;
 import com.tychewealth.service.MarketPriceCheckpointService;
 import com.tychewealth.service.helper.MarketPriceFilterFieldMapping;
+import com.tychewealth.service.helper.MarketPriceHistorySampler;
 import com.tychewealth.service.helper.MarketPriceLatestFilterFieldMapping;
 import com.tychewealth.service.helper.MarketPriceQueryValidationHelper;
 import com.tychewealth.service.helper.MarketPriceReadHelper;
@@ -45,6 +47,7 @@ import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.SliceImpl;
 
 @ExtendWith(MockitoExtension.class)
 class MarketPriceReadServiceImplTest {
@@ -69,7 +72,8 @@ class MarketPriceReadServiceImplTest {
                 new MarketPriceFilterFieldMapping(),
                 new MarketPriceLatestFilterFieldMapping(),
                 validationHelper),
-            Mappers.getMapper(MarketPriceReadMapper.class));
+            Mappers.getMapper(MarketPriceReadMapper.class),
+            new MarketPriceHistorySampler(checkpointService, 1_000));
   }
 
   @Test
@@ -206,6 +210,42 @@ class MarketPriceReadServiceImplTest {
         .isEqualTo(Instant.parse("2026-08-27T12:30:00Z"));
     assertThat(history.getContent().getFirst().bucketStart()).isEqualTo(FROM);
     verify(checkpointService).findCheckpoints(any(), any());
+  }
+
+  @Test
+  void samplesLastActualCheckpointInEachRequestedResolutionBucketBeforePaging() {
+    MarketSymbolEntity symbol = new MarketSymbolEntity();
+    symbol.setSymbol(TEST_SYMBOL);
+    MarketPriceCheckpointEntity monday =
+        checkpoint(symbol, "2026-08-24T06:00:00", "2026-08-24T06:00:00");
+    MarketPriceCheckpointEntity thursday =
+        checkpoint(symbol, "2026-08-27T12:00:00", "2026-08-27T12:00:00");
+    MarketPriceCheckpointEntity nextMonday =
+        checkpoint(symbol, "2026-08-31T06:00:00", "2026-08-31T06:00:00");
+    when(checkpointService.findCheckpointScanSlice(any(), any()))
+        .thenReturn(new SliceImpl<>(List.of(monday, thursday, nextMonday)));
+
+    var history =
+        service.getPriceHistory(
+            new ListQuery(
+                List.of(new ApiFilter(TEST_SYMBOL_FIELD, FilterOperator.IN, TEST_SYMBOL)),
+                new PageCriteria(0, 1, List.of())),
+            HistoryResolution.WEEKLY);
+
+    assertThat(history.getTotalElements()).isEqualTo(2);
+    assertThat(history.getContent()).hasSize(1);
+    assertThat(history.getContent().getFirst().capturedAt())
+        .isEqualTo(Instant.parse("2026-08-27T12:00:00Z"));
+    verify(checkpointService).findCheckpointScanSlice(any(), any());
+  }
+
+  private static MarketPriceCheckpointEntity checkpoint(
+      MarketSymbolEntity symbol, String capturedAt, String bucketStart) {
+    return new MarketPriceCheckpointEntity(
+        symbol,
+        new BigDecimal("123.45"),
+        LocalDateTime.parse(capturedAt),
+        LocalDateTime.parse(bucketStart));
   }
 
   @Test
