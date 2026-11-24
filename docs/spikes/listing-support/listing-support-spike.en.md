@@ -1,5 +1,7 @@
 # Spike: Shared Listing Support Library
 
+Spanish version: [listing-support-spike.es.md](listing-support-spike.es.md).
+
 ## Status
 
 Implemented in `libraries/listing-support`, with MVC and JPA/H2 tests. No production service currently depends on the module or uses its annotations.

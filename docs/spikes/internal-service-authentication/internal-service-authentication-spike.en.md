@@ -8,7 +8,7 @@ Spanish version: [internal-service-authentication-spike.es.md](internal-service-
 
 Centralize service-token issuance in `user-service` through Spring Authorization Server without migrating or replacing current user authentication. The initial scope is Portfolio → Market Data Service (MDS). MDS must reject user tokens on its internal endpoints.
 
-This document resolves the security decision deferred in `docs/spikes/market-data-price-history-spike.md`. It does not reopen pagination, batching, result limits, or price composition.
+This document resolves the security decision deferred in `docs/spikes/market-data-price-history/market-data-price-history-spike.en.md`. It does not reopen pagination, batching, result limits, or price composition.
 
 The investigation is based on source inspection, managed dependencies, and Spring documentation. No Authorization Server proof of concept has been implemented or compiled.
 

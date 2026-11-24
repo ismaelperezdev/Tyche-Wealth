@@ -1,4 +1,6 @@
-# Spike: Market Price History
+﻿# Spike: Market Price History
+
+Spanish version: [market-data-price-history-spike.es.md](market-data-price-history-spike.es.md).
 
 ## Investigation
 
@@ -238,17 +240,17 @@ Final route, DTO, and orchestration-class names will be decided in implementatio
 
 Delivery must be divided by responsibility boundaries: first the MDS model and migrations with idempotent symbol projection and the mock; then cache, scheduler, and checkpoints; then internal reads and composition from Portfolio; and, in parallel or beforehand, Portfolio soft deletion and `asset_changes`, which make future reconstruction viable. Every story that changes persistence will include the entity, repository, Liquibase changelog, and corresponding tests in its service.
 
-This decision does not include implementing a transaction microservice, complete historical portfolio valuation, service-to-service authentication, Twelve Data as the initial provider, or a versioned snapshot contract. These are evolutions contingent on production needs, scale, and ordering.
+This decision does not include implementing a transaction microservice, complete historical portfolio valuation, Twelve Data as the initial provider, or a versioned snapshot contract. Service-to-service authentication was resolved separately in [Internal Authentication with OAuth2 Client Credentials](../internal-service-authentication/internal-service-authentication-spike.en.md). Other evolutions remain contingent on production needs, scale, and ordering.
 
 ## Open Questions
 
-- What authentication and authorization mechanism will Portfolio and MDS use before enabling the internal call in a shared environment?
 - What symbol normalization policy and market/currency will the mock initially represent?
 - How will rate limits, errors, and gradual replacement of the mock by Twelve Data be managed?
 - What version and form will the snapshot contract take while three partitions and deltas must satisfy ordering and recovery requirements?
-- What granularity, presentation time zone, and maximum range should the history query support while retaining the UTC bucket as the persistence key?
 - Which asset changes, beyond quantity and average cost, will be relevant to reconstruct future valuation?
 - How will existing queries be migrated to ensure every read, count, and conflict check excludes only entities with non-null `deleted_at`?
+
+The decisions on pagination, downsampling, and safe handling of historical price checkpoints are recorded in [Market Price Checkpoint Query Strategy](../market-price-checkpoint-query/market-price-checkpoint-query-spike.en.md).
 
 ## Stories Derived from the Spike
 
@@ -301,7 +303,7 @@ This decision does not include implementing a transaction microservice, complete
 - Portfolio deduplicates symbols and uses a concrete Spring `RestClient`-based `MarketDataClient` to synchronously query MDS.
 - Portfolio and MDS apply the same effective Portfolio symbol limit; MDS defensively validates it without introducing a new numeric limit.
 - Response composition does not write or modify `AssetEntity.averagePrice`.
-- MDS remains an internal service; service-to-service authentication is treated as a pending decision before exposure outside that boundary.
+- MDS remains an internal service. Portfolio → MDS calls use the OAuth2 client-credentials decision documented in [Internal Authentication with OAuth2 Client Credentials](../internal-service-authentication/internal-service-authentication-spike.en.md); MDS rejects user tokens on its internal endpoints.
 
 ### Record Immutable Asset Change Auditing
 
@@ -367,3 +369,4 @@ drain the consumer group until the current backlog is empty. Start the service t
 `NewTopic` bean to expand the topic to three partitions, then deploy the producer using the stable
 routing key and resume normal consumption. This avoids interleaving old unkeyed records with new
 keyed records during the cutover; adding partitions does not redistribute records already stored.
+
