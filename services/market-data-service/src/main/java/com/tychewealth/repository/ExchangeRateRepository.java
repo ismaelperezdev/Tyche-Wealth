@@ -2,6 +2,8 @@ package com.tychewealth.repository;
 
 import com.tychewealth.entity.ExchangeRateEntity;
 import com.tychewealth.entity.ExchangeRateId;
+import java.time.LocalDate;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -32,4 +34,21 @@ public interface ExchangeRateRepository extends JpaRepository<ExchangeRateEntity
       @Param("quoteCurrencies") String[] quoteCurrencies,
       @Param("effectiveDates") String[] effectiveDates,
       @Param("rates") String[] rates);
+
+  /** Deletes rates older than the supplied effective date. */
+  @Modifying
+  @Transactional
+  @Query("DELETE FROM ExchangeRateEntity rate WHERE rate.id.effectiveDate < :cutoffDate")
+  int deleteRatesOlderThan(@Param("cutoffDate") LocalDate cutoffDate);
+
+  /** Finds the latest EUR-based rate for each requested quote currency in one query. */
+  @Query(
+      value =
+          "SELECT DISTINCT ON (rates.quote_currency) rates.* "
+              + "FROM exchange_rates rates "
+              + "WHERE rates.base_currency = 'EUR' "
+              + "AND rates.quote_currency = ANY(CAST(:quoteCurrencies AS text[])) "
+              + "ORDER BY rates.quote_currency, rates.effective_date DESC",
+      nativeQuery = true)
+  List<ExchangeRateEntity> findLatestEuroRates(@Param("quoteCurrencies") String[] quoteCurrencies);
 }

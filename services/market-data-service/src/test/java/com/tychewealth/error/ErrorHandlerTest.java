@@ -1,8 +1,13 @@
 package com.tychewealth.error;
 
+import static com.tychewealth.constants.TestConstants.EXCHANGE_RATE_TEST_DATE;
+import static com.tychewealth.constants.TestConstants.GBP_CURRENCY;
+import static com.tychewealth.constants.TestConstants.USD_CURRENCY;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.tychewealth.error.exception.ExchangeRateDataInconsistencyException;
 import com.tychewealth.error.exception.InvalidExchangeRateQueryException;
+import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +41,36 @@ class ErrorHandlerTest {
 
     assertErrorResponse(
         response, HttpStatus.BAD_REQUEST, errorDefinition, errorDefinition.getDescription());
+  }
+
+  @Test
+  void shouldReturnInternalServerErrorForInconsistentExchangeRateData() {
+    ErrorDefinition errorDefinition = ErrorDefinition.EXCHANGE_RATE_EFFECTIVE_DATES_MISMATCH;
+
+    ResponseEntity<ErrorResponse> response =
+        errorHandler.handleExchangeRateDataInconsistency(
+            new ExchangeRateDataInconsistencyException(
+                errorDefinition,
+                USD_CURRENCY,
+                GBP_CURRENCY,
+                USD_CURRENCY,
+                LocalDate.parse(EXCHANGE_RATE_TEST_DATE),
+                GBP_CURRENCY,
+                LocalDate.parse("2026-11-25")));
+
+    assertErrorResponse(
+        response,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        errorDefinition,
+        errorDefinition
+            .getDescription()
+            .formatted(
+                USD_CURRENCY,
+                GBP_CURRENCY,
+                USD_CURRENCY,
+                LocalDate.parse(EXCHANGE_RATE_TEST_DATE),
+                GBP_CURRENCY,
+                LocalDate.parse("2026-11-25")));
   }
 
   @Test

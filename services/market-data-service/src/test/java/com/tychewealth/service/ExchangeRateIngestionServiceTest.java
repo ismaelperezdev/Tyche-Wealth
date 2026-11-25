@@ -5,6 +5,7 @@ import static com.tychewealth.constants.TestConstants.EXCHANGE_RATE_TEST_DATE;
 import static com.tychewealth.constants.TestConstants.GBP_CURRENCY;
 import static com.tychewealth.constants.TestConstants.TEST_EXCHANGE_RATE;
 import static com.tychewealth.constants.TestConstants.USD_CURRENCY;
+import static com.tychewealth.testdata.ExchangeRateTestHelper.createIngestionService;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -14,7 +15,6 @@ import static org.mockito.Mockito.when;
 
 import com.tychewealth.client.FrankfurterApiClient;
 import com.tychewealth.client.dto.FrankfurterRate;
-import com.tychewealth.config.properties.ExchangeRateIngestionProperties;
 import com.tychewealth.repository.ExchangeRateRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -41,10 +41,7 @@ class ExchangeRateIngestionServiceTest {
                 effectiveDate, EUR_CURRENCY, USD_CURRENCY, new BigDecimal(TEST_EXCHANGE_RATE)),
             new FrankfurterRate(effectiveDate, EUR_CURRENCY, GBP_CURRENCY, new BigDecimal("0.85")));
     ExchangeRateIngestionService service =
-        new ExchangeRateIngestionService(
-            frankfurterApiClient,
-            exchangeRateRepository,
-            new ExchangeRateIngestionProperties(EUR_CURRENCY, List.of(USD_CURRENCY, GBP_CURRENCY)));
+        createIngestionService(frankfurterApiClient, exchangeRateRepository);
     when(frankfurterApiClient.fetchLatestRates(EUR_CURRENCY, List.of(USD_CURRENCY, GBP_CURRENCY)))
         .thenReturn(Mono.just(rates));
     when(exchangeRateRepository.upsertBatch(any(), any(), any(), any())).thenReturn(2);
@@ -71,7 +68,8 @@ class ExchangeRateIngestionServiceTest {
 
   @Test
   void returnsZeroAndSkipsPersistenceWhenProviderReturnsNoRates() {
-    ExchangeRateIngestionService service = createService();
+    ExchangeRateIngestionService service =
+        createIngestionService(frankfurterApiClient, exchangeRateRepository);
     when(frankfurterApiClient.fetchLatestRates(EUR_CURRENCY, List.of(USD_CURRENCY, GBP_CURRENCY)))
         .thenReturn(Mono.just(List.of()));
 
@@ -83,7 +81,8 @@ class ExchangeRateIngestionServiceTest {
 
   @Test
   void propagatesProviderFailureWithoutPersistingRates() {
-    ExchangeRateIngestionService service = createService();
+    ExchangeRateIngestionService service =
+        createIngestionService(frankfurterApiClient, exchangeRateRepository);
     IllegalStateException providerFailure = new IllegalStateException("Frankfurter unavailable");
     when(frankfurterApiClient.fetchLatestRates(EUR_CURRENCY, List.of(USD_CURRENCY, GBP_CURRENCY)))
         .thenReturn(Mono.error(providerFailure));
@@ -94,10 +93,16 @@ class ExchangeRateIngestionServiceTest {
     verifyNoInteractions(exchangeRateRepository);
   }
 
-  private ExchangeRateIngestionService createService() {
-    return new ExchangeRateIngestionService(
-        frankfurterApiClient,
-        exchangeRateRepository,
-        new ExchangeRateIngestionProperties(EUR_CURRENCY, List.of(USD_CURRENCY, GBP_CURRENCY)));
+  @Test
+  void deletesRatesOlderThanTheSuppliedCutoffDate() {
+    LocalDate cutoffDate = LocalDate.parse(EXCHANGE_RATE_TEST_DATE);
+    when(exchangeRateRepository.deleteRatesOlderThan(cutoffDate)).thenReturn(3);
+
+    int deletedCount =
+        createIngestionService(frankfurterApiClient, exchangeRateRepository)
+            .deleteRatesOlderThan(cutoffDate);
+
+    assertThat(deletedCount).isEqualTo(3);
+    verify(exchangeRateRepository).deleteRatesOlderThan(cutoffDate);
   }
 }

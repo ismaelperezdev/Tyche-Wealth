@@ -1,5 +1,6 @@
 package com.tychewealth.marketdataclient;
 
+import com.tychewealth.marketdataclient.dto.ExchangeRate;
 import com.tychewealth.marketdataclient.dto.LatestMarketPrice;
 import com.tychewealth.marketdataclient.dto.MarketDataPage;
 import com.tychewealth.marketdataclient.dto.PriceCheckpoint;
@@ -17,7 +18,10 @@ public class MarketDataClient {
   private static final String LATEST_PRICES_PATH = "/internal/prices/latest";
   private static final String PRICE_HISTORY_PATH = "/internal/prices/history";
   private static final String SAMPLED_PRICE_HISTORY_PATH = PRICE_HISTORY_PATH + "/sampled";
+  private static final String EXCHANGE_RATES_PATH = "/internal/exchange-rates/retrieve";
   private static final String SYMBOL_IN_QUERY_PARAM = "symbol.in";
+  private static final String BASE_CURRENCY_QUERY_PARAM = "baseCurrency";
+  private static final String QUOTE_CURRENCY_QUERY_PARAM = "quoteCurrency";
   private static final String CAPTURED_AT_GTE_QUERY_PARAM = "capturedAt.gte";
   private static final String CAPTURED_AT_LTE_QUERY_PARAM = "capturedAt.lte";
   private static final String OFFSET_QUERY_PARAM = "offset";
@@ -103,6 +107,23 @@ public class MarketDataClient {
               }
               return uriBuilder.build();
             })
+        .headers(headers -> addBearerToken(headers, accessToken))
+        .retrieve()
+        .body(new ParameterizedTypeReference<>() {});
+  }
+
+  /** Gets exchange rates for currency pairs at matching positions in the input lists. */
+  public List<ExchangeRate> getExchangeRates(
+      List<String> baseCurrencies, List<String> quoteCurrencies, String accessToken) {
+    return restClient
+        .get()
+        .uri(
+            uriBuilder ->
+                uriBuilder
+                    .path(EXCHANGE_RATES_PATH)
+                    .queryParam(BASE_CURRENCY_QUERY_PARAM, String.join(",", baseCurrencies))
+                    .queryParam(QUOTE_CURRENCY_QUERY_PARAM, String.join(",", quoteCurrencies))
+                    .build())
         .headers(headers -> addBearerToken(headers, accessToken))
         .retrieve()
         .body(new ParameterizedTypeReference<>() {});

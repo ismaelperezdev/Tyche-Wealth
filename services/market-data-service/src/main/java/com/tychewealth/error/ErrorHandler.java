@@ -1,10 +1,12 @@
 package com.tychewealth.error;
 
 import static com.tychewealth.constants.LogConstants.ERROR_HANDLER;
+import static com.tychewealth.constants.LogConstants.EXCHANGE_RATE_DATA_INCONSISTENCY;
 import static com.tychewealth.constants.LogConstants.HANDLE_ACTION;
 import static com.tychewealth.constants.LogConstants.UNHANDLED_EXCEPTION;
 import static com.tychewealth.error.ErrorDefinition.*;
 
+import com.tychewealth.error.exception.ExchangeRateDataInconsistencyException;
 import com.tychewealth.error.exception.InvalidExchangeRateQueryException;
 import com.tychewealth.error.exception.InvalidMarketPriceQueryException;
 import com.tychewealth.listing.exception.FilterException;
@@ -41,6 +43,18 @@ public class ErrorHandler {
   public ResponseEntity<ErrorResponse> handleInvalidExchangeRateQuery(
       InvalidExchangeRateQueryException ex) {
     return build(HttpStatus.BAD_REQUEST, ex.getErrorDefinition(), ex.getMessage());
+  }
+
+  @ExceptionHandler(ExchangeRateDataInconsistencyException.class)
+  public ResponseEntity<ErrorResponse> handleExchangeRateDataInconsistency(
+      ExchangeRateDataInconsistencyException ex) {
+    log.error(
+        EXCHANGE_RATE_DATA_INCONSISTENCY,
+        ERROR_HANDLER,
+        HANDLE_ACTION,
+        ex.getErrorDefinition().getType(),
+        ex);
+    return build(HttpStatus.INTERNAL_SERVER_ERROR, ex.getErrorDefinition(), ex.getMessage());
   }
 
   @ExceptionHandler(FilterException.class)

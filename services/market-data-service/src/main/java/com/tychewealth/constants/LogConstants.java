@@ -10,12 +10,15 @@ public final class LogConstants {
   public static final String MARKET_QUOTE_SCHEDULER = "[market-quote-scheduler]";
   public static final String EXCHANGE_RATE_INGESTION_SCHEDULER =
       "[exchange-rate-ingestion-scheduler]";
+  public static final String EXCHANGE_RATE_API_CONTROLLER = "[exchange-rate-api-controller]";
+  public static final String EXCHANGE_RATE_READ_SERVICE = "[exchange-rate-read-service]";
   public static final String ACTIVE_SYMBOL_CHANGES_EVENT = "[active-symbol-changes-event]";
   public static final String ERROR_HANDLER = "[error-handler]";
   public static final String SECURITY = "[security]";
   public static final String FETCH_ACTION = "[fetch]";
   public static final String QUOTE_CAPTURE_ACTION = "[quote-capture]";
   public static final String EXCHANGE_RATE_INGESTION_ACTION = "[exchange-rate-ingestion]";
+  public static final String EXCHANGE_RATE_READ_ACTION = "[exchange-rate-read]";
   public static final String HANDLE_ACTION = "[handle]";
   public static final String PRICE_ACTION = "[price]";
   public static final String QUOTE_ACTION = "[quote]";
@@ -40,6 +43,18 @@ public final class LogConstants {
       BASE_LOG + " Exchange-rate ingestion completed count={} durationMs={}";
   public static final String EXCHANGE_RATE_INGESTION_FAILURE =
       BASE_LOG + " Exchange-rate ingestion failed";
+  public static final String EXCHANGE_RATE_CLEANUP_SUCCESS =
+      BASE_LOG + " Exchange-rate cleanup completed deletedCount={}";
+  public static final String EXCHANGE_RATE_CLEANUP_FAILURE =
+      BASE_LOG + " Exchange-rate cleanup failed";
+  public static final String EXCHANGE_RATE_QUERY_STARTED =
+      BASE_LOG + " Exchange-rate query started baseCount={} quoteCount={}";
+  public static final String EXCHANGE_RATE_QUERY_COMPLETED =
+      BASE_LOG + " Exchange-rate query completed count={}";
+  public static final String EXCHANGE_RATE_READ_COMPLETED =
+      BASE_LOG + " Exchange-rate read completed requestedCount={} returnedCount={} omittedCount={}";
+  public static final String EXCHANGE_RATE_DATA_INCONSISTENCY =
+      BASE_LOG + " Exchange-rate data inconsistency: errorType={}";
   public static final String UNHANDLED_EXCEPTION = BASE_LOG + " Unhandled exception";
   public static final String RETRY_ATTEMPT = " retryAttempt={}";
   public static final String CAUSE = " cause={}";

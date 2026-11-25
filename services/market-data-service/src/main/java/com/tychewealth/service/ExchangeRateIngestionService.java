@@ -4,6 +4,7 @@ import com.tychewealth.client.FrankfurterApiClient;
 import com.tychewealth.client.dto.FrankfurterRate;
 import com.tychewealth.config.properties.ExchangeRateIngestionProperties;
 import com.tychewealth.repository.ExchangeRateRepository;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,5 +33,9 @@ public class ExchangeRateIngestionService {
         rates.stream().map(FrankfurterRate::quote).toArray(String[]::new),
         rates.stream().map(rate -> rate.date().toString()).toArray(String[]::new),
         rates.stream().map(rate -> rate.rate().toPlainString()).toArray(String[]::new));
+  }
+
+  public int deleteRatesOlderThan(LocalDate cutoffDate) {
+    return exchangeRateRepository.deleteRatesOlderThan(cutoffDate);
   }
 }

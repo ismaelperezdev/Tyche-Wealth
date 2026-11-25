@@ -36,6 +36,24 @@ public enum ErrorDefinition {
       "TYCHE-614",
       "EXCHANGE_RATE_CURRENCY_PAIR_COUNT_MISMATCH",
       "The number of base currencies must match the number of quote currencies"),
+  EXCHANGE_RATE_CURRENCY_PAIRS_REQUIRED(
+      "TYCHE-615",
+      "EXCHANGE_RATE_CURRENCY_PAIRS_REQUIRED",
+      "At least one currency pair is required"),
+  EXCHANGE_RATE_CURRENCY_INVALID(
+      "TYCHE-616", "EXCHANGE_RATE_CURRENCY_INVALID", "Currencies must be three-letter codes"),
+  EXCHANGE_RATE_EFFECTIVE_DATES_MISMATCH(
+      "TYCHE-617",
+      "EXCHANGE_RATE_EFFECTIVE_DATES_MISMATCH",
+      "Cannot calculate %s/%s: EUR/%s is effective on %s but EUR/%s is effective on %s"),
+  EXCHANGE_RATE_BASE_PIVOT_RATE_INVALID(
+      "TYCHE-618",
+      "EXCHANGE_RATE_BASE_PIVOT_RATE_INVALID",
+      "Cannot calculate %s/%s: EUR/%s base pivot rate must be positive, but was %s"),
+  EXCHANGE_RATE_QUOTE_PIVOT_RATE_INVALID(
+      "TYCHE-619",
+      "EXCHANGE_RATE_QUOTE_PIVOT_RATE_INVALID",
+      "Cannot calculate %s/%s: EUR/%s quote pivot rate must not be negative, but was %s"),
 
   // MARKET AUTHENTICATION
   MARKET_AUTHENTICATION_SERVICE_UNAVAILABLE(
