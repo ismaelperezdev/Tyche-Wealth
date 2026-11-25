@@ -1,5 +1,7 @@
 package com.tychewealth;
 
+import com.tychewealth.config.properties.ExchangeRateIngestionProperties;
+import com.tychewealth.config.properties.FrankfurterClientProperties;
 import com.tychewealth.config.properties.TwelveDataClientProperties;
 import com.tychewealth.listing.ListingSupportConfiguration;
 import com.tychewealth.listing.filter.FilterParser;
@@ -12,7 +14,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
-@EnableConfigurationProperties(TwelveDataClientProperties.class)
+@EnableConfigurationProperties({
+  TwelveDataClientProperties.class,
+  FrankfurterClientProperties.class,
+  ExchangeRateIngestionProperties.class
+})
 @EnableScheduling
 @Import({
   ListingSupportConfiguration.class,

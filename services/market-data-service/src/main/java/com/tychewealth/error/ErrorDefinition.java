@@ -32,6 +32,10 @@ public enum ErrorDefinition {
       "TYCHE-613",
       "MARKET_PRICE_BUCKET_START_INVALID",
       "bucketStart filters must use ISO-8601 instants"),
+  EXCHANGE_RATE_CURRENCY_PAIR_COUNT_MISMATCH(
+      "TYCHE-614",
+      "EXCHANGE_RATE_CURRENCY_PAIR_COUNT_MISMATCH",
+      "The number of base currencies must match the number of quote currencies"),
 
   // MARKET AUTHENTICATION
   MARKET_AUTHENTICATION_SERVICE_UNAVAILABLE(
