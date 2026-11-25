@@ -30,15 +30,17 @@ class ExchangeRateIngestionSchedulerTest {
 
   @Test
   void ingestsRatesThenDeletesObservationsOlderThanTwoMonths() {
-    LocalDate earliestExpectedCutoff = LocalDate.now().minusMonths(2);
+    LocalDate earliestExecutionDate = LocalDate.now();
 
     scheduler.ingestLatestRates();
+    LocalDate latestExecutionDate = LocalDate.now();
 
     ArgumentCaptor<LocalDate> cutoffDate = ArgumentCaptor.forClass(LocalDate.class);
     InOrder inOrder = inOrder(exchangeRateIngestionService);
     inOrder.verify(exchangeRateIngestionService).ingestLatestRates();
     inOrder.verify(exchangeRateIngestionService).deleteRatesOlderThan(cutoffDate.capture());
-    assertThat(cutoffDate.getValue()).isEqualTo(earliestExpectedCutoff);
+    assertThat(cutoffDate.getValue())
+        .isIn(earliestExecutionDate.minusMonths(2), latestExecutionDate.minusMonths(2));
   }
 
   @Test

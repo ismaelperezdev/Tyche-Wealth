@@ -33,6 +33,7 @@ public class ExchangeRateIngestionScheduler {
       fixedDelayString = "${app.exchange-rate-ingestion.scheduler.fixed-delay:24h}",
       initialDelayString = "${app.exchange-rate-ingestion.scheduler.initial-delay:30s}")
   public void ingestLatestRates() {
+    LocalDate executionDate = LocalDate.now();
     long start = System.currentTimeMillis();
 
     try {
@@ -55,7 +56,7 @@ public class ExchangeRateIngestionScheduler {
     try {
       int deletedRates =
           exchangeRateIngestionService.deleteRatesOlderThan(
-              LocalDate.now().minusMonths(RATE_RETENTION_MONTHS));
+              executionDate.minusMonths(RATE_RETENTION_MONTHS));
       log.info(
           EXCHANGE_RATE_CLEANUP_SUCCESS,
           EXCHANGE_RATE_INGESTION_SCHEDULER,
