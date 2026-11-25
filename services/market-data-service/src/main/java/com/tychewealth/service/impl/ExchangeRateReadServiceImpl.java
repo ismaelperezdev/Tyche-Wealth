@@ -1,5 +1,9 @@
 package com.tychewealth.service.impl;
 
+import static com.tychewealth.constants.LogConstants.EXCHANGE_RATE_READ_ACTION;
+import static com.tychewealth.constants.LogConstants.EXCHANGE_RATE_READ_COMPLETED;
+import static com.tychewealth.constants.LogConstants.EXCHANGE_RATE_READ_SERVICE;
+
 import com.tychewealth.dto.exchangerate.CurrencyPairDto;
 import com.tychewealth.dto.exchangerate.ExchangeRateResponseDto;
 import com.tychewealth.entity.ExchangeRateEntity;
@@ -13,11 +17,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /** Reads the latest available cross rates for batches of currency pairs. */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ExchangeRateReadServiceImpl implements ExchangeRateReadService {
 
   private final ExchangeRateQueryValidationHelper validationHelper;
@@ -42,11 +48,19 @@ public class ExchangeRateReadServiceImpl implements ExchangeRateReadService {
         continue;
       }
 
+      validationHelper.validatePivotRates(pair, eurToBaseRate, eurToQuoteRate);
       validationHelper.validateEffectiveDates(pair, eurToBaseRate, eurToQuoteRate);
       BigDecimal crossRate = readHelper.calculateCrossRate(pair, eurToBaseRate, eurToQuoteRate);
       LocalDate effectiveDate = readHelper.effectiveDate(pair, eurToBaseRate, eurToQuoteRate);
       responses.add(readMapper.toResponseDto(pair, crossRate, effectiveDate));
     }
+    log.info(
+        EXCHANGE_RATE_READ_COMPLETED,
+        EXCHANGE_RATE_READ_SERVICE,
+        EXCHANGE_RATE_READ_ACTION,
+        pairs.size(),
+        responses.size(),
+        pairs.size() - responses.size());
     return List.copyOf(responses);
   }
 }

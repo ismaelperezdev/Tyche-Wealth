@@ -2,18 +2,19 @@ package com.tychewealth.service.helper;
 
 import static com.tychewealth.constants.TestConstants.EXCHANGE_RATE_TEST_DATE;
 import static com.tychewealth.constants.TestConstants.GBP_CURRENCY;
+import static com.tychewealth.constants.TestConstants.TEST_EXCHANGE_RATE;
+import static com.tychewealth.constants.TestConstants.USD_CURRENCY;
+import static com.tychewealth.testdata.ExchangeRateTestHelper.assertInvalidQuery;
+import static com.tychewealth.testdata.ExchangeRateTestHelper.rate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.tychewealth.dto.exchangerate.CurrencyPairDto;
 import com.tychewealth.entity.ExchangeRateEntity;
-import com.tychewealth.entity.ExchangeRateId;
 import com.tychewealth.error.ErrorDefinition;
 import com.tychewealth.error.exception.ExchangeRateDataInconsistencyException;
-import com.tychewealth.error.exception.InvalidExchangeRateQueryException;
 import java.util.List;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.Test;
 
 class ExchangeRateQueryValidationHelperTest {
@@ -49,29 +50,85 @@ class ExchangeRateQueryValidationHelperTest {
 
   @Test
   void reportsCurrencyPairAndDatesWhenPivotRateDatesDiffer() {
-    ExchangeRateEntity eurToUsd = rate("USD", EXCHANGE_RATE_TEST_DATE);
+    ErrorDefinition errorDefinition = ErrorDefinition.EXCHANGE_RATE_EFFECTIVE_DATES_MISMATCH;
+    ExchangeRateEntity eurToUsd = rate(USD_CURRENCY, EXCHANGE_RATE_TEST_DATE);
     ExchangeRateEntity eurToGbp = rate("GBP", "2026-11-25");
 
     assertThatThrownBy(
             () ->
                 helper.validateEffectiveDates(
-                    new CurrencyPairDto("USD", "GBP"), eurToUsd, eurToGbp))
-        .isInstanceOf(ExchangeRateDataInconsistencyException.class)
-        .hasMessageContaining("USD/GBP")
-        .hasMessageContaining(EXCHANGE_RATE_TEST_DATE)
-        .hasMessageContaining("2026-11-25");
-  }
-
-  private ExchangeRateEntity rate(String quoteCurrency, String effectiveDate) {
-    return new ExchangeRateEntity(
-        new ExchangeRateId("EUR", quoteCurrency, java.time.LocalDate.parse(effectiveDate)),
-        java.math.BigDecimal.ONE);
-  }
-
-  private void assertInvalidQuery(ThrowingCallable request, ErrorDefinition expectedError) {
-    assertThatThrownBy(request)
+                    new CurrencyPairDto(USD_CURRENCY, GBP_CURRENCY), eurToUsd, eurToGbp))
         .isInstanceOfSatisfying(
-            InvalidExchangeRateQueryException.class,
-            exception -> assertThat(exception.getErrorDefinition()).isEqualTo(expectedError));
+            ExchangeRateDataInconsistencyException.class,
+            exception -> {
+              assertThat(exception.getErrorDefinition()).isEqualTo(errorDefinition);
+              assertThat(exception.getMessage())
+                  .isEqualTo(
+                      errorDefinition
+                          .getDescription()
+                          .formatted(
+                              USD_CURRENCY,
+                              GBP_CURRENCY,
+                              USD_CURRENCY,
+                              EXCHANGE_RATE_TEST_DATE,
+                              GBP_CURRENCY,
+                              "2026-11-25"));
+            });
+  }
+
+  @Test
+  void rejectsNonPositiveBasePivotRates() {
+    ErrorDefinition errorDefinition = ErrorDefinition.EXCHANGE_RATE_BASE_PIVOT_RATE_INVALID;
+    ExchangeRateEntity eurToUsd = rate(USD_CURRENCY, EXCHANGE_RATE_TEST_DATE, "0");
+    ExchangeRateEntity eurToGbp = rate(GBP_CURRENCY, EXCHANGE_RATE_TEST_DATE, "0.85");
+
+    assertThatThrownBy(
+            () ->
+                helper.validatePivotRates(
+                    new CurrencyPairDto(USD_CURRENCY, GBP_CURRENCY), eurToUsd, eurToGbp))
+        .isInstanceOfSatisfying(
+            ExchangeRateDataInconsistencyException.class,
+            exception -> {
+              assertThat(exception.getErrorDefinition()).isEqualTo(errorDefinition);
+              assertThat(exception.getMessage())
+                  .isEqualTo(
+                      errorDefinition
+                          .getDescription()
+                          .formatted(USD_CURRENCY, GBP_CURRENCY, USD_CURRENCY, 0));
+            });
+  }
+
+  @Test
+  void allowsZeroQuotePivotRate() {
+    ExchangeRateEntity eurToUsd = rate(USD_CURRENCY, EXCHANGE_RATE_TEST_DATE, TEST_EXCHANGE_RATE);
+    ExchangeRateEntity eurToGbp = rate(GBP_CURRENCY, EXCHANGE_RATE_TEST_DATE, "0");
+
+    assertThatCode(
+            () ->
+                helper.validatePivotRates(
+                    new CurrencyPairDto(USD_CURRENCY, GBP_CURRENCY), eurToUsd, eurToGbp))
+        .doesNotThrowAnyException();
+  }
+
+  @Test
+  void rejectsNegativeQuotePivotRates() {
+    ErrorDefinition errorDefinition = ErrorDefinition.EXCHANGE_RATE_QUOTE_PIVOT_RATE_INVALID;
+    ExchangeRateEntity eurToUsd = rate(USD_CURRENCY, EXCHANGE_RATE_TEST_DATE, TEST_EXCHANGE_RATE);
+    ExchangeRateEntity eurToGbp = rate(GBP_CURRENCY, EXCHANGE_RATE_TEST_DATE, "-0.85");
+
+    assertThatThrownBy(
+            () ->
+                helper.validatePivotRates(
+                    new CurrencyPairDto(USD_CURRENCY, GBP_CURRENCY), eurToUsd, eurToGbp))
+        .isInstanceOfSatisfying(
+            ExchangeRateDataInconsistencyException.class,
+            exception -> {
+              assertThat(exception.getErrorDefinition()).isEqualTo(errorDefinition);
+              assertThat(exception.getMessage())
+                  .isEqualTo(
+                      errorDefinition
+                          .getDescription()
+                          .formatted(USD_CURRENCY, GBP_CURRENCY, GBP_CURRENCY, "-0.85"));
+            });
   }
 }

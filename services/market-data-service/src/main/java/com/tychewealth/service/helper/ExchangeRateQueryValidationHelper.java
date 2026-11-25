@@ -12,6 +12,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class ExchangeRateQueryValidationHelper {
 
+  private static final String EUR_CURRENCY = "EUR";
+
   public void validatePairs(List<String> baseCurrencies, List<String> quoteCurrencies) {
     if (baseCurrencies == null || quoteCurrencies == null) {
       throw new InvalidExchangeRateQueryException(
@@ -42,7 +44,37 @@ public class ExchangeRateQueryValidationHelper {
     var quoteEffectiveDate = eurToQuoteRate.getId().getEffectiveDate();
     if (!baseEffectiveDate.equals(quoteEffectiveDate)) {
       throw new ExchangeRateDataInconsistencyException(
-          requestedPair, baseEffectiveDate, quoteEffectiveDate);
+          ErrorDefinition.EXCHANGE_RATE_EFFECTIVE_DATES_MISMATCH,
+          requestedPair.baseCurrency(),
+          requestedPair.quoteCurrency(),
+          requestedPair.baseCurrency(),
+          baseEffectiveDate,
+          requestedPair.quoteCurrency(),
+          quoteEffectiveDate);
+    }
+  }
+
+  public void validatePivotRates(
+      CurrencyPairDto requestedPair,
+      ExchangeRateEntity eurToBaseRate,
+      ExchangeRateEntity eurToQuoteRate) {
+    if (eurToBaseRate != null && eurToBaseRate.getRate().signum() <= 0) {
+      throw new ExchangeRateDataInconsistencyException(
+          ErrorDefinition.EXCHANGE_RATE_BASE_PIVOT_RATE_INVALID,
+          requestedPair.baseCurrency(),
+          requestedPair.quoteCurrency(),
+          requestedPair.baseCurrency(),
+          eurToBaseRate.getRate());
+    }
+    if (eurToQuoteRate != null
+        && !EUR_CURRENCY.equals(requestedPair.quoteCurrency())
+        && eurToQuoteRate.getRate().signum() < 0) {
+      throw new ExchangeRateDataInconsistencyException(
+          ErrorDefinition.EXCHANGE_RATE_QUOTE_PIVOT_RATE_INVALID,
+          requestedPair.baseCurrency(),
+          requestedPair.quoteCurrency(),
+          requestedPair.quoteCurrency(),
+          eurToQuoteRate.getRate());
     }
   }
 

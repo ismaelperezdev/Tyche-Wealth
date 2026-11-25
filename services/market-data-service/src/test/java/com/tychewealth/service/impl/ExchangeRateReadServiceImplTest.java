@@ -1,9 +1,10 @@
 package com.tychewealth.service.impl;
 
-import static com.tychewealth.constants.TestConstants.EUR_CURRENCY;
 import static com.tychewealth.constants.TestConstants.EXCHANGE_RATE_TEST_DATE;
 import static com.tychewealth.constants.TestConstants.GBP_CURRENCY;
+import static com.tychewealth.constants.TestConstants.TEST_EXCHANGE_RATE;
 import static com.tychewealth.constants.TestConstants.USD_CURRENCY;
+import static com.tychewealth.testdata.ExchangeRateTestHelper.rate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
@@ -11,7 +12,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.tychewealth.entity.ExchangeRateEntity;
-import com.tychewealth.entity.ExchangeRateId;
+import com.tychewealth.error.ErrorDefinition;
 import com.tychewealth.error.exception.ExchangeRateDataInconsistencyException;
 import com.tychewealth.mapper.ExchangeRateReadMapper;
 import com.tychewealth.repository.ExchangeRateRepository;
@@ -46,7 +47,7 @@ class ExchangeRateReadServiceImplTest {
 
   @Test
   void returnsLatestCrossRatesForRequestedPairsUsingOneBatchQuery() {
-    ExchangeRateEntity eurToUsd = rate(USD_CURRENCY, EXCHANGE_RATE_TEST_DATE, "1.10");
+    ExchangeRateEntity eurToUsd = rate(USD_CURRENCY, EXCHANGE_RATE_TEST_DATE, TEST_EXCHANGE_RATE);
     ExchangeRateEntity eurToGbp = rate(GBP_CURRENCY, EXCHANGE_RATE_TEST_DATE, "0.85");
     when(exchangeRateRepository.findLatestEuroRates(new String[] {USD_CURRENCY, GBP_CURRENCY}))
         .thenReturn(List.of(eurToUsd, eurToGbp));
@@ -60,23 +61,39 @@ class ExchangeRateReadServiceImplTest {
     assertThat(responses.getFirst().quoteCurrency()).isEqualTo(GBP_CURRENCY);
     assertThat(responses.getFirst().rate())
         .isEqualByComparingTo(
-            new BigDecimal("0.85").divide(new BigDecimal("1.10"), MathContext.DECIMAL128));
+            new BigDecimal("0.85")
+                .divide(new BigDecimal(TEST_EXCHANGE_RATE), MathContext.DECIMAL128));
     assertThat(responses.getFirst().effectiveDate())
         .isEqualTo(LocalDate.parse(EXCHANGE_RATE_TEST_DATE));
     assertThat(responses.get(1).rate())
         .isEqualByComparingTo(
-            new BigDecimal("1.10").divide(new BigDecimal("0.85"), MathContext.DECIMAL128));
+            new BigDecimal(TEST_EXCHANGE_RATE)
+                .divide(new BigDecimal("0.85"), MathContext.DECIMAL128));
     verify(exchangeRateRepository).findLatestEuroRates(new String[] {USD_CURRENCY, GBP_CURRENCY});
   }
 
   @Test
   void omitsPairsWhenEitherRequiredPivotRateIsUnavailable() {
     when(exchangeRateRepository.findLatestEuroRates(new String[] {USD_CURRENCY, GBP_CURRENCY}))
-        .thenReturn(List.of(rate(USD_CURRENCY, EXCHANGE_RATE_TEST_DATE, "1.10")));
+        .thenReturn(List.of(rate(USD_CURRENCY, EXCHANGE_RATE_TEST_DATE, TEST_EXCHANGE_RATE)));
 
     var responses = service.retrieveExchangeRates(List.of(USD_CURRENCY), List.of(GBP_CURRENCY));
 
     assertThat(responses).isEmpty();
+  }
+
+  @Test
+  void returnsZeroWhenQuotePivotRateIsZeroAndBasePivotRateIsPositive() {
+    when(exchangeRateRepository.findLatestEuroRates(new String[] {USD_CURRENCY, GBP_CURRENCY}))
+        .thenReturn(
+            List.of(
+                rate(USD_CURRENCY, EXCHANGE_RATE_TEST_DATE, TEST_EXCHANGE_RATE),
+                rate(GBP_CURRENCY, EXCHANGE_RATE_TEST_DATE, "0")));
+
+    var responses = service.retrieveExchangeRates(List.of(USD_CURRENCY), List.of(GBP_CURRENCY));
+
+    assertThat(responses).hasSize(1);
+    assertThat(responses.getFirst().rate()).isEqualByComparingTo(BigDecimal.ZERO);
   }
 
   @Test
@@ -94,18 +111,28 @@ class ExchangeRateReadServiceImplTest {
     when(exchangeRateRepository.findLatestEuroRates(new String[] {USD_CURRENCY, GBP_CURRENCY}))
         .thenReturn(
             List.of(
-                rate(USD_CURRENCY, EXCHANGE_RATE_TEST_DATE, "1.10"),
+                rate(USD_CURRENCY, EXCHANGE_RATE_TEST_DATE, TEST_EXCHANGE_RATE),
                 rate(GBP_CURRENCY, "2026-11-25", "0.85")));
 
     assertThatThrownBy(
             () -> service.retrieveExchangeRates(List.of(USD_CURRENCY), List.of(GBP_CURRENCY)))
-        .isInstanceOf(ExchangeRateDataInconsistencyException.class)
-        .hasMessageContaining("USD/GBP");
-  }
-
-  private ExchangeRateEntity rate(String quoteCurrency, String effectiveDate, String value) {
-    return new ExchangeRateEntity(
-        new ExchangeRateId(EUR_CURRENCY, quoteCurrency, LocalDate.parse(effectiveDate)),
-        new BigDecimal(value));
+        .isInstanceOfSatisfying(
+            ExchangeRateDataInconsistencyException.class,
+            exception -> {
+              ErrorDefinition errorDefinition =
+                  ErrorDefinition.EXCHANGE_RATE_EFFECTIVE_DATES_MISMATCH;
+              assertThat(exception.getErrorDefinition()).isEqualTo(errorDefinition);
+              assertThat(exception.getMessage())
+                  .isEqualTo(
+                      errorDefinition
+                          .getDescription()
+                          .formatted(
+                              USD_CURRENCY,
+                              GBP_CURRENCY,
+                              USD_CURRENCY,
+                              EXCHANGE_RATE_TEST_DATE,
+                              GBP_CURRENCY,
+                              "2026-11-25"));
+            });
   }
 }

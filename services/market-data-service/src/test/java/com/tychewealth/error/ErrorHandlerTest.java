@@ -1,8 +1,10 @@
 package com.tychewealth.error;
 
+import static com.tychewealth.constants.TestConstants.EXCHANGE_RATE_TEST_DATE;
+import static com.tychewealth.constants.TestConstants.GBP_CURRENCY;
+import static com.tychewealth.constants.TestConstants.USD_CURRENCY;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.tychewealth.dto.exchangerate.CurrencyPairDto;
 import com.tychewealth.error.exception.ExchangeRateDataInconsistencyException;
 import com.tychewealth.error.exception.InvalidExchangeRateQueryException;
 import java.time.LocalDate;
@@ -43,20 +45,32 @@ class ErrorHandlerTest {
 
   @Test
   void shouldReturnInternalServerErrorForInconsistentExchangeRateData() {
-    ErrorDefinition errorDefinition = ErrorDefinition.EXCHANGE_RATE_DATA_INCONSISTENT;
+    ErrorDefinition errorDefinition = ErrorDefinition.EXCHANGE_RATE_EFFECTIVE_DATES_MISMATCH;
 
     ResponseEntity<ErrorResponse> response =
         errorHandler.handleExchangeRateDataInconsistency(
             new ExchangeRateDataInconsistencyException(
-                new CurrencyPairDto("USD", "GBP"),
-                LocalDate.parse("2026-11-24"),
+                errorDefinition,
+                USD_CURRENCY,
+                GBP_CURRENCY,
+                USD_CURRENCY,
+                LocalDate.parse(EXCHANGE_RATE_TEST_DATE),
+                GBP_CURRENCY,
                 LocalDate.parse("2026-11-25")));
 
     assertErrorResponse(
         response,
         HttpStatus.INTERNAL_SERVER_ERROR,
         errorDefinition,
-        "Cannot calculate USD/GBP from EUR pivot rates: EUR/USD is effective on 2026-11-24 but EUR/GBP is effective on 2026-11-25");
+        errorDefinition
+            .getDescription()
+            .formatted(
+                USD_CURRENCY,
+                GBP_CURRENCY,
+                USD_CURRENCY,
+                LocalDate.parse(EXCHANGE_RATE_TEST_DATE),
+                GBP_CURRENCY,
+                LocalDate.parse("2026-11-25")));
   }
 
   @Test
