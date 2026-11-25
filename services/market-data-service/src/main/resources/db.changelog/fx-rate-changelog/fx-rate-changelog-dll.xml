@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="create-fx-rates-table" author="tyche-wealth">
+
+        <preConditions onFail="MARK_RAN" onError="HALT">
+            <not>
+                <tableExists tableName="exchange_rates"/>
+            </not>
+        </preConditions>
+
+        <createTable tableName="exchange_rates">
+            <column name="base_currency" type="VARCHAR(3)">
+                <constraints primaryKey="true" primaryKeyName="pk_fx_rates" nullable="false"/>
+            </column>
+            <column name="quote_currency" type="VARCHAR(3)">
+                <constraints primaryKey="true" primaryKeyName="pk_fx_rates" nullable="false"/>
+            </column>
+            <column name="effective_date" type="DATE">
+                <constraints primaryKey="true" primaryKeyName="pk_fx_rates" nullable="false"/>
+            </column>
+            <column name="rate" type="DECIMAL(24,12)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="exchange_rates"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

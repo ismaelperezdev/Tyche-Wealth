@@ -12,6 +12,9 @@ app:
       password: test-prometheus-password
 
 clients:
+  frankfurter:
+    base-url: https://api.frankfurter.dev
+    request-timeout: 5s
   twelve-data:
     base-url: https://api.twelvedata.com
     price-path: /price

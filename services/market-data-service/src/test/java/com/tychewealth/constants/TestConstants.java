@@ -3,6 +3,11 @@ package com.tychewealth.constants;
 public final class TestConstants {
 
   public static final String TEST_API_KEY = "test-api-key";
+  public static final String EUR_CURRENCY = "EUR";
+  public static final String EXCHANGE_RATE_TEST_DATE = "2026-11-24";
+  public static final String GBP_CURRENCY = "GBP";
+  public static final String TEST_EXCHANGE_RATE = "1.10";
+  public static final String USD_CURRENCY = "USD";
   public static final String TEST_BASE_URL = "https://api.twelvedata.com";
   public static final String TEST_CONNECTION_RESET_MESSAGE = "Connection reset";
   public static final String TEST_INTERVAL = "4min";

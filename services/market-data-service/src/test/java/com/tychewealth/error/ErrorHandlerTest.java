@@ -2,6 +2,7 @@ package com.tychewealth.error;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.tychewealth.error.exception.InvalidExchangeRateQueryException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,18 @@ class ErrorHandlerTest {
         HttpStatus.INTERNAL_SERVER_ERROR,
         ErrorDefinition.GENERIC_INTERNAL_ERROR,
         ErrorDefinition.GENERIC_INTERNAL_ERROR.getDescription());
+  }
+
+  @Test
+  void shouldReturnTypedBadRequestForInvalidExchangeRateQuery() {
+    ErrorDefinition errorDefinition = ErrorDefinition.EXCHANGE_RATE_CURRENCY_PAIR_COUNT_MISMATCH;
+
+    ResponseEntity<ErrorResponse> response =
+        errorHandler.handleInvalidExchangeRateQuery(
+            new InvalidExchangeRateQueryException(errorDefinition));
+
+    assertErrorResponse(
+        response, HttpStatus.BAD_REQUEST, errorDefinition, errorDefinition.getDescription());
   }
 
   @Test

@@ -67,6 +67,9 @@ springdoc:
     path: /swagger-ui.html
 
 clients:
+  frankfurter:
+    base-url: ${FRANKFURTER_BASE_URL:https://api.frankfurter.dev}
+    request-timeout: ${FRANKFURTER_REQUEST_TIMEOUT:10s}
   twelve-data:
     base-url: ${TWELVE_DATA_BASE_URL:https://api.twelvedata.com}
     price-path: ${TWELVE_DATA_PRICE_PATH:/price}
@@ -94,6 +97,13 @@ app:
       password: ${PROMETHEUS_PASSWORD}
   market-symbol:
     batch-size: ${MARKET_SYMBOL_BATCH_SIZE:500}
+  exchange-rate-ingestion:
+    base-currency: ${FRANKFURTER_BASE_CURRENCY:EUR}
+    quote-currencies: ${FRANKFURTER_QUOTE_CURRENCIES:USD,GBP,CHF,JPY,CNY,ARS,BRL,CLP,COP,DOP,MXN,PEN,PYG,SVC,UYU,VES}
+    scheduler:
+      enabled: ${EXCHANGE_RATE_SCHEDULER_ENABLED:true}
+      fixed-delay: ${EXCHANGE_RATE_SCHEDULER_FIXED_DELAY:24h}
+      initial-delay: ${EXCHANGE_RATE_SCHEDULER_INITIAL_DELAY:30s}
   market-price:
     bucket-hours: ${MARKET_PRICE_BUCKET_HOURS:6}
     checkpoint-batch-size: ${MARKET_PRICE_CHECKPOINT_BATCH_SIZE:500}

@@ -9,5 +9,7 @@
              relativeToChangelogFile="true"/>
     <include file="market-price-checkpoint-changelog/market-price-checkpoint-changelog-master.xml"
              relativeToChangelogFile="true"/>
+    <include file="fx-rate-changelog/fx-rate-changelog-master.xml"
+             relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

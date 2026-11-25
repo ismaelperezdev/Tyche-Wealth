@@ -64,7 +64,7 @@ public class ApplicationSecurityConfig {
                     .permitAll()
                     .dispatcherTypeMatchers(DispatcherType.ERROR)
                     .permitAll()
-                    .requestMatchers("/internal/prices/**")
+                    .requestMatchers("/internal/prices/**", "/internal/exchange-rates/**")
                     .access(
                         (authenticationSupplier, ignored) -> {
                           var authentication = authenticationSupplier.get();
