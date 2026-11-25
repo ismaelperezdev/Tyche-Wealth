@@ -40,6 +40,10 @@ public final class LogConstants {
       BASE_LOG + " Exchange-rate ingestion completed count={} durationMs={}";
   public static final String EXCHANGE_RATE_INGESTION_FAILURE =
       BASE_LOG + " Exchange-rate ingestion failed";
+  public static final String EXCHANGE_RATE_CLEANUP_SUCCESS =
+      BASE_LOG + " Exchange-rate cleanup completed deletedCount={}";
+  public static final String EXCHANGE_RATE_CLEANUP_FAILURE =
+      BASE_LOG + " Exchange-rate cleanup failed";
   public static final String UNHANDLED_EXCEPTION = BASE_LOG + " Unhandled exception";
   public static final String RETRY_ATTEMPT = " retryAttempt={}";
   public static final String CAUSE = " cause={}";

@@ -1,11 +1,14 @@
 package com.tychewealth.scheduler;
 
+import static com.tychewealth.constants.LogConstants.EXCHANGE_RATE_CLEANUP_FAILURE;
+import static com.tychewealth.constants.LogConstants.EXCHANGE_RATE_CLEANUP_SUCCESS;
 import static com.tychewealth.constants.LogConstants.EXCHANGE_RATE_INGESTION_ACTION;
 import static com.tychewealth.constants.LogConstants.EXCHANGE_RATE_INGESTION_FAILURE;
 import static com.tychewealth.constants.LogConstants.EXCHANGE_RATE_INGESTION_SCHEDULER;
 import static com.tychewealth.constants.LogConstants.EXCHANGE_RATE_INGESTION_SUCCESS;
 
 import com.tychewealth.service.ExchangeRateIngestionService;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -21,6 +24,8 @@ import org.springframework.stereotype.Component;
     havingValue = "true",
     matchIfMissing = true)
 public class ExchangeRateIngestionScheduler {
+
+  private static final long RATE_RETENTION_MONTHS = 2;
 
   private final ExchangeRateIngestionService exchangeRateIngestionService;
 
@@ -41,6 +46,24 @@ public class ExchangeRateIngestionScheduler {
     } catch (RuntimeException error) {
       log.error(
           EXCHANGE_RATE_INGESTION_FAILURE,
+          EXCHANGE_RATE_INGESTION_SCHEDULER,
+          EXCHANGE_RATE_INGESTION_ACTION,
+          error);
+      return;
+    }
+
+    try {
+      int deletedRates =
+          exchangeRateIngestionService.deleteRatesOlderThan(
+              LocalDate.now().minusMonths(RATE_RETENTION_MONTHS));
+      log.info(
+          EXCHANGE_RATE_CLEANUP_SUCCESS,
+          EXCHANGE_RATE_INGESTION_SCHEDULER,
+          EXCHANGE_RATE_INGESTION_ACTION,
+          deletedRates);
+    } catch (RuntimeException error) {
+      log.error(
+          EXCHANGE_RATE_CLEANUP_FAILURE,
           EXCHANGE_RATE_INGESTION_SCHEDULER,
           EXCHANGE_RATE_INGESTION_ACTION,
           error);

@@ -94,6 +94,17 @@ class ExchangeRateIngestionServiceTest {
     verifyNoInteractions(exchangeRateRepository);
   }
 
+  @Test
+  void deletesRatesOlderThanTheSuppliedCutoffDate() {
+    LocalDate cutoffDate = LocalDate.parse(EXCHANGE_RATE_TEST_DATE);
+    when(exchangeRateRepository.deleteRatesOlderThan(cutoffDate)).thenReturn(3);
+
+    int deletedCount = createService().deleteRatesOlderThan(cutoffDate);
+
+    assertThat(deletedCount).isEqualTo(3);
+    verify(exchangeRateRepository).deleteRatesOlderThan(cutoffDate);
+  }
+
   private ExchangeRateIngestionService createService() {
     return new ExchangeRateIngestionService(
         frankfurterApiClient,

@@ -36,6 +36,16 @@ public enum ErrorDefinition {
       "TYCHE-614",
       "EXCHANGE_RATE_CURRENCY_PAIR_COUNT_MISMATCH",
       "The number of base currencies must match the number of quote currencies"),
+  EXCHANGE_RATE_CURRENCY_PAIRS_REQUIRED(
+      "TYCHE-615",
+      "EXCHANGE_RATE_CURRENCY_PAIRS_REQUIRED",
+      "At least one currency pair is required"),
+  EXCHANGE_RATE_CURRENCY_INVALID(
+      "TYCHE-616", "EXCHANGE_RATE_CURRENCY_INVALID", "Currencies must be three-letter codes"),
+  EXCHANGE_RATE_DATA_INCONSISTENT(
+      "TYCHE-617",
+      "EXCHANGE_RATE_DATA_INCONSISTENT",
+      "The effective dates of the required exchange rates do not match"),
 
   // MARKET AUTHENTICATION
   MARKET_AUTHENTICATION_SERVICE_UNAVAILABLE(

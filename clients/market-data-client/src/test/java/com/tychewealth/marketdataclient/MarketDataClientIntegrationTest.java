@@ -169,6 +169,38 @@ class MarketDataClientIntegrationTest {
   }
 
   @Test
+  void getsExchangeRatesForParallelCurrencyListsWithBearerToken() {
+    server
+        .expect(
+            requestTo(
+                "http://market-data.test/internal/exchange-rates/retrieve?baseCurrency=USD,GBP&quoteCurrency=GBP,USD"))
+        .andExpect(method(org.springframework.http.HttpMethod.GET))
+        .andExpect(
+            request ->
+                assertThat(request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION))
+                    .isEqualTo("Bearer service-token"))
+        .andRespond(
+            withSuccess(
+                """
+                [
+                  {"baseCurrency":"USD","quoteCurrency":"GBP","rate":0.7727,"effectiveDate":"2026-11-24"},
+                  {"baseCurrency":"GBP","quoteCurrency":"USD","rate":1.2941,"effectiveDate":"2026-11-24"}
+                ]
+                """,
+                MediaType.APPLICATION_JSON));
+
+    var rates =
+        client.getExchangeRates(List.of("USD", "GBP"), List.of("GBP", "USD"), "service-token");
+
+    assertThat(rates).hasSize(2);
+    assertThat(rates.getFirst().baseCurrency()).isEqualTo("USD");
+    assertThat(rates.getFirst().quoteCurrency()).isEqualTo("GBP");
+    assertThat(rates.getFirst().rate()).isEqualByComparingTo("0.7727");
+    assertThat(rates.getFirst().effectiveDate()).isEqualTo(java.time.LocalDate.parse("2026-11-24"));
+    server.verify();
+  }
+
+  @Test
   void rejectsSuccessfulResponseWithoutTotalCountHeader() {
     server
         .expect(
