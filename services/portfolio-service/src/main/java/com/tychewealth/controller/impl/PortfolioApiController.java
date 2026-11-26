@@ -25,12 +25,14 @@ import static com.tychewealth.utils.Utils.buildNoStoreEmptyResponse;
 
 import com.tychewealth.controller.PortfolioApi;
 import com.tychewealth.dto.portfolio.PortfolioResponseDto;
+import com.tychewealth.dto.portfolio.PortfolioValuationResponseDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
 import com.tychewealth.ratelimit.RateLimitKey;
 import com.tychewealth.ratelimit.RateLimited;
 import com.tychewealth.service.PortfolioService;
 import jakarta.validation.Valid;
+import java.time.Instant;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -88,6 +90,15 @@ public class PortfolioApiController implements PortfolioApi {
     log.info(
         REQUEST_SUCCESS + PORTFOLIO_ID + USER_ID, PORTFOLIO, RETRIEVE_ACTION, portfolioId, userId);
 
+    return buildNoStoreBodyResponse(HttpStatus.OK, response);
+  }
+
+  @Override
+  @RateLimited(RateLimitKey.PORTFOLIO_RETRIEVE)
+  public ResponseEntity<PortfolioValuationResponseDto> valuation(
+      @AuthenticationPrincipal Long userId, Long portfolioId, Instant from, Instant to) {
+    PortfolioValuationResponseDto response =
+        portfolioService.getValuation(userId, portfolioId, from, to);
     return buildNoStoreBodyResponse(HttpStatus.OK, response);
   }
 

@@ -64,13 +64,12 @@ class MarketDataClientIntegrationTest {
   }
 
   @Test
-  void getsPriceHistoryWithinTimeRange() {
-    Instant from = Instant.parse("2026-11-01T00:00:00Z");
-    Instant to = Instant.parse("2026-11-08T00:00:00Z");
+  void retrievesPriceCheckpointAtOrBeforeRequestedInstant() {
+    Instant capturedAt = Instant.parse("2026-11-08T00:00:00Z");
     server
         .expect(
             requestTo(
-                "http://market-data.test/internal/prices/history?symbol.in=AAPL&capturedAt.gte=2026-11-01T00:00:00Z&capturedAt.lte=2026-11-08T00:00:00Z&offset=5&limit=10"))
+                "http://market-data.test/internal/prices/history?symbol.in=AAPL&capturedAt=2026-11-08T00:00:00Z"))
         .andExpect(method(org.springframework.http.HttpMethod.GET))
         .andExpect(
             request ->
@@ -80,12 +79,11 @@ class MarketDataClientIntegrationTest {
             request -> {
               URI uri = request.getURI();
               var query = UriComponentsBuilder.fromUri(uri).build().getQueryParams();
-              assertThat(query.getFirst("capturedAt.gte")).isEqualTo(from.toString());
-              assertThat(query.getFirst("capturedAt.lte")).isEqualTo(to.toString());
+              assertThat(query.getFirst("capturedAt")).isEqualTo(capturedAt.toString());
             })
         .andRespond(
             withSuccess(
-                    """
+                """
                     [
                       {
                         "symbol":"AAPL",
@@ -95,14 +93,12 @@ class MarketDataClientIntegrationTest {
                       }
                     ]
                     """,
-                    MediaType.APPLICATION_JSON)
-                .header("X-Total-Count", "1"));
+                MediaType.APPLICATION_JSON));
 
-    var result = client.getPriceHistory(List.of("AAPL"), from, to, 5, 10, "user-token");
+    var result = client.retrievePriceCheckpoints(List.of("AAPL"), capturedAt, "user-token");
 
-    assertThat(result.totalCount()).isEqualTo(1);
-    assertThat(result.content()).hasSize(1);
-    assertThat(result.content().getFirst().bucketStart()).isEqualTo(from);
+    assertThat(result).hasSize(1);
+    assertThat(result.getFirst().capturedAt()).isEqualTo(Instant.parse("2026-11-01T00:00:00Z"));
     server.verify();
   }
 
@@ -122,23 +118,20 @@ class MarketDataClientIntegrationTest {
   }
 
   @Test
-  void omitsOptionalHistoryBoundsAndAuthorizationWhenNotProvided() {
+  void omitsOptionalRetrieveTimestampAndAuthorizationWhenNotProvided() {
     server
-        .expect(
-            requestTo(
-                "http://market-data.test/internal/prices/history?symbol.in=AAPL&offset=0&limit=10"))
+        .expect(requestTo("http://market-data.test/internal/prices/history?symbol.in=AAPL"))
         .andExpect(
             request -> {
               assertThat(request.getHeaders()).doesNotContainKey(HttpHeaders.AUTHORIZATION);
               var query = UriComponentsBuilder.fromUri(request.getURI()).build().getQueryParams();
-              assertThat(query).doesNotContainKeys("capturedAt.gte", "capturedAt.lte");
+              assertThat(query).doesNotContainKey("capturedAt");
             })
-        .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON).header("X-Total-Count", "0"));
+        .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
 
-    var result = client.getPriceHistory(List.of("AAPL"), null, null, 0, 10, null);
+    var result = client.retrievePriceCheckpoints(List.of("AAPL"), null, null);
 
-    assertThat(result.content()).isEmpty();
-    assertThat(result.totalCount()).isZero();
+    assertThat(result).isEmpty();
     server.verify();
   }
 

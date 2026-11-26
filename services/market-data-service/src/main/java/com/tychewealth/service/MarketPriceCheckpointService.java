@@ -46,6 +46,12 @@ public class MarketPriceCheckpointService {
     return marketPriceCheckpointRepository.findAll(specification, pageRequest);
   }
 
+  @Transactional(readOnly = true)
+  public List<MarketPriceCheckpointEntity> findLatestBySymbolsAtOrBefore(
+      List<String> symbols, LocalDateTime capturedAt) {
+    return marketPriceCheckpointRepository.findLatestBySymbolsAtOrBefore(symbols, capturedAt);
+  }
+
   /** Reads one detached batch so long history scans do not retain every entity in one context. */
   @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
   public Slice<MarketPriceCheckpointEntity> findCheckpointScanSlice(

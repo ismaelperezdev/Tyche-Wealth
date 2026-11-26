@@ -58,6 +58,10 @@ public class MarketPriceReadHelper {
     return new PageImpl<>(symbols.subList(start, end), pageable, symbols.size());
   }
 
+  public List<String> normalizeSymbols(List<String> symbols) {
+    return validationHelper.normalizeSymbols(symbols);
+  }
+
   public void validateHistoryFilters(List<ApiFilter> filters) {
     requiredSymbols(filters);
 

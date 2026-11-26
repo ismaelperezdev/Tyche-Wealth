@@ -3,12 +3,8 @@ package com.tychewealth.controller;
 import static com.tychewealth.constants.TestConstants.LATEST_PRICES_ENDPOINT;
 import static com.tychewealth.constants.TestConstants.PRICE_HISTORY_ENDPOINT;
 import static com.tychewealth.constants.TestConstants.SECOND_TEST_SYMBOL;
-import static com.tychewealth.constants.TestConstants.TEST_BUCKET_START_GTE_FILTER;
-import static com.tychewealth.constants.TestConstants.TEST_CAPTURED_AT_EQ_FILTER;
-import static com.tychewealth.constants.TestConstants.TEST_CAPTURED_AT_FIELD;
 import static com.tychewealth.constants.TestConstants.TEST_SYMBOL;
 import static com.tychewealth.constants.TestConstants.TEST_SYMBOL_IN_FILTER;
-import static com.tychewealth.constants.TestConstants.THIRD_TEST_SYMBOL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -29,6 +25,7 @@ import com.tychewealth.store.MarketQuoteStore;
 import jakarta.persistence.EntityManagerFactory;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import org.hamcrest.Matchers;
 import org.hibernate.SessionFactory;
@@ -135,24 +132,24 @@ class MarketPriceApiIntegrationTest {
   }
 
   @Test
-  void rejectsMalformedHistoryTimestampFiltersAsBadRequests() throws Exception {
+  void rejectsCheckpointRetrieveWithoutRequiredSymbolFilter() throws Exception {
+    mockMvc
+        .perform(get(PRICE_HISTORY_ENDPOINT))
+        .andExpect(status().isBadRequest())
+        .andExpect(
+            jsonPath("$.code").value(ErrorDefinition.MARKET_PRICE_SYMBOLS_REQUIRED.getCode()));
+  }
+
+  @Test
+  void rejectsMalformedRetrieveTimestampAsBadRequest() throws Exception {
     mockMvc
         .perform(
             get(PRICE_HISTORY_ENDPOINT)
                 .param(TEST_SYMBOL_IN_FILTER, TEST_SYMBOL)
-                .param(TEST_CAPTURED_AT_EQ_FILTER, "not-an-instant"))
+                .param("capturedAt", "not-an-instant"))
         .andExpect(status().isBadRequest())
         .andExpect(
             jsonPath("$.code").value(ErrorDefinition.MARKET_PRICE_CAPTURED_AT_INVALID.getCode()));
-
-    mockMvc
-        .perform(
-            get(PRICE_HISTORY_ENDPOINT)
-                .param(TEST_SYMBOL_IN_FILTER, TEST_SYMBOL)
-                .param(TEST_BUCKET_START_GTE_FILTER, "not-an-instant"))
-        .andExpect(status().isBadRequest())
-        .andExpect(
-            jsonPath("$.code").value(ErrorDefinition.MARKET_PRICE_BUCKET_START_INVALID.getCode()));
   }
 
   @Test
@@ -161,14 +158,15 @@ class MarketPriceApiIntegrationTest {
         .perform(
             get(PRICE_HISTORY_ENDPOINT)
                 .param(TEST_SYMBOL_IN_FILTER, TEST_SYMBOL)
-                .param(TEST_CAPTURED_AT_EQ_FILTER, "+1000000000-12-31T23:59:59.999999999Z"))
+                .param("capturedAt", "+1000000000-12-31T23:59:59.999999999Z"))
         .andExpect(status().isBadRequest())
         .andExpect(
             jsonPath("$.code").value(ErrorDefinition.MARKET_PRICE_CAPTURED_AT_INVALID.getCode()));
   }
 
   @Test
-  void fetchesCheckpointSymbolsWithThePagedQuery() throws Exception {
+  @Transactional
+  void retrievesCheckpointForEachRequestedSymbolWithoutPagination() throws Exception {
     MarketSymbolEntity firstSymbol = saveSymbol(TEST_SYMBOL);
     MarketSymbolEntity secondSymbol = saveSymbol(SECOND_TEST_SYMBOL);
     LocalDateTime capturedAt = LocalDateTime.of(2026, 1, 2, 12, 0);
@@ -186,46 +184,11 @@ class MarketPriceApiIntegrationTest {
         .perform(
             get(PRICE_HISTORY_ENDPOINT)
                 .param(TEST_SYMBOL_IN_FILTER, TEST_SYMBOL + "," + SECOND_TEST_SYMBOL)
-                .param("limit", "2"))
+                .param("capturedAt", "2026-01-03T00:00:00Z"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(2));
 
-    assertThat(statistics.getPrepareStatementCount()).isEqualTo(2);
-  }
-
-  @Test
-  @Transactional
-  void filtersHistoryByRequestedSymbolsAndInclusiveCapturedAtRange() throws Exception {
-    MarketSymbolEntity requestedSymbolInRange = saveSymbol(TEST_SYMBOL);
-    MarketSymbolEntity unrequestedSymbolInRange = saveSymbol(SECOND_TEST_SYMBOL);
-    MarketSymbolEntity requestedSymbolOutsideRange = saveSymbol(THIRD_TEST_SYMBOL);
-    LocalDateTime rangeStart = LocalDateTime.of(2026, 2, 12, 12, 0);
-    LocalDateTime capturedAtInRange = LocalDateTime.of(2026, 2, 12, 15, 0);
-    LocalDateTime rangeEnd = LocalDateTime.of(2026, 2, 12, 18, 0);
-    LocalDateTime capturedAtOutsideRange = LocalDateTime.of(2026, 2, 12, 19, 0);
-    checkpointRepository.saveAllAndFlush(
-        List.of(
-            new MarketPriceCheckpointEntity(
-                requestedSymbolInRange, new BigDecimal("187.24"), capturedAtInRange, rangeStart),
-            new MarketPriceCheckpointEntity(
-                unrequestedSymbolInRange, new BigDecimal("412.50"), capturedAtInRange, rangeStart),
-            new MarketPriceCheckpointEntity(
-                requestedSymbolOutsideRange,
-                new BigDecimal("298.75"),
-                capturedAtOutsideRange,
-                rangeEnd)));
-
-    mockMvc
-        .perform(
-            get(PRICE_HISTORY_ENDPOINT)
-                .param(TEST_SYMBOL_IN_FILTER, TEST_SYMBOL + "," + THIRD_TEST_SYMBOL)
-                .param(TEST_CAPTURED_AT_FIELD + ".gte", "2026-02-12T12:00:00Z")
-                .param(TEST_CAPTURED_AT_FIELD + ".lte", "2026-02-12T18:00:00Z")
-                .param("limit", "20"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.length()").value(1))
-        .andExpect(jsonPath("$[0].symbol").value(TEST_SYMBOL))
-        .andExpect(jsonPath("$[0].capturedAt").value("2026-02-12T15:00:00Z"));
+    assertThat(statistics.getPrepareStatementCount()).isEqualTo(1);
   }
 
   @Test
@@ -256,6 +219,50 @@ class MarketPriceApiIntegrationTest {
         .andExpect(jsonPath("$[0].capturedAt").value("2026-02-25T12:00:00Z"))
         .andExpect(header().doesNotExist("X-Total-Count"))
         .andExpect(header().doesNotExist("Link"));
+  }
+
+  @Test
+  void retrievesLatestCheckpointForEachSymbolAtOrBeforeRequestedInstant() throws Exception {
+    MarketSymbolEntity firstSymbol = saveSymbol("RETRIEVEA");
+    MarketSymbolEntity secondSymbol = saveSymbol("RETRIEVEB");
+    LocalDateTime earlier = LocalDateTime.of(2026, 2, 2, 12, 0);
+    LocalDateTime later = earlier.plusDays(1);
+    checkpointRepository.saveAllAndFlush(
+        List.of(
+            new MarketPriceCheckpointEntity(firstSymbol, new BigDecimal("100"), earlier, earlier),
+            new MarketPriceCheckpointEntity(firstSymbol, new BigDecimal("110"), later, later),
+            new MarketPriceCheckpointEntity(secondSymbol, new BigDecimal("200"), earlier, earlier),
+            new MarketPriceCheckpointEntity(
+                secondSymbol, new BigDecimal("210"), later.plusDays(2), later.plusDays(2))));
+
+    mockMvc
+        .perform(
+            get(PRICE_HISTORY_ENDPOINT)
+                .param(TEST_SYMBOL_IN_FILTER, "RETRIEVEA,RETRIEVEB")
+                .param("capturedAt", "2026-02-04T00:00:00Z"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(2))
+        .andExpect(jsonPath("$[?(@.symbol == 'RETRIEVEA')].price").value(110.0))
+        .andExpect(jsonPath("$[?(@.symbol == 'RETRIEVEB')].price").value(200.0));
+  }
+
+  @Test
+  void retrievesLatestCheckpointWhenCapturedAtIsOmitted() throws Exception {
+    String symbolName = "DEFAULTAT";
+    MarketSymbolEntity symbol = saveSymbol(symbolName);
+    LocalDateTime earlier = LocalDateTime.now(ZoneOffset.UTC).minusDays(2).withNano(0);
+    LocalDateTime later = earlier.plusDays(1);
+    checkpointRepository.saveAllAndFlush(
+        List.of(
+            new MarketPriceCheckpointEntity(symbol, new BigDecimal("100.00"), earlier, earlier),
+            new MarketPriceCheckpointEntity(symbol, new BigDecimal("110.00"), later, later)));
+
+    mockMvc
+        .perform(get(PRICE_HISTORY_ENDPOINT).param(TEST_SYMBOL_IN_FILTER, symbolName))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(1))
+        .andExpect(jsonPath("$[0].symbol").value(symbolName))
+        .andExpect(jsonPath("$[0].price").value(110.00));
   }
 
   @Test

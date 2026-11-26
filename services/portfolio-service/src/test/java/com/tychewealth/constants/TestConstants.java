@@ -54,11 +54,20 @@ public final class TestConstants {
   public static final String TEST_STRATEGY_TYPE_INCOME = StrategyTypeEnum.INCOME.name();
   public static final String TEST_STRATEGY_TYPE_BALANCED = StrategyTypeEnum.BALANCED.name();
   public static final String TEST_ASSET_SYMBOL_MSFT = "MSFT";
+  public static final String TEST_ASSET_SYMBOL_AAPL = "AAPL";
   public static final BigDecimal TEST_ASSET_QUANTITY_TWO = new BigDecimal("2.00000000");
   public static final BigDecimal TEST_ASSET_AVERAGE_PRICE_400 = new BigDecimal("400.0000");
   public static final BigDecimal TEST_MARKET_PRICE_425_50 = new BigDecimal("425.50");
+  public static final BigDecimal TEST_MARKET_PRICE_25_00 = new BigDecimal("25.00");
+  public static final BigDecimal TEST_AVERAGE_PRICE_100_00 = new BigDecimal("100.00");
+  public static final BigDecimal TEST_EXCHANGE_RATE_0_90 = new BigDecimal("0.90");
+  public static final BigDecimal TEST_VALUATION_PROFIT_LOSS_671_00 = new BigDecimal("671.00");
+  public static final BigDecimal TEST_VALUATION_ACQUISITION_COST_180_00 = new BigDecimal("180.00");
   public static final Instant TEST_MARKET_DATA_CAPTURED_AT = Instant.parse("2026-11-01T12:00:00Z");
   public static final Instant TEST_MARKET_DATA_BUCKET_START = Instant.parse("2026-11-01T00:00:00Z");
+  public static final String TEST_SERVICE_ACCESS_TOKEN = "service-token";
+  public static final String TEST_MARKET_DATA_SERVICE_REGISTRATION = "market-data-service";
+  public static final String TEST_PORTFOLIO_SERVICE_PRINCIPAL = "portfolio-service";
   public static final LocalDateTime TEST_ASSET_CREATED_AT_EARLY =
       LocalDateTime.of(2026, 10, 1, 0, 0);
   public static final LocalDateTime TEST_ASSET_CREATED_AT_LATE =

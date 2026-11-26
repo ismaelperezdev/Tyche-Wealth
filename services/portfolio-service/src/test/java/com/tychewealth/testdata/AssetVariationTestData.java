@@ -2,6 +2,7 @@ package com.tychewealth.testdata;
 
 import com.tychewealth.dto.asset.AssetVariationDto;
 import com.tychewealth.entity.AssetEntity;
+import com.tychewealth.entity.AssetVariationEntity;
 import com.tychewealth.enums.AssetVariationTypeEnum;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -18,6 +19,44 @@ public final class AssetVariationTestData {
     asset.setQuantity(new BigDecimal(quantity));
     asset.setAveragePrice(new BigDecimal(averagePrice));
     return asset;
+  }
+
+  public static AssetVariationEntity createdVariation(
+      AssetEntity asset, String quantity, String averagePrice, LocalDateTime occurredAt) {
+    return variation(
+        asset, AssetVariationTypeEnum.CREATED, null, quantity, null, averagePrice, occurredAt);
+  }
+
+  public static AssetVariationEntity manualUpdateVariation(
+      AssetEntity asset,
+      String previousQuantity,
+      String newQuantity,
+      String previousAveragePrice,
+      String newAveragePrice,
+      LocalDateTime occurredAt) {
+    return variation(
+        asset,
+        AssetVariationTypeEnum.MANUAL_UPDATE,
+        previousQuantity,
+        newQuantity,
+        previousAveragePrice,
+        newAveragePrice,
+        occurredAt);
+  }
+
+  public static AssetVariationEntity deletedVariation(
+      AssetEntity asset,
+      String previousQuantity,
+      String previousAveragePrice,
+      LocalDateTime occurredAt) {
+    return variation(
+        asset,
+        AssetVariationTypeEnum.DELETED,
+        previousQuantity,
+        null,
+        previousAveragePrice,
+        null,
+        occurredAt);
   }
 
   public static AssetVariationDto variationDto(
@@ -40,5 +79,23 @@ public final class AssetVariationTestData {
 
   private static BigDecimal decimal(String value) {
     return value == null ? null : new BigDecimal(value);
+  }
+
+  private static AssetVariationEntity variation(
+      AssetEntity asset,
+      AssetVariationTypeEnum changeType,
+      String previousQuantity,
+      String newQuantity,
+      String previousAveragePrice,
+      String newAveragePrice,
+      LocalDateTime occurredAt) {
+    return new AssetVariationEntity(
+        asset,
+        changeType,
+        decimal(previousQuantity),
+        decimal(newQuantity),
+        decimal(previousAveragePrice),
+        decimal(newAveragePrice),
+        occurredAt);
   }
 }

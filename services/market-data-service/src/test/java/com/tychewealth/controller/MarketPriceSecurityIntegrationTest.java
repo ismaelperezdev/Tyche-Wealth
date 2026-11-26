@@ -94,6 +94,20 @@ class MarketPriceSecurityIntegrationTest {
   }
 
   @Test
+  void allowsValidBearerTokenOnCheckpointRetrieveRoute() throws Exception {
+    String token = "valid-service-token-for-checkpoints";
+    when(jwtDecoder.decode(token)).thenReturn(serviceJwt(token, "market-prices:read"));
+
+    mockMvc
+        .perform(
+            get(PRICE_HISTORY_ENDPOINT)
+                .param(TEST_SYMBOL_IN_FILTER, TEST_SYMBOL)
+                .header("Authorization", "Bearer " + token))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$").isArray());
+  }
+
+  @Test
   void rejectsHumanToken() throws Exception {
     when(jwtDecoder.decode("human-token"))
         .thenThrow(new BadJwtException("Token is not a service token"));

@@ -9,10 +9,12 @@ import static com.tychewealth.constants.ApiConstants.REQUEST_CONSUMES;
 import static com.tychewealth.constants.ApiConstants.REQUEST_PRODUCES;
 
 import com.tychewealth.dto.portfolio.PortfolioResponseDto;
+import com.tychewealth.dto.portfolio.PortfolioValuationResponseDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.time.Instant;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -46,6 +48,14 @@ public interface PortfolioApi {
   @GetMapping(value = "/me/{portfolioId}", produces = REQUEST_PRODUCES)
   ResponseEntity<PortfolioResponseDto> retrieve(
       @AuthenticationPrincipal Long userId, @PathVariable("portfolioId") Long portfolioId);
+
+  /** Returns the historical unrealized profit/loss series for one owned portfolio. */
+  @GetMapping(value = "/me/{portfolioId}/valuation", produces = REQUEST_PRODUCES)
+  ResponseEntity<PortfolioValuationResponseDto> valuation(
+      @AuthenticationPrincipal Long userId,
+      @PathVariable("portfolioId") Long portfolioId,
+      @RequestParam(name = "from", required = false) Instant from,
+      @RequestParam(name = "to", required = false) Instant to);
 
   /** Creates a portfolio for the authenticated user. */
   @PostMapping(consumes = REQUEST_CONSUMES, produces = REQUEST_PRODUCES)

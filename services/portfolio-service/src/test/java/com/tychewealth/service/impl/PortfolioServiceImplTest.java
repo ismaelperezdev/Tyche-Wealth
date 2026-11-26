@@ -18,6 +18,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.tychewealth.dto.portfolio.PortfolioResponseDto;
+import com.tychewealth.dto.portfolio.PortfolioValuationResponseDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
 import com.tychewealth.entity.AssetEntity;
@@ -34,6 +35,9 @@ import com.tychewealth.repository.PortfolioRepository;
 import com.tychewealth.service.assetvariation.AssetVariationService;
 import com.tychewealth.service.helper.CommonValidationHelper;
 import com.tychewealth.service.helper.portfolio.PortfolioValidationHelper;
+import com.tychewealth.service.helper.portfolio.PortfolioValuationHelper;
+import com.tychewealth.service.helper.portfolio.PortfolioValuationValidationHelper;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -61,6 +65,8 @@ class PortfolioServiceImplTest {
   @Mock private PortfolioMapper portfolioMapper;
   @Mock private CommonValidationHelper commonValidationHelper;
   @Mock private PortfolioValidationHelper portfolioValidationHelper;
+  @Mock private PortfolioValuationHelper portfolioValuationHelper;
+  @Mock private PortfolioValuationValidationHelper portfolioValuationValidationHelper;
   @Mock private AssetVariationService assetVariationService;
 
   @InjectMocks private PortfolioServiceImpl portfolioService;
@@ -326,5 +332,30 @@ class PortfolioServiceImplTest {
 
     verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
     verify(portfolioRepository, never()).delete(org.mockito.ArgumentMatchers.any());
+  }
+
+  @Test
+  void valuationLoadsInitialAndRangeVariationsForOwnedPortfolio() {
+    Instant from = Instant.parse("2026-11-01T00:00:00Z");
+    Instant to = Instant.parse("2026-11-03T00:00:00Z");
+    PortfolioEntity portfolio = new PortfolioEntity();
+    portfolio.setBaseCurrency(CurrencyCodeEnum.EUR);
+    PortfolioValuationResponseDto expectedResponse =
+        new PortfolioValuationResponseDto(CurrencyCodeEnum.EUR, List.of(), List.of());
+
+    when(portfolioValuationHelper.resolveTo(to)).thenReturn(to);
+    when(commonValidationHelper.validateOwnedPortfolio(
+            TEST_USER_ID, TEST_PORTFOLIO_ID, RETRIEVE_ACTION))
+        .thenReturn(portfolio);
+    when(portfolioValuationHelper.resolveFrom(from, portfolio)).thenReturn(from);
+    when(portfolioValuationHelper.valuePortfolio(TEST_PORTFOLIO_ID, portfolio, from, to, false))
+        .thenReturn(expectedResponse);
+
+    PortfolioValuationResponseDto response =
+        portfolioService.getValuation(TEST_USER_ID, TEST_PORTFOLIO_ID, from, to);
+
+    assertEquals(expectedResponse, response);
+    verify(portfolioValuationValidationHelper).validateRange(from, to);
+    verify(portfolioValuationHelper).valuePortfolio(TEST_PORTFOLIO_ID, portfolio, from, to, false);
   }
 }
