@@ -2,6 +2,8 @@ package com.tychewealth.repository;
 
 import com.tychewealth.entity.MarketPriceCheckpointEntity;
 import com.tychewealth.model.MarketPriceCheckpointBatch;
+import java.time.LocalDateTime;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -18,7 +20,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface MarketPriceCheckpointRepository
     extends JpaRepository<MarketPriceCheckpointEntity, Long>,
-        JpaSpecificationExecutor<MarketPriceCheckpointEntity> {
+        JpaSpecificationExecutor<MarketPriceCheckpointEntity>,
+        MarketPriceCheckpointAsOfRepository {
 
   @Override
   @EntityGraph(attributePaths = "marketSymbol")
@@ -27,6 +30,25 @@ public interface MarketPriceCheckpointRepository
 
   Slice<MarketPriceCheckpointEntity> findScanSlice(
       Specification<MarketPriceCheckpointEntity> specification, Pageable pageable);
+
+  @EntityGraph(attributePaths = "marketSymbol")
+  @Query(
+      """
+      select checkpoint
+      from MarketPriceCheckpointEntity checkpoint
+      where checkpoint.marketSymbol.symbol in :symbols
+        and checkpoint.capturedAt <= :capturedAt
+        and not exists (
+          select newer.id
+          from MarketPriceCheckpointEntity newer
+          where newer.marketSymbol.id = checkpoint.marketSymbol.id
+            and newer.capturedAt <= :capturedAt
+            and (newer.capturedAt > checkpoint.capturedAt
+              or (newer.capturedAt = checkpoint.capturedAt and newer.id > checkpoint.id))
+        )
+      """)
+  List<MarketPriceCheckpointEntity> findLatestBySymbolsAtOrBefore(
+      @Param("symbols") List<String> symbols, @Param("capturedAt") LocalDateTime capturedAt);
 
   default void insertIfAbsentBatch(MarketPriceCheckpointBatch batch) {
     insertIfAbsentBatchNative(

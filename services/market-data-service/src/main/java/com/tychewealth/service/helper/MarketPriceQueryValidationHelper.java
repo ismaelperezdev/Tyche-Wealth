@@ -4,6 +4,7 @@ import com.tychewealth.entity.MarketSymbolEntity;
 import com.tychewealth.error.ErrorDefinition;
 import com.tychewealth.error.exception.InvalidMarketPriceQueryException;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -35,6 +36,23 @@ public class MarketPriceQueryValidationHelper {
 
   public void validateTimeRange(Instant from, Instant to) {
     if (from == null || to == null || from.isAfter(to)) {
+      throw new InvalidMarketPriceQueryException(ErrorDefinition.MARKET_PRICE_TIME_RANGE_INVALID);
+    }
+  }
+
+  public Instant parseCapturedAt(String capturedAt) {
+    if (capturedAt == null) {
+      return null;
+    }
+    try {
+      return Instant.parse(capturedAt);
+    } catch (DateTimeParseException exception) {
+      throw new InvalidMarketPriceQueryException(ErrorDefinition.MARKET_PRICE_CAPTURED_AT_INVALID);
+    }
+  }
+
+  public void validateSampledHistoryRange(Instant from, Instant to) {
+    if (from == null || (to != null && from.isAfter(to))) {
       throw new InvalidMarketPriceQueryException(ErrorDefinition.MARKET_PRICE_TIME_RANGE_INVALID);
     }
   }

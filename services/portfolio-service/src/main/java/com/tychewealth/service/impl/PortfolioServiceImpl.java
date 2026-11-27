@@ -5,6 +5,7 @@ import static com.tychewealth.constants.CommonConstants.ID;
 import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
 
 import com.tychewealth.dto.portfolio.PortfolioResponseDto;
+import com.tychewealth.dto.portfolio.PortfolioValuationResponseDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
 import com.tychewealth.entity.AssetEntity;
@@ -16,6 +17,9 @@ import com.tychewealth.service.PortfolioService;
 import com.tychewealth.service.assetvariation.AssetVariationService;
 import com.tychewealth.service.helper.CommonValidationHelper;
 import com.tychewealth.service.helper.portfolio.PortfolioValidationHelper;
+import com.tychewealth.service.helper.portfolio.PortfolioValuationHelper;
+import com.tychewealth.service.helper.portfolio.PortfolioValuationValidationHelper;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -43,6 +47,8 @@ public class PortfolioServiceImpl implements PortfolioService {
   private final PortfolioMapper portfolioMapper;
   private final CommonValidationHelper commonValidationHelper;
   private final PortfolioValidationHelper portfolioValidationHelper;
+  private final PortfolioValuationHelper portfolioValuationHelper;
+  private final PortfolioValuationValidationHelper portfolioValuationValidationHelper;
   private final AssetVariationService assetVariationService;
 
   @Override
@@ -115,5 +121,25 @@ public class PortfolioServiceImpl implements PortfolioService {
                 }
               }
             });
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public PortfolioValuationResponseDto getValuation(
+      Long userId, Long portfolioId, Instant from, Instant to) {
+    commonValidationHelper.validateAuthenticatedUser(userId);
+    Instant effectiveTo = portfolioValuationHelper.resolveTo(to);
+    if (from != null) {
+      portfolioValuationValidationHelper.validateRange(from, effectiveTo);
+    }
+    PortfolioEntity portfolio =
+        commonValidationHelper.validateOwnedPortfolio(userId, portfolioId, RETRIEVE_ACTION);
+
+    Instant effectiveFrom = portfolioValuationHelper.resolveFrom(from, portfolio);
+    if (from == null) {
+      portfolioValuationValidationHelper.validateRange(effectiveFrom, effectiveTo);
+    }
+    return portfolioValuationHelper.valuePortfolio(
+        portfolioId, portfolio, effectiveFrom, effectiveTo, to == null);
   }
 }

@@ -15,5 +15,7 @@ public interface AssetVariationMapper {
   AssetVariationDto toDto(AssetVariationEntity entity);
 
   @Mapping(target = "id", ignore = true)
+  @Mapping(target = "symbol", ignore = true)
+  @Mapping(target = "currency", ignore = true)
   AssetVariationEntity toEntityForCreation(AssetVariationDto dto, AssetEntity asset);
 }

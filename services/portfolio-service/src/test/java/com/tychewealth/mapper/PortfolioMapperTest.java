@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import com.tychewealth.dto.portfolio.PortfolioResponseDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
+import com.tychewealth.entity.AssetEntity;
+import com.tychewealth.entity.AssetVariationEntity;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.enums.InvestmentHorizonEnum;
@@ -16,7 +18,9 @@ import com.tychewealth.enums.StrategyTypeEnum;
 import com.tychewealth.mapper.portfolio.PortfolioMapper;
 import com.tychewealth.utils.FixtureLoader;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
@@ -80,6 +84,19 @@ class PortfolioMapperTest {
     assertEquals(0, new BigDecimal("0.35").compareTo(dto.getMaxRisk()));
     assertEquals(LocalDateTime.of(2026, 3, 1, 10, 0), dto.getCreatedAt());
     assertEquals(LocalDateTime.of(2026, 3, 7, 11, 30), dto.getUpdatedAt());
+  }
+
+  @Test
+  void toInstantMapsAssetVariationTimestampAsUtc() {
+    LocalDateTime occurredAt = LocalDateTime.of(2026, 11, 2, 12, 30);
+    AssetEntity asset = new AssetEntity();
+    asset.setSymbol("TEST");
+    asset.setCurrency(CurrencyCodeEnum.EUR);
+    AssetVariationEntity variation =
+        new AssetVariationEntity(asset, null, null, null, null, null, occurredAt);
+
+    assertEquals(occurredAt.toInstant(ZoneOffset.UTC), mapper.toInstant(variation));
+    assertEquals(Instant.parse("2026-11-02T12:30:00Z"), mapper.toInstant(variation));
   }
 
   @Test

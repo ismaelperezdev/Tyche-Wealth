@@ -1,6 +1,7 @@
 package com.tychewealth.entity;
 
 import com.tychewealth.enums.AssetVariationTypeEnum;
+import com.tychewealth.enums.CurrencyCodeEnum;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -40,6 +41,13 @@ public class AssetVariationEntity {
   @JoinColumn(name = "asset_id", nullable = false)
   private AssetEntity asset;
 
+  @Column(name = "symbol", nullable = false, length = 20)
+  private String symbol;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "currency", nullable = false, length = 3)
+  private CurrencyCodeEnum currency;
+
   @Enumerated(EnumType.STRING)
   @Column(name = "change_type", nullable = false, length = 30)
   private AssetVariationTypeEnum changeType;
@@ -68,6 +76,8 @@ public class AssetVariationEntity {
       BigDecimal newAveragePrice,
       LocalDateTime occurredAt) {
     this.asset = asset;
+    this.symbol = asset.getSymbol();
+    this.currency = asset.getCurrency();
     this.changeType = changeType;
     this.previousQuantity = previousQuantity;
     this.newQuantity = newQuantity;

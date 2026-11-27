@@ -81,4 +81,20 @@
 
     </changeSet>
 
+    <changeSet id="add-asset-identity-to-variations" author="tyche-wealth">
+        <addColumn tableName="asset_variations">
+            <column name="symbol" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="currency" type="VARCHAR(3)">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="asset_variations" columnName="symbol"/>
+            <dropColumn tableName="asset_variations" columnName="currency"/>
+        </rollback>
+    </changeSet>
+
 </databaseChangeLog>

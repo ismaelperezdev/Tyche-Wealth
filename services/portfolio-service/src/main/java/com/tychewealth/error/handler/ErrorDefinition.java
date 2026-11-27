@@ -94,7 +94,15 @@ public enum ErrorDefinition {
   PORTFOLIO_MARKET_DATA_RESULT_LIMIT_EXCEEDED(
       "TYCHE-519",
       "PORTFOLIO_MARKET_DATA_RESULT_LIMIT_EXCEEDED",
-      "The market-data result exceeds the single-response limit of ${expected:-} records. Received: ${received:-}");
+      "The market-data result exceeds the single-response limit of ${expected:-} records. Received: ${received:-}"),
+  PORTFOLIO_VALUATION_MARKET_PRICE_MISSING(
+      "TYCHE-520",
+      "PORTFOLIO_VALUATION_MARKET_PRICE_MISSING",
+      "No market price is available for symbol '${name:-}' at the requested timestamp"),
+  PORTFOLIO_VALUATION_EXCHANGE_RATE_MISSING(
+      "TYCHE-521",
+      "PORTFOLIO_VALUATION_EXCHANGE_RATE_MISSING",
+      "No exchange rate is available for '${error:-}'");
 
   private final String code;
   private final String type;

@@ -1,8 +1,10 @@
 package com.tychewealth.service;
 
 import com.tychewealth.dto.portfolio.PortfolioResponseDto;
+import com.tychewealth.dto.portfolio.PortfolioValuationResponseDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
+import java.time.Instant;
 import org.springframework.data.domain.Page;
 
 /**
@@ -24,4 +26,7 @@ public interface PortfolioService {
       Long userId, Long portfolioId, PortfolioUpdateRequestDto updateRequest);
 
   void delete(Long userId, Long portfolioId);
+
+  PortfolioValuationResponseDto getValuation(
+      Long userId, Long portfolioId, Instant from, Instant to);
 }

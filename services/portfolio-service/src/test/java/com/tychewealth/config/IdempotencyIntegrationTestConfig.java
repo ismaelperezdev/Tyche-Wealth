@@ -8,7 +8,10 @@ import com.tychewealth.service.helper.asset.AssetCreateHelper;
 import com.tychewealth.service.helper.asset.AssetValidationHelper;
 import com.tychewealth.service.helper.asset.ImportAssetsHelper;
 import com.tychewealth.service.helper.asset.ai.AssetAiValidationHelper;
+import com.tychewealth.service.helper.marketdata.PortfolioValuationMarketDataHelper;
 import com.tychewealth.service.helper.portfolio.PortfolioValidationHelper;
+import com.tychewealth.service.helper.portfolio.PortfolioValuationHelper;
+import com.tychewealth.service.helper.portfolio.PortfolioValuationValidationHelper;
 import com.tychewealth.service.impl.AssetServiceImpl;
 import com.tychewealth.service.impl.PortfolioServiceImpl;
 import org.jspecify.annotations.NonNull;
@@ -27,6 +30,9 @@ import org.springframework.context.annotation.Import;
   PortfolioServiceImpl.class,
   CommonValidationHelper.class,
   PortfolioValidationHelper.class,
+  PortfolioValuationHelper.class,
+  PortfolioValuationMarketDataHelper.class,
+  PortfolioValuationValidationHelper.class,
   AssetApiController.class,
   AssetServiceImpl.class,
   AssetCreateHelper.class,

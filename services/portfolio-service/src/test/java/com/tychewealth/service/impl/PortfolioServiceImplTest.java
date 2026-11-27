@@ -1,5 +1,6 @@
 package com.tychewealth.service.impl;
 
+import static com.tychewealth.constants.CommonConstants.ERROR;
 import static com.tychewealth.constants.CommonConstants.NAME;
 import static com.tychewealth.constants.CommonConstants.NAME_PLACEHOLDER;
 import static com.tychewealth.constants.LogConstants.RETRIEVE_ACTION;
@@ -18,6 +19,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.tychewealth.dto.portfolio.PortfolioResponseDto;
+import com.tychewealth.dto.portfolio.PortfolioValuationResponseDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
 import com.tychewealth.entity.AssetEntity;
@@ -34,8 +36,12 @@ import com.tychewealth.repository.PortfolioRepository;
 import com.tychewealth.service.assetvariation.AssetVariationService;
 import com.tychewealth.service.helper.CommonValidationHelper;
 import com.tychewealth.service.helper.portfolio.PortfolioValidationHelper;
+import com.tychewealth.service.helper.portfolio.PortfolioValuationHelper;
+import com.tychewealth.service.helper.portfolio.PortfolioValuationValidationHelper;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,6 +67,8 @@ class PortfolioServiceImplTest {
   @Mock private PortfolioMapper portfolioMapper;
   @Mock private CommonValidationHelper commonValidationHelper;
   @Mock private PortfolioValidationHelper portfolioValidationHelper;
+  @Mock private PortfolioValuationHelper portfolioValuationHelper;
+  @Mock private PortfolioValuationValidationHelper portfolioValuationValidationHelper;
   @Mock private AssetVariationService assetVariationService;
 
   @InjectMocks private PortfolioServiceImpl portfolioService;
@@ -326,5 +334,58 @@ class PortfolioServiceImplTest {
 
     verify(commonValidationHelper).validateAuthenticatedUser(TEST_USER_ID);
     verify(portfolioRepository, never()).delete(org.mockito.ArgumentMatchers.any());
+  }
+
+  @Test
+  void valuationLoadsInitialAndRangeVariationsForOwnedPortfolio() {
+    Instant from = Instant.parse("2026-11-01T00:00:00Z");
+    Instant to = Instant.parse("2026-11-03T00:00:00Z");
+    PortfolioEntity portfolio = new PortfolioEntity();
+    portfolio.setBaseCurrency(CurrencyCodeEnum.EUR);
+    PortfolioValuationResponseDto expectedResponse =
+        new PortfolioValuationResponseDto(CurrencyCodeEnum.EUR, List.of(), List.of());
+
+    when(portfolioValuationHelper.resolveTo(to)).thenReturn(to);
+    when(commonValidationHelper.validateOwnedPortfolio(
+            TEST_USER_ID, TEST_PORTFOLIO_ID, RETRIEVE_ACTION))
+        .thenReturn(portfolio);
+    when(portfolioValuationHelper.resolveFrom(from, portfolio)).thenReturn(from);
+    when(portfolioValuationHelper.valuePortfolio(TEST_PORTFOLIO_ID, portfolio, from, to, false))
+        .thenReturn(expectedResponse);
+
+    PortfolioValuationResponseDto response =
+        portfolioService.getValuation(TEST_USER_ID, TEST_PORTFOLIO_ID, from, to);
+
+    assertEquals(expectedResponse, response);
+    verify(portfolioValuationValidationHelper).validateRange(from, to);
+    verify(portfolioValuationHelper).valuePortfolio(TEST_PORTFOLIO_ID, portfolio, from, to, false);
+  }
+
+  @Test
+  void validatesResolvedDefaultFromBeforeValuingPortfolio() {
+    Instant effectiveTo = Instant.parse("2026-11-03T00:00:00Z");
+    Instant effectiveFrom = Instant.parse("2026-11-04T00:00:00Z");
+    PortfolioEntity portfolio = new PortfolioEntity();
+    PortfolioException invalidRange =
+        new PortfolioException(
+            ErrorDefinition.PORTFOLIO_MARKET_DATA_TIME_RANGE_INVALID,
+            Map.of(ERROR, "from must not be after to"),
+            HttpStatus.BAD_REQUEST);
+
+    when(portfolioValuationHelper.resolveTo(effectiveTo)).thenReturn(effectiveTo);
+    when(commonValidationHelper.validateOwnedPortfolio(
+            TEST_USER_ID, TEST_PORTFOLIO_ID, RETRIEVE_ACTION))
+        .thenReturn(portfolio);
+    when(portfolioValuationHelper.resolveFrom(null, portfolio)).thenReturn(effectiveFrom);
+    doThrow(invalidRange)
+        .when(portfolioValuationValidationHelper)
+        .validateRange(effectiveFrom, effectiveTo);
+
+    assertThrows(
+        PortfolioException.class,
+        () -> portfolioService.getValuation(TEST_USER_ID, TEST_PORTFOLIO_ID, null, effectiveTo));
+
+    verify(portfolioValuationHelper, never())
+        .valuePortfolio(TEST_PORTFOLIO_ID, portfolio, effectiveFrom, effectiveTo, false);
   }
 }

@@ -17,4 +17,9 @@ public interface MarketPriceReadService {
   Page<PriceCheckpointDto> getPriceHistory(ListQuery query, HistoryResolution resolution);
 
   List<PriceCheckpointDto> getSampledPriceHistory(ListQuery query, Instant from, Instant to);
+
+  List<PriceCheckpointDto> retrieveLatestPriceCheckpoints(List<String> symbols, Instant capturedAt);
+
+  List<PriceCheckpointDto> retrieveLatestPriceCheckpoints(
+      List<String> symbols, List<Instant> capturedAts);
 }

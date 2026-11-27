@@ -17,12 +17,15 @@ import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_ID;
 import static com.tychewealth.constants.TestConstants.TEST_PORTFOLIO_ID_TEMPLATE;
 import static com.tychewealth.testhelper.IdempotencyTestHelper.asset;
 import static com.tychewealth.testhelper.IdempotencyTestHelper.portfolio;
+import static com.tychewealth.testhelper.IdempotencyTestHelper.portfolioMarketData;
 
+import com.tychewealth.dto.asset.request.AssetBatchCreateRequestDto;
 import com.tychewealth.dto.asset.request.AssetCreateRequestDto;
 import com.tychewealth.dto.asset.request.AssetUpdateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
 import com.tychewealth.ratelimit.RateLimitKey;
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.provider.Arguments;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -53,6 +56,30 @@ public final class EndpointTestData {
                 GET, PORTFOLIO_BASE_URL + TEST_ME_PATH_SEGMENT + TEST_PORTFOLIO_ID),
             portfolio("retrieve", Long.class, Long.class)),
         Arguments.of(
+            RateLimitKey.PORTFOLIO_RETRIEVE,
+            new MockHttpServletRequest(
+                GET, PORTFOLIO_BASE_URL + TEST_ME_PATH_SEGMENT + TEST_PORTFOLIO_ID + "/valuation"),
+            portfolio(
+                "valuation",
+                Long.class,
+                Long.class,
+                java.time.Instant.class,
+                java.time.Instant.class)),
+        Arguments.of(
+            RateLimitKey.PORTFOLIO_MARKET_DATA_LATEST,
+            new MockHttpServletRequest(GET, PORTFOLIO_BASE_URL + "/market-data/latest"),
+            portfolioMarketData("getLatestPrices", Long.class, List.class, List.class)),
+        Arguments.of(
+            RateLimitKey.PORTFOLIO_MARKET_DATA_HISTORY,
+            new MockHttpServletRequest(GET, PORTFOLIO_BASE_URL + "/market-data/history"),
+            portfolioMarketData(
+                "getPriceHistory",
+                Long.class,
+                List.class,
+                List.class,
+                java.time.Instant.class,
+                java.time.Instant.class)),
+        Arguments.of(
             RateLimitKey.PORTFOLIO_DELETE,
             new MockHttpServletRequest(
                 DELETE, PORTFOLIO_BASE_URL + TEST_ME_PATH_SEGMENT + TEST_PORTFOLIO_ID),
@@ -64,6 +91,17 @@ public final class EndpointTestData {
                 PORTFOLIO_ASSET_BASE_URL.replace(
                     TEST_PORTFOLIO_ID_TEMPLATE, String.valueOf(TEST_PORTFOLIO_ID))),
             asset("create", Long.class, Long.class, AssetCreateRequestDto.class)),
+        Arguments.of(
+            RateLimitKey.ASSET_BATCH_CREATE,
+            new MockHttpServletRequest(
+                POST,
+                com.tychewealth.constants.ApiConstants.PORTFOLIO_ASSET_BATCH_URL.replace(
+                    TEST_PORTFOLIO_ID_TEMPLATE, String.valueOf(TEST_PORTFOLIO_ID))),
+            asset(
+                "createBatchFromImportedAssets",
+                Long.class,
+                Long.class,
+                AssetBatchCreateRequestDto.class)),
         Arguments.of(
             RateLimitKey.ASSET_LIST,
             new MockHttpServletRequest(
