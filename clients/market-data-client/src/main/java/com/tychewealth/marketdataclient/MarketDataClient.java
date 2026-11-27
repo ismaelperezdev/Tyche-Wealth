@@ -62,6 +62,19 @@ public class MarketDataClient {
   /** Retrieves the latest persisted checkpoint per symbol at or before the optional instant. */
   public List<PriceCheckpoint> retrievePriceCheckpoints(
       List<String> symbols, Instant capturedAt, String accessToken) {
+    return retrievePriceCheckpointsForInstants(
+        symbols, capturedAt == null ? null : List.of(capturedAt), accessToken);
+  }
+
+  /**
+   * Retrieves the latest persisted checkpoint per symbol at or before each requested instant.
+   *
+   * <p>All instants are sent as repeated {@code capturedAt} query parameters to the same {@code
+   * /history} endpoint. Each returned checkpoint identifies its requested instant through {@code
+   * requestedCapturedAt}.
+   */
+  public List<PriceCheckpoint> retrievePriceCheckpointsForInstants(
+      List<String> symbols, List<Instant> capturedAts, String accessToken) {
     return restClient
         .get()
         .uri(
@@ -70,8 +83,8 @@ public class MarketDataClient {
               if (symbols != null) {
                 uriBuilder.queryParam(SYMBOL_IN_QUERY_PARAM, String.join(",", symbols));
               }
-              if (capturedAt != null) {
-                uriBuilder.queryParam(CAPTURED_AT_QUERY_PARAM, capturedAt);
+              if (capturedAts != null) {
+                uriBuilder.queryParam(CAPTURED_AT_QUERY_PARAM, capturedAts.toArray());
               }
               return uriBuilder.build();
             })

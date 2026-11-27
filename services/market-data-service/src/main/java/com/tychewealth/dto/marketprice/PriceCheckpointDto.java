@@ -11,4 +11,5 @@ public record PriceCheckpointDto(
     @Filterable(operators = {FilterOperator.EQ, FilterOperator.IN}) String symbol,
     BigDecimal price,
     Instant capturedAt,
-    Instant bucketStart) {}
+    Instant bucketStart,
+    Instant requestedCapturedAt) {}

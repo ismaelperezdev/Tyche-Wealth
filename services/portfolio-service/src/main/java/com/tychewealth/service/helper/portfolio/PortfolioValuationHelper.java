@@ -75,12 +75,14 @@ public class PortfolioValuationHelper {
     allVariations.addAll(rangeVariations);
     List<String> symbols = symbolsForVariations(allVariations);
 
-    List<PriceCheckpoint> priceHistory =
-        portfolioValuationMarketDataHelper.retrievePriceHistory(symbols, from, to);
-
-    List<Instant> timestamps = valuationTimestamps(from, to, rangeVariations, priceHistory);
+    List<PriceCheckpoint> sampledHistory =
+        portfolioValuationMarketDataHelper.retrieveSampledPriceHistory(symbols, from, to);
+    List<Instant> timestamps = valuationTimestamps(from, to, rangeVariations, sampledHistory);
     List<PortfolioPositionSnapshot> snapshots =
         reconstructPositions(initialStates, rangeVariations, timestamps);
+    List<PriceCheckpoint> priceHistory =
+        portfolioValuationMarketDataHelper.retrievePriceHistory(
+            symbols, snapshots.stream().map(PortfolioPositionSnapshot::timestamp).toList());
     List<String> endSymbols = symbolsForPositions(snapshots.getLast().positions());
     PortfolioValuationEndPrices endPrices =
         portfolioValuationMarketDataHelper.retrieveEndPrices(endSymbols, to, useLatestPricesAtEnd);
@@ -104,7 +106,7 @@ public class PortfolioValuationHelper {
   public List<String> symbolsForVariations(List<AssetVariationEntity> variations) {
     LinkedHashSet<String> symbols = new LinkedHashSet<>();
     variations.stream()
-        .map(variation -> variation.getAsset().getSymbol())
+        .map(AssetVariationEntity::getSymbol)
         .map(PortfolioValuationHelper::normalizeSymbol)
         .forEach(symbols::add);
     return List.copyOf(symbols);
@@ -256,6 +258,9 @@ public class PortfolioValuationHelper {
 
   public Set<String> requiredCurrencyPairs(
       List<PortfolioPositionSnapshot> snapshots, CurrencyCodeEnum baseCurrency) {
+    if (snapshots.stream().noneMatch(snapshot -> !snapshot.positions().isEmpty())) {
+      return Set.of();
+    }
     LinkedHashSet<String> pairs = new LinkedHashSet<>();
     addCurrencyPair(pairs, CurrencyCodeEnum.EUR.getAbbreviation(), baseCurrency.getAbbreviation());
     snapshots.stream()
@@ -281,8 +286,8 @@ public class PortfolioValuationHelper {
         assetId,
         new PortfolioValuationPosition(
             assetId,
-            variation.getAsset().getSymbol(),
-            variation.getAsset().getCurrency(),
+            variation.getSymbol(),
+            variation.getCurrency(),
             variation.getNewQuantity(),
             variation.getNewAveragePrice()));
   }

@@ -33,16 +33,24 @@ public class PortfolioValuationMarketDataHelper {
   }
 
   public List<PriceCheckpoint> retrievePriceHistory(
+      List<String> symbols, List<Instant> requestedCapturedAts) {
+    if (symbols.isEmpty()) {
+      return List.of();
+    }
+    String accessToken =
+        serviceAccessTokenProvider.getAccessToken(MARKET_DATA_SERVICE, PORTFOLIO_SERVICE);
+    return marketDataClient.retrievePriceCheckpointsForInstants(
+        symbols, requestedCapturedAts, accessToken);
+  }
+
+  public List<PriceCheckpoint> retrieveSampledPriceHistory(
       List<String> symbols, Instant from, Instant to) {
     if (symbols.isEmpty()) {
       return List.of();
     }
     String accessToken =
         serviceAccessTokenProvider.getAccessToken(MARKET_DATA_SERVICE, PORTFOLIO_SERVICE);
-    List<PriceCheckpoint> history =
-        new ArrayList<>(marketDataClient.retrievePriceCheckpoints(symbols, from, accessToken));
-    history.addAll(marketDataClient.getSampledPriceHistory(symbols, from, to, accessToken));
-    return List.copyOf(history);
+    return marketDataClient.getSampledPriceHistory(symbols, from, to, accessToken);
   }
 
   public PortfolioValuationEndPrices retrieveEndPrices(

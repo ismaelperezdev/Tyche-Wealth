@@ -369,6 +369,45 @@ class AssetServiceImplTest {
   }
 
   @Test
+  void updateRecordsVariationWhenOnlySymbolChanges() {
+    Long assetId = TEST_ASSET_ID;
+    AssetEntity asset = new AssetEntity();
+    asset.setId(assetId);
+    asset.setName(TEST_ASSET_NAME_APPLE);
+    asset.setSymbol(TEST_ASSET_SYMBOL_AAPL);
+    asset.setQuantity(new BigDecimal("1.00000000"));
+    asset.setAveragePrice(new BigDecimal("100.0000"));
+    asset.setCurrency(CurrencyCodeEnum.USD);
+    AssetUpdateRequestDto request =
+        new AssetUpdateRequestDto(
+            TEST_ASSET_NAME_APPLE,
+            TEST_ASSET_SYMBOL_MSFT,
+            AssetTypeEnum.STOCK,
+            new BigDecimal("1.00000000"),
+            new BigDecimal("100.0000"),
+            CurrencyCodeEnum.USD);
+
+    when(commonValidationHelper.validateOwnedPortfolio(
+            TEST_USER_ID, TEST_PORTFOLIO_ID, UPDATE_ACTION))
+        .thenReturn(portfolio);
+    when(assetValidationHelper.validateRetrievedAssetExists(TEST_PORTFOLIO_ID, assetId))
+        .thenReturn(asset);
+    doAnswer(
+            invocation -> {
+              asset.setSymbol(request.getSymbol());
+              return null;
+            })
+        .when(assetMapper)
+        .update(request, asset);
+    when(assetRepository.saveAndFlush(asset)).thenReturn(asset);
+
+    assetService.update(TEST_USER_ID, TEST_PORTFOLIO_ID, assetId, request);
+
+    verify(assetVariationService)
+        .update(eq(asset), eq(new BigDecimal("1.00000000")), eq(new BigDecimal("100.0000")), any());
+  }
+
+  @Test
   void updateStopsWhenNameConflictValidationFails() {
     Long assetId = TEST_ASSET_ID;
     AssetEntity asset = new AssetEntity();

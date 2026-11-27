@@ -153,6 +153,27 @@ class MarketPriceApiIntegrationTest {
   }
 
   @Test
+  void rejectsMalformedSampledHistoryTimestampAsBadRequest() throws Exception {
+    mockMvc
+        .perform(
+            get(PRICE_HISTORY_ENDPOINT + "/sampled")
+                .param(TEST_SYMBOL_IN_FILTER, TEST_SYMBOL)
+                .param("capturedAt.gte", "not-an-instant"))
+        .andExpect(status().isBadRequest())
+        .andExpect(
+            jsonPath("$.code").value(ErrorDefinition.MARKET_PRICE_CAPTURED_AT_INVALID.getCode()));
+  }
+
+  @Test
+  void rejectsSampledHistoryRequestWithoutRequiredStartAsBadRequest() throws Exception {
+    mockMvc
+        .perform(get(PRICE_HISTORY_ENDPOINT + "/sampled").param(TEST_SYMBOL_IN_FILTER, TEST_SYMBOL))
+        .andExpect(status().isBadRequest())
+        .andExpect(
+            jsonPath("$.code").value(ErrorDefinition.MARKET_PRICE_TIME_RANGE_INVALID.getCode()));
+  }
+
+  @Test
   void rejectsInstantOutsideLocalDateTimeRangeAsBadRequest() throws Exception {
     mockMvc
         .perform(
@@ -243,7 +264,60 @@ class MarketPriceApiIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(2))
         .andExpect(jsonPath("$[?(@.symbol == 'RETRIEVEA')].price").value(110.0))
-        .andExpect(jsonPath("$[?(@.symbol == 'RETRIEVEB')].price").value(200.0));
+        .andExpect(jsonPath("$[?(@.symbol == 'RETRIEVEB')].price").value(200.0))
+        .andExpect(jsonPath("$[0].requestedCapturedAt").value("2026-02-04T00:00:00Z"))
+        .andExpect(jsonPath("$[1].requestedCapturedAt").value("2026-02-04T00:00:00Z"));
+  }
+
+  @Test
+  void retrievesLatestCheckpointsForMultipleRequestedInstantsInOneCall() throws Exception {
+    MarketSymbolEntity symbol = saveSymbol("BATCHASOF");
+    LocalDateTime first = LocalDateTime.of(2026, 2, 2, 12, 0);
+    LocalDateTime second = first.plusDays(1);
+    checkpointRepository.saveAllAndFlush(
+        List.of(
+            new MarketPriceCheckpointEntity(symbol, new BigDecimal("100"), first, first),
+            new MarketPriceCheckpointEntity(symbol, new BigDecimal("110"), second, second)));
+
+    mockMvc
+        .perform(
+            get(PRICE_HISTORY_ENDPOINT)
+                .param(TEST_SYMBOL_IN_FILTER, "BATCHASOF")
+                .param("capturedAt", "2026-02-02T18:00:00Z", "2026-02-03T18:00:00Z"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(2))
+        .andExpect(jsonPath("$[0].price").value(100))
+        .andExpect(jsonPath("$[0].requestedCapturedAt").value("2026-02-02T18:00:00Z"))
+        .andExpect(jsonPath("$[1].price").value(110))
+        .andExpect(jsonPath("$[1].requestedCapturedAt").value("2026-02-03T18:00:00Z"));
+  }
+
+  @Test
+  void retrievesCheckpointBeforeEachRequestedInstantWhenRequestsFallBetweenCaptures()
+      throws Exception {
+    MarketSymbolEntity symbol = saveSymbol("BETWEENCHECKPOINTS");
+    LocalDateTime firstCheckpoint = LocalDateTime.of(2026, 2, 2, 12, 0);
+    LocalDateTime secondCheckpoint = firstCheckpoint.plusDays(1);
+    checkpointRepository.saveAllAndFlush(
+        List.of(
+            new MarketPriceCheckpointEntity(
+                symbol, new BigDecimal("100"), firstCheckpoint, firstCheckpoint),
+            new MarketPriceCheckpointEntity(
+                symbol, new BigDecimal("110"), secondCheckpoint, secondCheckpoint)));
+
+    mockMvc
+        .perform(
+            get(PRICE_HISTORY_ENDPOINT)
+                .param(TEST_SYMBOL_IN_FILTER, "BETWEENCHECKPOINTS")
+                .param("capturedAt", "2026-02-02T18:00:00Z", "2026-02-03T18:00:00Z"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(2))
+        .andExpect(jsonPath("$[0].price").value(100))
+        .andExpect(jsonPath("$[0].capturedAt").value("2026-02-02T12:00:00Z"))
+        .andExpect(jsonPath("$[0].requestedCapturedAt").value("2026-02-02T18:00:00Z"))
+        .andExpect(jsonPath("$[1].price").value(110))
+        .andExpect(jsonPath("$[1].capturedAt").value("2026-02-03T12:00:00Z"))
+        .andExpect(jsonPath("$[1].requestedCapturedAt").value("2026-02-03T18:00:00Z"));
   }
 
   @Test

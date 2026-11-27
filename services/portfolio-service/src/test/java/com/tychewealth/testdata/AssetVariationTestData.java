@@ -4,6 +4,7 @@ import com.tychewealth.dto.asset.AssetVariationDto;
 import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.entity.AssetVariationEntity;
 import com.tychewealth.enums.AssetVariationTypeEnum;
+import com.tychewealth.enums.CurrencyCodeEnum;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -16,6 +17,8 @@ public final class AssetVariationTestData {
   public static AssetEntity asset(Long id, String quantity, String averagePrice) {
     AssetEntity asset = new AssetEntity();
     asset.setId(id);
+    asset.setSymbol("TEST");
+    asset.setCurrency(CurrencyCodeEnum.EUR);
     asset.setQuantity(new BigDecimal(quantity));
     asset.setAveragePrice(new BigDecimal(averagePrice));
     return asset;

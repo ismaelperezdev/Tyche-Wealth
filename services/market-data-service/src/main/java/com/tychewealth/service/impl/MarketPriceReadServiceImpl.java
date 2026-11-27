@@ -11,6 +11,7 @@ import com.tychewealth.model.HistoryResolution;
 import com.tychewealth.service.LatestPricesResult;
 import com.tychewealth.service.MarketPriceCheckpointService;
 import com.tychewealth.service.MarketPriceReadService;
+import com.tychewealth.service.helper.MarketPriceCheckpointBatchHelper;
 import com.tychewealth.service.helper.MarketPriceHistorySampler;
 import com.tychewealth.service.helper.MarketPriceReadHelper;
 import com.tychewealth.store.MarketQuoteStore;
@@ -32,6 +33,7 @@ public class MarketPriceReadServiceImpl implements MarketPriceReadService {
   private final MarketQuoteStore marketQuoteStore;
   private final MarketPriceCheckpointService marketPriceCheckpointService;
   private final MarketPriceReadHelper readHelper;
+  private final MarketPriceCheckpointBatchHelper checkpointBatchHelper;
   private final MarketPriceReadMapper readMapper;
   private final MarketPriceHistorySampler historySampler;
 
@@ -93,7 +95,25 @@ public class MarketPriceReadServiceImpl implements MarketPriceReadService {
     return marketPriceCheckpointService
         .findLatestBySymbolsAtOrBefore(normalizedSymbols, capturedAtUtc)
         .stream()
-        .map(readMapper::toPriceCheckpointDto)
+        .map(
+            checkpoint -> {
+              PriceCheckpointDto dto = readMapper.toPriceCheckpointDto(checkpoint);
+              return requestedCapturedAt == null
+                  ? dto
+                  : new PriceCheckpointDto(
+                      dto.symbol(),
+                      dto.price(),
+                      dto.capturedAt(),
+                      dto.bucketStart(),
+                      requestedCapturedAt);
+            })
         .toList();
+  }
+
+  @Override
+  public List<PriceCheckpointDto> retrieveLatestPriceCheckpoints(
+      List<String> symbols, List<Instant> requestedCapturedAts) {
+    return checkpointBatchHelper.retrieveLatestPriceCheckpoints(
+        readHelper.normalizeSymbols(symbols), requestedCapturedAts);
   }
 }

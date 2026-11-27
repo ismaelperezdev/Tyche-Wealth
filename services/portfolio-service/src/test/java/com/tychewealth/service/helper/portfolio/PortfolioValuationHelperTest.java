@@ -22,7 +22,9 @@ import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.error.exception.PortfolioException;
 import com.tychewealth.mapper.portfolio.PortfolioMapper;
+import com.tychewealth.marketdataclient.dto.PriceCheckpoint;
 import com.tychewealth.model.PortfolioPositionSnapshot;
+import com.tychewealth.model.PortfolioValuationPosition;
 import com.tychewealth.repository.AssetVariationRepository;
 import com.tychewealth.service.helper.marketdata.PortfolioValuationMarketDataHelper;
 import java.math.BigDecimal;
@@ -31,6 +33,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
@@ -110,8 +113,50 @@ class PortfolioValuationHelperTest {
   }
 
   @Test
+  void reconstructsAssetIdentityFromEachVariationInsteadOfCurrentAssetValues() {
+    AssetEntity mutableAsset =
+        com.tychewealth.testdata.AssetVariationTestData.asset(1L, "10", "100");
+    mutableAsset.setSymbol("OLD");
+    mutableAsset.setCurrency(CurrencyCodeEnum.USD);
+    LocalDateTime createdAt = LocalDateTime.parse("2026-11-01T00:00:00");
+    LocalDateTime changedAt = LocalDateTime.parse("2026-11-02T00:00:00");
+    var created = createdVariation(mutableAsset, "10", "100", createdAt);
+
+    mutableAsset.setSymbol("NEW");
+    mutableAsset.setCurrency(CurrencyCodeEnum.GBP);
+    var updated = manualUpdateVariation(mutableAsset, "10", "12", "100", "110", changedAt);
+
+    List<PortfolioPositionSnapshot> snapshots =
+        valuationHelper.reconstructPositions(
+            List.of(created),
+            List.of(updated),
+            List.of(createdAt.toInstant(ZoneOffset.UTC), changedAt.toInstant(ZoneOffset.UTC)));
+
+    assertEquals("OLD", snapshots.getFirst().positions().getFirst().symbol());
+    assertEquals(CurrencyCodeEnum.USD, snapshots.getFirst().positions().getFirst().currency());
+    assertEquals("NEW", snapshots.getLast().positions().getFirst().symbol());
+    assertEquals(CurrencyCodeEnum.GBP, snapshots.getLast().positions().getFirst().currency());
+    assertEquals(
+        List.of("OLD", "NEW"), valuationHelper.symbolsForVariations(List.of(created, updated)));
+  }
+
+  @Test
   void returnsNoSnapshotsWhenThereAreNoTimestamps() {
     assertEquals(List.of(), valuationHelper.reconstructPositions(List.of(), List.of(), List.of()));
+  }
+
+  @Test
+  void requestsNoExchangeRatesForEmptySnapshotsButKeepsMarketPriceConversionPair() {
+    var emptySnapshot =
+        new PortfolioPositionSnapshot(Instant.parse("2026-11-01T00:00:00Z"), List.of());
+
+    assertEquals(
+        Set.of(),
+        valuationHelper.requiredCurrencyPairs(List.of(emptySnapshot), CurrencyCodeEnum.USD));
+    assertEquals(
+        Set.of("EUR->USD"),
+        valuationHelper.requiredCurrencyPairs(
+            List.of(positionSnapshot(CurrencyCodeEnum.USD)), CurrencyCodeEnum.USD));
   }
 
   @Test
@@ -137,6 +182,43 @@ class PortfolioValuationHelperTest {
         PortfolioValuationPriceSource.CHECKPOINT, point.priceObservations().getFirst().source());
     assertEquals(
         marketPriceCheckpoint().capturedAt(), point.priceObservations().getFirst().capturedAt());
+  }
+
+  @Test
+  void usesCheckpointBeforeAcquisitionWhenAcquisitionFallsBetweenCheckpointsInSameBucket() {
+    Instant earlierCheckpointAt = Instant.parse("2026-11-02T10:00:00Z");
+    Instant acquisitionAt = Instant.parse("2026-11-02T11:00:00Z");
+    Instant laterCheckpointAt = Instant.parse("2026-11-02T12:00:00Z");
+    Instant bucketStart = Instant.parse("2026-11-02T06:00:00Z");
+    var position =
+        new PortfolioValuationPosition(
+            1L,
+            TEST_ASSET_SYMBOL_MSFT,
+            CurrencyCodeEnum.EUR,
+            new BigDecimal("2"),
+            new BigDecimal("100"));
+    var snapshot = new PortfolioPositionSnapshot(acquisitionAt, List.of(position));
+    var earlierCheckpoint =
+        new PriceCheckpoint(
+            TEST_ASSET_SYMBOL_MSFT, new BigDecimal("120"), earlierCheckpointAt, bucketStart);
+    var laterCheckpoint =
+        new PriceCheckpoint(
+            TEST_ASSET_SYMBOL_MSFT, new BigDecimal("130"), laterCheckpointAt, bucketStart);
+
+    var point =
+        valuationHelper
+            .calculateValuationPoints(
+                List.of(snapshot),
+                List.of(laterCheckpoint, earlierCheckpoint),
+                Map.of(),
+                Map.of(),
+                Map.of(),
+                CurrencyCodeEnum.EUR,
+                false)
+            .getFirst();
+
+    assertEquals(new BigDecimal("40"), point.unrealizedProfitLoss());
+    assertEquals(earlierCheckpointAt, point.priceObservations().getFirst().capturedAt());
   }
 
   @Test

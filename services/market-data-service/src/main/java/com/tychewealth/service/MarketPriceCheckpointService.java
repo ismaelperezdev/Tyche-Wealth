@@ -4,6 +4,7 @@ import com.tychewealth.entity.MarketPriceCheckpointEntity;
 import com.tychewealth.listing.shared.OffsetBasedPageRequest;
 import com.tychewealth.mapper.MarketPriceCheckpointMapper;
 import com.tychewealth.model.MarketPriceCheckpointBatch;
+import com.tychewealth.repository.MarketPriceCheckpointAtInstantProjection;
 import com.tychewealth.repository.MarketPriceCheckpointRepository;
 import jakarta.annotation.PostConstruct;
 import java.time.LocalDateTime;
@@ -50,6 +51,12 @@ public class MarketPriceCheckpointService {
   public List<MarketPriceCheckpointEntity> findLatestBySymbolsAtOrBefore(
       List<String> symbols, LocalDateTime capturedAt) {
     return marketPriceCheckpointRepository.findLatestBySymbolsAtOrBefore(symbols, capturedAt);
+  }
+
+  @Transactional(readOnly = true)
+  public List<MarketPriceCheckpointAtInstantProjection> findLatestBySymbolsAtInstants(
+      List<String> symbols, List<LocalDateTime> capturedAts) {
+    return marketPriceCheckpointRepository.findLatestBySymbolsAtInstants(symbols, capturedAts);
   }
 
   /** Reads one detached batch so long history scans do not retain every entity in one context. */

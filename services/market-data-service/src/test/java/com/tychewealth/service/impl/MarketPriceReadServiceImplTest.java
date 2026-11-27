@@ -30,6 +30,7 @@ import com.tychewealth.mapper.MarketPriceReadMapper;
 import com.tychewealth.model.HistoryResolution;
 import com.tychewealth.model.MarketQuote;
 import com.tychewealth.service.MarketPriceCheckpointService;
+import com.tychewealth.service.helper.MarketPriceCheckpointBatchHelper;
 import com.tychewealth.service.helper.MarketPriceFilterFieldMapping;
 import com.tychewealth.service.helper.MarketPriceHistorySampler;
 import com.tychewealth.service.helper.MarketPriceLatestFilterFieldMapping;
@@ -72,6 +73,7 @@ class MarketPriceReadServiceImplTest {
                 new MarketPriceFilterFieldMapping(),
                 new MarketPriceLatestFilterFieldMapping(),
                 validationHelper),
+            new MarketPriceCheckpointBatchHelper(checkpointService),
             Mappers.getMapper(MarketPriceReadMapper.class),
             new MarketPriceHistorySampler(checkpointService, 1_000));
   }

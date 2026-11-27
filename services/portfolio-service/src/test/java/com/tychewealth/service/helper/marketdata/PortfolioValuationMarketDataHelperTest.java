@@ -18,6 +18,7 @@ import com.tychewealth.marketdataclient.dto.LatestMarketPrice;
 import com.tychewealth.marketdataclient.dto.MarketDataPage;
 import com.tychewealth.marketdataclient.dto.PriceCheckpoint;
 import com.tychewealth.serviceauth.client.ServiceAccessTokenProvider;
+import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -66,5 +67,33 @@ class PortfolioValuationMarketDataHelperTest {
     verify(marketDataClient)
         .retrievePriceCheckpoints(
             List.of(TEST_ASSET_SYMBOL_MSFT), capturedAt, TEST_SERVICE_ACCESS_TOKEN);
+  }
+
+  @Test
+  void retrievesPriceCheckpointsForAllValuationInstantsInOneBatch() {
+    List<Instant> requestedCapturedAts =
+        List.of(TEST_MARKET_DATA_CAPTURED_AT, TEST_MARKET_DATA_CAPTURED_AT.plusSeconds(60));
+    PriceCheckpoint checkpoint =
+        new PriceCheckpoint(
+            TEST_ASSET_SYMBOL_MSFT,
+            TEST_MARKET_PRICE_25_00,
+            TEST_MARKET_DATA_CAPTURED_AT,
+            TEST_MARKET_DATA_BUCKET_START,
+            requestedCapturedAts.getFirst());
+    when(serviceAccessTokenProvider.getAccessToken(
+            TEST_MARKET_DATA_SERVICE_REGISTRATION, TEST_PORTFOLIO_SERVICE_PRINCIPAL))
+        .thenReturn(TEST_SERVICE_ACCESS_TOKEN);
+    when(marketDataClient.retrievePriceCheckpointsForInstants(
+            List.of(TEST_ASSET_SYMBOL_MSFT), requestedCapturedAts, TEST_SERVICE_ACCESS_TOKEN))
+        .thenReturn(List.of(checkpoint));
+
+    var result =
+        marketDataHelper.retrievePriceHistory(
+            List.of(TEST_ASSET_SYMBOL_MSFT), requestedCapturedAts);
+
+    assertThat(result).containsExactly(checkpoint);
+    verify(marketDataClient)
+        .retrievePriceCheckpointsForInstants(
+            List.of(TEST_ASSET_SYMBOL_MSFT), requestedCapturedAts, TEST_SERVICE_ACCESS_TOKEN);
   }
 }

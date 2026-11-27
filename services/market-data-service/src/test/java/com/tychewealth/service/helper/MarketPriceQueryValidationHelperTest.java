@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.tychewealth.error.ErrorDefinition;
 import com.tychewealth.error.exception.InvalidMarketPriceQueryException;
+import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -58,6 +59,29 @@ class MarketPriceQueryValidationHelperTest {
                 helper.validateTimeRange(
                     java.time.Instant.parse("2026-01-02T00:00:00Z"),
                     java.time.Instant.parse("2026-01-01T00:00:00Z")))
+        .isInstanceOf(InvalidMarketPriceQueryException.class)
+        .extracting(
+            exception -> ((InvalidMarketPriceQueryException) exception).getErrorDefinition())
+        .isEqualTo(ErrorDefinition.MARKET_PRICE_TIME_RANGE_INVALID);
+  }
+
+  @Test
+  void rejectsMalformedCapturedAt() {
+    assertThatThrownBy(() -> helper.parseCapturedAt("not-an-instant"))
+        .isInstanceOf(InvalidMarketPriceQueryException.class)
+        .extracting(
+            exception -> ((InvalidMarketPriceQueryException) exception).getErrorDefinition())
+        .isEqualTo(ErrorDefinition.MARKET_PRICE_CAPTURED_AT_INVALID);
+  }
+
+  @Test
+  void allowsOpenEndedSampledHistoryRangeWithRequiredStart() {
+    helper.validateSampledHistoryRange(Instant.parse("2026-01-01T00:00:00Z"), null);
+  }
+
+  @Test
+  void rejectsMissingSampledHistoryStart() {
+    assertThatThrownBy(() -> helper.validateSampledHistoryRange(null, null))
         .isInstanceOf(InvalidMarketPriceQueryException.class)
         .extracting(
             exception -> ((InvalidMarketPriceQueryException) exception).getErrorDefinition())

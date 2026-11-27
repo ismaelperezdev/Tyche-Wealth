@@ -129,11 +129,16 @@ public class PortfolioServiceImpl implements PortfolioService {
       Long userId, Long portfolioId, Instant from, Instant to) {
     commonValidationHelper.validateAuthenticatedUser(userId);
     Instant effectiveTo = portfolioValuationHelper.resolveTo(to);
-    portfolioValuationValidationHelper.validateRange(from, effectiveTo);
+    if (from != null) {
+      portfolioValuationValidationHelper.validateRange(from, effectiveTo);
+    }
     PortfolioEntity portfolio =
         commonValidationHelper.validateOwnedPortfolio(userId, portfolioId, RETRIEVE_ACTION);
 
     Instant effectiveFrom = portfolioValuationHelper.resolveFrom(from, portfolio);
+    if (from == null) {
+      portfolioValuationValidationHelper.validateRange(effectiveFrom, effectiveTo);
+    }
     return portfolioValuationHelper.valuePortfolio(
         portfolioId, portfolio, effectiveFrom, effectiveTo, to == null);
   }

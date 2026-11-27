@@ -65,4 +65,18 @@
 
     </changeSet>
 
+    <changeSet id="add-market-price-checkpoints-as-of-index" author="tyche-wealth">
+        <createIndex tableName="market_price_checkpoints"
+                     indexName="idx_market_price_checkpoints_symbol_captured_at_id">
+            <column name="market_symbol_id"/>
+            <column name="captured_at" descending="true"/>
+            <column name="id" descending="true"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex tableName="market_price_checkpoints"
+                       indexName="idx_market_price_checkpoints_symbol_captured_at_id"/>
+        </rollback>
+    </changeSet>
+
 </databaseChangeLog>

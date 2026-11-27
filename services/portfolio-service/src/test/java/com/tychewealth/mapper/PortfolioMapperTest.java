@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import com.tychewealth.dto.portfolio.PortfolioResponseDto;
 import com.tychewealth.dto.portfolio.request.PortfolioCreateRequestDto;
 import com.tychewealth.dto.portfolio.request.PortfolioUpdateRequestDto;
+import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.entity.AssetVariationEntity;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.enums.CurrencyCodeEnum;
@@ -88,8 +89,11 @@ class PortfolioMapperTest {
   @Test
   void toInstantMapsAssetVariationTimestampAsUtc() {
     LocalDateTime occurredAt = LocalDateTime.of(2026, 11, 2, 12, 30);
+    AssetEntity asset = new AssetEntity();
+    asset.setSymbol("TEST");
+    asset.setCurrency(CurrencyCodeEnum.EUR);
     AssetVariationEntity variation =
-        new AssetVariationEntity(null, null, null, null, null, null, occurredAt);
+        new AssetVariationEntity(asset, null, null, null, null, null, occurredAt);
 
     assertEquals(occurredAt.toInstant(ZoneOffset.UTC), mapper.toInstant(variation));
     assertEquals(Instant.parse("2026-11-02T12:30:00Z"), mapper.toInstant(variation));

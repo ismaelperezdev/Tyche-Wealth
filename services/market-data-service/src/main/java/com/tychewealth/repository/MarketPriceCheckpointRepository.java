@@ -20,7 +20,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface MarketPriceCheckpointRepository
     extends JpaRepository<MarketPriceCheckpointEntity, Long>,
-        JpaSpecificationExecutor<MarketPriceCheckpointEntity> {
+        JpaSpecificationExecutor<MarketPriceCheckpointEntity>,
+        MarketPriceCheckpointAsOfRepository {
 
   @Override
   @EntityGraph(attributePaths = "marketSymbol")

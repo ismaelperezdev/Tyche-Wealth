@@ -24,7 +24,17 @@ public interface MarketPriceReadMapper {
   @Mapping(target = "symbol", source = "marketSymbol.symbol")
   @Mapping(target = CAPTURED_AT, source = CAPTURED_AT, qualifiedByName = "toUtcInstant")
   @Mapping(target = BUCKET_START, source = BUCKET_START, qualifiedByName = "toUtcInstant")
+  @Mapping(target = "requestedCapturedAt", ignore = true)
   PriceCheckpointDto toPriceCheckpointDto(MarketPriceCheckpointEntity checkpoint);
+
+  @Mapping(target = "symbol", source = "checkpoint.marketSymbol.symbol")
+  @Mapping(target = CAPTURED_AT, source = "checkpoint.capturedAt", qualifiedByName = "toUtcInstant")
+  @Mapping(
+      target = BUCKET_START,
+      source = "checkpoint.bucketStart",
+      qualifiedByName = "toUtcInstant")
+  PriceCheckpointDto toPriceCheckpointDto(
+      MarketPriceCheckpointEntity checkpoint, Instant requestedCapturedAt);
 
   @Named("toUtcInstant")
   default Instant toUtcInstant(LocalDateTime timestamp) {

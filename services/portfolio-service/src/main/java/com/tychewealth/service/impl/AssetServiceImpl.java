@@ -22,6 +22,7 @@ import com.tychewealth.dto.asset.request.AssetUpdateRequestDto;
 import com.tychewealth.entity.AssetEntity;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.enums.AssetBatchActionEnum;
+import com.tychewealth.enums.CurrencyCodeEnum;
 import com.tychewealth.mapper.asset.AssetMapper;
 import com.tychewealth.repository.AssetRepository;
 import com.tychewealth.service.AssetService;
@@ -39,6 +40,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import lombok.AllArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -137,6 +139,8 @@ public class AssetServiceImpl implements AssetService {
     AssetEntity asset = assetValidationHelper.validateRetrievedAssetExists(portfolioId, assetId);
     BigDecimal previousQuantity = asset.getQuantity();
     BigDecimal previousAveragePrice = asset.getAveragePrice();
+    String previousSymbol = asset.getSymbol();
+    CurrencyCodeEnum previousCurrency = asset.getCurrency();
 
     if (updateRequest.getName() != null && !updateRequest.getName().equals(asset.getName())) {
       assetValidationHelper.validateCreateNameConflict(portfolioId, updateRequest.getName());
@@ -148,7 +152,9 @@ public class AssetServiceImpl implements AssetService {
     assetMapper.update(updateRequest, asset);
     AssetEntity persistedAsset = assetRepository.saveAndFlush(asset);
     if (hasChanged(previousQuantity, persistedAsset.getQuantity())
-        || hasChanged(previousAveragePrice, persistedAsset.getAveragePrice())) {
+        || hasChanged(previousAveragePrice, persistedAsset.getAveragePrice())
+        || !Objects.equals(previousSymbol, persistedAsset.getSymbol())
+        || !Objects.equals(previousCurrency, persistedAsset.getCurrency())) {
       assetVariationService.update(
           persistedAsset, previousQuantity, previousAveragePrice, LocalDateTime.now());
     }

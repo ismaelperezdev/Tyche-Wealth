@@ -58,6 +58,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
@@ -69,6 +70,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.tychewealth.config.PortfolioIntegrationTestConfig;
 import com.tychewealth.entity.AssetEntity;
+import com.tychewealth.entity.AssetVariationEntity;
 import com.tychewealth.entity.PortfolioEntity;
 import com.tychewealth.enums.AssetTypeEnum;
 import com.tychewealth.enums.CurrencyCodeEnum;
@@ -91,6 +93,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -161,9 +164,22 @@ class PortfolioApiControllerIntegrationTest {
     when(serviceAccessTokenProvider.getAccessToken(
             TEST_MARKET_DATA_SERVICE_REGISTRATION, TEST_PORTFOLIO_SERVICE_PRINCIPAL))
         .thenReturn(TEST_SERVICE_ACCESS_TOKEN);
-    when(marketDataClient.retrievePriceCheckpoints(
-            List.of(TEST_ASSET_SYMBOL_MSFT), from, TEST_SERVICE_ACCESS_TOKEN))
-        .thenReturn(List.of(initialCheckpoint));
+    when(marketDataClient.retrievePriceCheckpointsForInstants(
+            eq(List.of(TEST_ASSET_SYMBOL_MSFT)), anyList(), eq(TEST_SERVICE_ACCESS_TOKEN)))
+        .thenAnswer(
+            invocation -> {
+              List<Instant> requestedCapturedAts = invocation.getArgument(1);
+              return requestedCapturedAts.stream()
+                  .map(
+                      requestedCapturedAt ->
+                          new PriceCheckpoint(
+                              initialCheckpoint.symbol(),
+                              initialCheckpoint.price(),
+                              initialCheckpoint.capturedAt(),
+                              initialCheckpoint.bucketStart(),
+                              requestedCapturedAt))
+                  .toList();
+            });
     when(marketDataClient.getSampledPriceHistory(
             eq(List.of(TEST_ASSET_SYMBOL_MSFT)),
             eq(from),
@@ -201,6 +217,128 @@ class PortfolioApiControllerIntegrationTest {
         .andExpect(jsonPath("$.fxRates[0].baseCurrency").value("USD"))
         .andExpect(jsonPath("$.fxRates[0].quoteCurrency").value("EUR"))
         .andExpect(jsonPath("$.fxRates[0].effectiveDate").value(fxEffectiveDate.toString()));
+  }
+
+  @Test
+  void valuationUsesCheckpointBeforeAcquisitionBetweenTwoCheckpoints() throws Exception {
+    PortfolioEntity portfolio =
+        portfolioRepository.saveAndFlush(
+            buildPortfolio(
+                TEST_USER_ID,
+                TEST_PORTFOLIO_NAME_CORE,
+                CurrencyCodeEnum.EUR,
+                RiskProfileEnum.MEDIUM,
+                StrategyTypeEnum.BALANCED,
+                InvestmentHorizonEnum.LONG));
+    AssetEntity asset =
+        assetRepository.saveAndFlush(
+            buildAsset(
+                portfolio,
+                "Microsoft",
+                TEST_ASSET_SYMBOL_MSFT,
+                AssetTypeEnum.STOCK,
+                CurrencyCodeEnum.EUR));
+
+    Instant from = Instant.now().truncatedTo(ChronoUnit.SECONDS).minusSeconds(1);
+    Instant earlierCheckpointAt = from.plusSeconds(10);
+    Instant acquisitionAt = from.plusSeconds(30);
+    Instant laterCheckpointAt = from.plusSeconds(50);
+    Instant to = from.plusSeconds(90);
+    assetVariationRepository.saveAndFlush(
+        createdVariation(
+            asset, "10.00", "100.00", LocalDateTime.ofInstant(acquisitionAt, ZoneOffset.UTC)));
+    PriceCheckpoint earlierCheckpoint =
+        new PriceCheckpoint(
+            TEST_ASSET_SYMBOL_MSFT,
+            new BigDecimal("120.00"),
+            earlierCheckpointAt,
+            earlierCheckpointAt);
+    PriceCheckpoint laterCheckpoint =
+        new PriceCheckpoint(
+            TEST_ASSET_SYMBOL_MSFT, new BigDecimal("130.00"), laterCheckpointAt, laterCheckpointAt);
+
+    when(serviceAccessTokenProvider.getAccessToken(
+            TEST_MARKET_DATA_SERVICE_REGISTRATION, TEST_PORTFOLIO_SERVICE_PRINCIPAL))
+        .thenReturn(TEST_SERVICE_ACCESS_TOKEN);
+    when(marketDataClient.getSampledPriceHistory(
+            eq(List.of(TEST_ASSET_SYMBOL_MSFT)), eq(from), eq(to), eq(TEST_SERVICE_ACCESS_TOKEN)))
+        .thenReturn(List.of(earlierCheckpoint, laterCheckpoint));
+    when(marketDataClient.retrievePriceCheckpointsForInstants(
+            eq(List.of(TEST_ASSET_SYMBOL_MSFT)), anyList(), eq(TEST_SERVICE_ACCESS_TOKEN)))
+        .thenAnswer(
+            invocation -> {
+              List<Instant> requestedCapturedAts = invocation.getArgument(1);
+              assertTrue(requestedCapturedAts.contains(acquisitionAt));
+              return requestedCapturedAts.stream()
+                  .map(
+                      requestedCapturedAt ->
+                          List.of(earlierCheckpoint, laterCheckpoint).stream()
+                              .filter(
+                                  checkpoint ->
+                                      !checkpoint.capturedAt().isAfter(requestedCapturedAt))
+                              .reduce((first, second) -> second)
+                              .map(
+                                  checkpoint ->
+                                      new PriceCheckpoint(
+                                          checkpoint.symbol(),
+                                          checkpoint.price(),
+                                          checkpoint.capturedAt(),
+                                          checkpoint.bucketStart(),
+                                          requestedCapturedAt)))
+                  .flatMap(java.util.Optional::stream)
+                  .toList();
+            });
+    when(marketDataClient.retrievePriceCheckpoints(
+            List.of(TEST_ASSET_SYMBOL_MSFT), to, TEST_SERVICE_ACCESS_TOKEN))
+        .thenReturn(List.of(laterCheckpoint));
+
+    mockMvc
+        .perform(
+            get(PORTFOLIO_BASE_URL + "/me/{portfolioId}/valuation", portfolio.getId())
+                .param("from", from.toString())
+                .param("to", to.toString())
+                .header(AUTHORIZATION_HEADER, createAuthorizationHeader(TEST_USER_ID)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.points", hasSize(5)))
+        .andExpect(jsonPath("$.points[2].timestamp").value(acquisitionAt.toString()))
+        .andExpect(
+            jsonPath("$.points[2].priceObservations[0].capturedAt")
+                .value(earlierCheckpointAt.toString()))
+        .andExpect(jsonPath("$.points[2].unrealizedProfitLoss").value(200.0));
+  }
+
+  @Test
+  void persistsAssetIdentityOnVariationIndependentlyOfLaterAssetUpdates() {
+    PortfolioEntity portfolio =
+        portfolioRepository.saveAndFlush(
+            buildPortfolio(
+                TEST_USER_ID,
+                TEST_PORTFOLIO_NAME_CORE,
+                CurrencyCodeEnum.EUR,
+                RiskProfileEnum.MEDIUM,
+                StrategyTypeEnum.BALANCED,
+                InvestmentHorizonEnum.LONG));
+    AssetEntity asset =
+        assetRepository.saveAndFlush(
+            buildAsset(
+                portfolio,
+                "Microsoft",
+                TEST_ASSET_SYMBOL_MSFT,
+                AssetTypeEnum.STOCK,
+                CurrencyCodeEnum.USD));
+    LocalDateTime occurredAt = LocalDateTime.of(2026, 11, 1, 12, 0);
+    AssetVariationEntity variation =
+        assetVariationRepository.saveAndFlush(
+            createdVariation(asset, "10.00", "100.00", occurredAt));
+
+    asset.setSymbol("MSFT-NEW");
+    asset.setCurrency(CurrencyCodeEnum.GBP);
+    assetRepository.saveAndFlush(asset);
+
+    AssetVariationEntity persistedVariation =
+        assetVariationRepository.findById(variation.getId()).orElseThrow();
+    assertEquals(TEST_ASSET_SYMBOL_MSFT, persistedVariation.getSymbol());
+    assertEquals(CurrencyCodeEnum.USD, persistedVariation.getCurrency());
   }
 
   @Test

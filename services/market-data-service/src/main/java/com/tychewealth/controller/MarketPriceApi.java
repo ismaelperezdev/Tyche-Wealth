@@ -13,7 +13,6 @@ import com.tychewealth.service.helper.MarketPriceLatestFilterFieldMapping;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
-import java.time.Instant;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,7 +36,7 @@ public interface MarketPriceApi {
       @Parameter(name = "symbol.in", required = true)
           @RequestParam(name = "symbol.in", required = false)
           List<String> symbols,
-      @RequestParam(name = "capturedAt", required = false) String capturedAt);
+      @RequestParam(name = "capturedAt", required = false) List<String> capturedAts);
 
   /** Returns the complete sampled history for chart consumers without pagination. */
   @GetMapping(value = SAMPLED_PRICE_HISTORY_URL, produces = REQUEST_PRODUCES)
@@ -45,6 +44,6 @@ public interface MarketPriceApi {
       @Parameter(name = "symbol.in", required = true)
           @RequestParam(name = "symbol.in", required = false)
           List<String> symbols,
-      @RequestParam(name = "capturedAt.gte") Instant from,
-      @RequestParam(name = "capturedAt.lte", required = false) Instant to);
+      @RequestParam(name = "capturedAt.gte", required = false) String from,
+      @RequestParam(name = "capturedAt.lte", required = false) String to);
 }

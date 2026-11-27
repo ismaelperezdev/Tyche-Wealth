@@ -7,12 +7,15 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -99,6 +102,37 @@ class MarketDataClientIntegrationTest {
 
     assertThat(result).hasSize(1);
     assertThat(result.getFirst().capturedAt()).isEqualTo(Instant.parse("2026-11-01T00:00:00Z"));
+    server.verify();
+  }
+
+  @Test
+  void retrievesCheckpointsAtMultipleInstantsUsingRepeatedCapturedAtParameters()
+      throws IOException {
+    Instant firstAsOf = Instant.parse("2026-11-08T00:00:00Z");
+    Instant secondAsOf = Instant.parse("2026-11-09T00:00:00Z");
+    server
+        .expect(
+            requestTo(
+                "http://market-data.test/internal/prices/history?symbol.in=AAPL&capturedAt=2026-11-08T00:00:00Z&capturedAt=2026-11-09T00:00:00Z"))
+        .andExpect(
+            request -> {
+              var query = UriComponentsBuilder.fromUri(request.getURI()).build().getQueryParams();
+              assertThat(query.get("capturedAt"))
+                  .containsExactly(firstAsOf.toString(), secondAsOf.toString());
+            })
+        .andRespond(
+            withSuccess(
+                new ClassPathResource("fixtures/market-price-checkpoints-multiple-as-of.json")
+                    .getContentAsString(StandardCharsets.UTF_8),
+                MediaType.APPLICATION_JSON));
+
+    var result =
+        client.retrievePriceCheckpointsForInstants(
+            List.of("AAPL"), List.of(firstAsOf, secondAsOf), "token");
+
+    assertThat(result).hasSize(2);
+    assertThat(result.get(0).requestedCapturedAt()).isEqualTo(firstAsOf);
+    assertThat(result.get(1).requestedCapturedAt()).isEqualTo(secondAsOf);
     server.verify();
   }
 
